@@ -1,0 +1,945 @@
+<title>BANDI-SCANNER v2 — Specifica Funzionale &amp; Roadmap di Sviluppo</title>
+<style>
+  :root {
+    --bg: #ffffff; --bg-soft: #f6f7f9; --bg-card: #fafbfc;
+    --text: #1a2233; --text-soft: #5a6478;
+    --border: #dde2ea; --border-strong: #c3cad6;
+    --accent: #1b5fae; --accent-soft: #e8f0fa;
+    --green: #1a7f4b; --green-bg: #e4f4ea;
+    --yellow: #9a6b00; --yellow-bg: #fdf3d7;
+    --red: #b4232a; --red-bg: #fbe7e8;
+    --grey: #5a6478; --grey-bg: #eef0f4;
+    --blue: #1b5fae; --blue-bg: #e8f0fa;
+    --purple: #6b3fa0; --purple-bg: #f0e8fa;
+    --code-bg: #f1f3f7;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --shadow: 0 1px 3px rgba(20,30,50,.07), 0 4px 14px rgba(20,30,50,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181f; --bg-soft: #1b212b; --bg-card: #191f28;
+      --text: #e6eaf1; --text-soft: #9aa5b8;
+      --border: #2b3342; --border-strong: #3b455a;
+      --accent: #6aa5e8; --accent-soft: #1d2b40;
+      --green: #4fc586; --green-bg: #16301f;
+      --yellow: #e3b53f; --yellow-bg: #33290e;
+      --red: #f08289; --red-bg: #3a1a1c;
+      --grey: #9aa5b8; --grey-bg: #242b37;
+      --blue: #6aa5e8; --blue-bg: #1d2b40;
+      --purple: #b48ae0; --purple-bg: #2a1d40;
+      --code-bg: #10141b; --shadow: none;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --bg-soft: #f6f7f9; --bg-card: #fafbfc;
+    --text: #1a2233; --text-soft: #5a6478;
+    --border: #dde2ea; --border-strong: #c3cad6;
+    --accent: #1b5fae; --accent-soft: #e8f0fa;
+    --green: #1a7f4b; --green-bg: #e4f4ea;
+    --yellow: #9a6b00; --yellow-bg: #fdf3d7;
+    --red: #b4232a; --red-bg: #fbe7e8;
+    --grey: #5a6478; --grey-bg: #eef0f4;
+    --blue: #1b5fae; --blue-bg: #e8f0fa;
+    --purple: #6b3fa0; --purple-bg: #f0e8fa;
+    --code-bg: #f1f3f7;
+    --shadow: 0 1px 3px rgba(20,30,50,.07), 0 4px 14px rgba(20,30,50,.05);
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181f; --bg-soft: #1b212b; --bg-card: #191f28;
+    --text: #e6eaf1; --text-soft: #9aa5b8;
+    --border: #2b3342; --border-strong: #3b455a;
+    --accent: #6aa5e8; --accent-soft: #1d2b40;
+    --green: #4fc586; --green-bg: #16301f;
+    --yellow: #e3b53f; --yellow-bg: #33290e;
+    --red: #f08289; --red-bg: #3a1a1c;
+    --grey: #9aa5b8; --grey-bg: #242b37;
+    --blue: #6aa5e8; --blue-bg: #1d2b40;
+    --purple: #b48ae0; --purple-bg: #2a1d40;
+    --code-bg: #10141b; --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.65 -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", sans-serif;
+    margin: 0;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: 0 0 .35rem; letter-spacing: -.02em; }
+  h2 {
+    font-size: 1.5rem; margin: 3.4rem 0 1rem; padding-top: 1.2rem;
+    border-top: 3px solid var(--accent); letter-spacing: -.01em;
+  }
+  h2 .num { color: var(--accent); margin-right: .4rem; }
+  h3 { font-size: 1.14rem; margin: 2.2rem 0 .6rem; }
+  h4 { font-size: .95rem; margin: 1.4rem 0 .4rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-soft); }
+  p { margin: .6rem 0; }
+  .lead { color: var(--text-soft); font-size: 1.05rem; margin-bottom: 1.6rem; }
+  .meta { color: var(--text-soft); font-size: .85rem; margin-bottom: 2rem; }
+  a { color: var(--accent); }
+  ul, ol { padding-left: 1.4rem; margin: .5rem 0; }
+  li { margin: .25rem 0; }
+  strong { font-weight: 650; }
+
+  code, .mono {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--code-bg); padding: .1em .35em; border-radius: 4px;
+  }
+  pre {
+    font-family: var(--mono); font-size: .8rem; line-height: 1.55;
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.2rem; overflow-x: auto; margin: 1rem 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  .scroll { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; background: var(--bg-card); }
+  th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); font-weight: 650; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.center, th.center { text-align: center; }
+  tbody tr:hover { background: var(--bg-soft); }
+
+  .badge {
+    display: inline-block; font-size: .74rem; font-weight: 650; letter-spacing: .02em;
+    padding: .12em .55em; border-radius: 999px; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .b-green  { color: var(--green);  background: var(--green-bg);  border-color: color-mix(in srgb, var(--green) 30%, transparent); }
+  .b-yellow { color: var(--yellow); background: var(--yellow-bg); border-color: color-mix(in srgb, var(--yellow) 30%, transparent); }
+  .b-red    { color: var(--red);    background: var(--red-bg);    border-color: color-mix(in srgb, var(--red) 30%, transparent); }
+  .b-grey   { color: var(--grey);   background: var(--grey-bg);   border-color: color-mix(in srgb, var(--grey) 30%, transparent); }
+  .b-blue   { color: var(--blue);   background: var(--blue-bg);   border-color: color-mix(in srgb, var(--blue) 30%, transparent); }
+  .b-purple { color: var(--purple); background: var(--purple-bg); border-color: color-mix(in srgb, var(--purple) 30%, transparent); }
+
+  .box {
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-card); padding: 1.1rem 1.3rem; margin: 1rem 0;
+    box-shadow: var(--shadow);
+  }
+  .box-accent { border-left: 4px solid var(--accent); }
+  .callout {
+    border-left: 4px solid var(--yellow); background: var(--yellow-bg);
+    border-radius: 0 8px 8px 0; padding: .8rem 1.1rem; margin: 1rem 0; font-size: .92rem;
+  }
+  .callout-green { border-left-color: var(--green); background: var(--green-bg); }
+  .callout-red { border-left-color: var(--red); background: var(--red-bg); }
+  .callout-blue { border-left-color: var(--blue); background: var(--blue-bg); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .toc {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg-card); padding: 1.2rem 1.5rem; margin: 1.5rem 0 1rem;
+    columns: 2; column-gap: 2.5rem;
+  }
+  @media (max-width: 700px) { .toc { columns: 1; } }
+  .toc ol { margin: 0; padding-left: 1.4rem; }
+  .toc li { margin: .3rem 0; break-inside: avoid; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .sub { font-size: .84rem; color: var(--text-soft); padding-left: 1.1rem; list-style: none; margin-top: .15rem; }
+
+  /* branch cards */
+  .branch {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg-card); margin: 1.6rem 0; box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .branch-head {
+    display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+    padding: .8rem 1.3rem; background: var(--bg-soft); border-bottom: 1px solid var(--border);
+  }
+  .branch-head code { font-size: .92rem; font-weight: 650; background: var(--code-bg); }
+  .branch-body { padding: .4rem 1.3rem 1.1rem; }
+  .branch h5 {
+    font-size: .78rem; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--text-soft); margin: 1.1rem 0 .35rem;
+  }
+  .branch ul { margin: .3rem 0; }
+  .branch li { margin: .2rem 0; font-size: .92rem; }
+  .files { font-size: .85rem; }
+  .files code { white-space: nowrap; }
+
+  /* ADR cards */
+  .adr { border-left: 4px solid var(--purple); }
+  .adr h3 { margin-top: 0; }
+
+  /* ERD */
+  .erd pre { font-size: .75rem; line-height: 1.45; }
+
+  /* flow diagrams */
+  .flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.2rem 0; }
+  .fnode {
+    border: 1.5px solid var(--border-strong); border-radius: 10px;
+    background: var(--bg-card); padding: .7rem .95rem; min-width: 120px;
+    text-align: center; font-size: .85rem; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .fnode b { display: block; font-size: .92rem; }
+  .fnode small { color: var(--text-soft); font-size: .74rem; line-height: 1.35; display: block; margin-top: .15rem; }
+  .farrow { display: flex; align-items: center; padding: 0 .55rem; color: var(--accent); font-weight: 700; font-size: 1.15rem; }
+  .fnode.f-green { border-color: var(--green); }
+  .fnode.f-yellow { border-color: var(--yellow); }
+  .fnode.f-blue { border-color: var(--blue); }
+
+  .tagline { font-size: .8rem; color: var(--text-soft); }
+  .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: .75rem;
+    font-weight: 700; color: var(--accent); margin-bottom: .4rem;
+  }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media print {
+    :root { --bg: #fff; --bg-soft: #f4f4f4; --bg-card: #fff; --text: #111; --text-soft: #444; --shadow: none; }
+    body { font-size: 10.5pt; }
+    h2 { break-after: avoid; }
+    .box, table, .branch, pre { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+
+<div class="wrap">
+
+<div class="kicker">Specifica Funzionale + Roadmap di Sviluppo</div>
+<h1>BANDI-SCANNER v2 — Roadmap branch-by-branch</h1>
+<p class="lead">Documento operativo di sviluppo. Complementare al <em>design definitivo</em> (<code>bandi-scanner-v2-definitive.html</code>, single source of truth per le decisioni di prodotto): questo documento traduce quelle decisioni in <strong>15 branch autonomi</strong>, ognuno sviluppabile, testabile e mergiabile in modo indipendente, ordinati per dipendenze.</p>
+<p class="meta">Versione 1.0 &middot; 3 luglio 2026 &middot; Stato: <span class="badge b-green">Pronto per lo sviluppo</span> &middot; Repo: <code>/home/user/Bandi</code> (app Next.js in <code>app/</code>, scraper in <code>scraper/</code> da creare)</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#p1">Parte 1 — Domain Model</a>
+      <ul class="sub">
+        <li><a href="#p1-erd">Diagramma entità-relazioni</a></li>
+        <li><a href="#p1-ctx">Bounded contexts</a></li>
+        <li><a href="#p1-inv">Regole e invarianti di dominio</a></li>
+      </ul>
+    </li>
+    <li><a href="#p2">Parte 2 — Architecture Decision Records</a></li>
+    <li><a href="#p3">Parte 3 — Roadmap dei branch</a>
+      <ul class="sub">
+        <li><a href="#ph1">Fase 1 — Fondamenta (001–003)</a></li>
+        <li><a href="#ph2">Fase 2 — Feature core (004–006)</a></li>
+        <li><a href="#ph3">Fase 3 — Scraping (007–009)</a></li>
+        <li><a href="#ph4">Fase 4 — Feature utente (010–012)</a></li>
+        <li><a href="#ph5">Fase 5 — Rifinitura (013–015)</a></li>
+      </ul>
+    </li>
+    <li><a href="#p4">Parte 4 — Piano di test di accettazione</a></li>
+    <li><a href="#p5">Parte 5 — Proiezione costi</a></li>
+  </ol>
+</nav>
+
+<div class="callout callout-blue">
+  <strong>Come usare questo documento.</strong> Ogni branch è una unità di lavoro completa: descrizione, dipendenze, file da creare/modificare, criteri di accettazione, complessità. Un developer (o Claude) prende la spec di un branch, crea il branch da <code>main</code>, implementa con TDD sulle seam indicate, fa passare i criteri di accettazione, apre la PR. <strong>Nessun branch dipende da branch di fase successiva</strong>; dentro una fase le dipendenze sono esplicitate. Convenzioni: UI in italiano, codice e commenti in inglese, contesto normativo D.Lgs 117/2017.
+</div>
+
+<!-- ================================================================ -->
+<!-- PART 1: DOMAIN MODEL -->
+<!-- ================================================================ -->
+<h2 id="p1"><span class="num">Parte 1.</span> Domain Model</h2>
+
+<p>Il linguaggio del dominio (da usare in codice, commenti e nomi di tabella — inglese per il codice, italiano per la UI):</p>
+
+<div class="scroll"><table>
+  <thead><tr><th>Termine</th><th>Definizione</th><th>Evitare</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Entity (Ente)</strong></td><td>L'organizzazione non profit che usa la piattaforma (ASD, SSD, ETS, cooperativa, fondazione). Un account Supabase Auth = un ente. Rappresentata dalla riga in <code>profiles</code>.</td><td>Client, customer, organization, tenant</td></tr>
+    <tr><td><strong>Profile (Profilo)</strong></td><td>I ~40 campi in 8 sezioni che descrivono l'ente ai fini del matching.</td><td>Account, anagrafica</td></tr>
+    <tr><td><strong>Grant (Bando)</strong></td><td>Un'opportunità di finanziamento pubblica o privata, con i 16 campi estratti. Condiviso fra tutti gli utenti.</td><td>Call, opportunity, tender</td></tr>
+    <tr><td><strong>Grant Provider (Erogatore)</strong></td><td>L'ente che eroga il finanziamento, da lista predefinita di ~70 (tabella <code>grant_providers</code>). Mai testo libero.</td><td>Funder, issuer</td></tr>
+    <tr><td><strong>Grant Source (Fonte)</strong></td><td>Un sito web monitorato dallo scraper (12 nell'MVP). Distinta dall'erogatore: una fonte aggregatrice pubblica bandi di molti erogatori.</td><td>Feed, sito</td></tr>
+    <tr><td><strong>Match</strong></td><td>Il risultato del confronto profilo × bando: score 0–100, breakdown 6 dimensioni, verdetto, indicatori, azioni. Calcolato on-the-fly, mai persistito.</td><td>Score (da solo), rating</td></tr>
+    <tr><td><strong>Verdict (Verdetto)</strong></td><td>La classificazione derivata dallo score: Candidabile / Da preparare / Da valutare / Bassa priorità / Non compatibile / Storico.</td><td>Status, esito</td></tr>
+    <tr><td><strong>Saved Grant (Bando salvato)</strong></td><td>Un bando inserito dall'utente nella propria pipeline personale a 4 stati + 2 esiti.</td><td>Bookmark, preferito</td></tr>
+    <tr><td><strong>Capacity (Capacità)</strong></td><td>Livello gestionale Bassa/Media/Alta <strong>calcolato</strong> dalle 6 domande della sezione 4 del profilo. Mai autodichiarato.</td><td>Maturità, dimensione</td></tr>
+    <tr><td><strong>Track record (Storico)</strong></td><td>Le righe strutturate di storico progetti (sezione 7 del profilo), auto-popolate dalla pipeline.</td><td>History, esperienza</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="p1-erd">1.1 — Diagramma entità-relazioni (6 tabelle)</h3>
+
+<div class="erd"><pre><code>                        ┌──────────────────────┐
+                        │      auth.users      │  (Supabase Auth — non nostra)
+                        └─────────┬────────────┘
+                                  │ 1:1 (user_id, UNIQUE)
+          ┌───────────────────────┼───────────────────────┐
+          │                       │                       │
+┌─────────▼──────────┐  ┌─────────▼──────────┐  ┌─────────▼──────────┐
+│      profiles      │  │   user_settings    │  │    saved_grants    │
+│────────────────────│  │────────────────────│  │────────────────────│
+│ id (uuid PK)       │  │ id (PK)            │  │ id (PK)            │
+│ user_id (FK,UNIQUE)│  │ user_id (FK,UNIQUE)│  │ user_id (FK)       │
+│ ~40 campi, 8 sez.  │  │ alert_threshold=50 │  │ grant_id (FK) ─────┼──┐
+│ project_history[]  │  │ alert_frequency    │  │ status (enum 6)    │  │
+│  └─ provider_id ───┼─┐│ (weekly|off)       │  │ notes              │  │
+└────────────────────┘ │└────────────────────┘  │ UNIQUE(user,grant) │  │
+                       │                        └────────────────────┘  │
+                       │ N:1                                       N:1  │
+             ┌─────────▼──────────┐              ┌────────────────────┐ │
+             │  grant_providers   │              │       grants       │◄┘
+             │────────────────────│         N:1  │────────────────────│
+             │ id (PK)            │◄─────────────┼ provider_id (FK)   │
+             │ name (~70 seed)    │              │ 16 campi estratti  │
+             │ kind: pubblico/    │              │ source_id (FK) ────┼──┐
+             │  privato/EU        │              │ url (UNIQUE=dedup) │  │
+             └────────────────────┘              └────────────────────┘  │
+                                                                    N:1  │
+                                                 ┌────────────────────┐  │
+                                                 │   grant_sources    │◄─┘
+                                                 │────────────────────│
+                                                 │ id (PK)            │
+                                                 │ name, url          │
+                                                 │ scrape_config jsonb│
+                                                 │ enabled, last_run  │
+                                                 └────────────────────┘</code></pre></div>
+
+<h3 id="p1-ctx">1.2 — Bounded contexts</h3>
+
+<div class="scroll"><table>
+  <thead><tr><th>Contesto</th><th>Responsabilità</th><th>Dove vive</th><th>Possiede</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Profiling</strong></td><td>Raccolta e completamento del profilo ente; calcolo capacità; % completamento; onboarding progressivo.</td><td><code>app/src/lib/profile/</code> + pagine profilo</td><td><code>profiles</code></td></tr>
+    <tr><td><strong>Matching</strong></td><td>Score 0–100, breakdown, verdetto, indicatori visivi, bonus, storico. Puro, sincrono, senza I/O.</td><td><code>app/src/lib/matching/</code></td><td>nessuna tabella (calcolo on-the-fly)</td></tr>
+    <tr><td><strong>Ingestion</strong></td><td>Scraping fonti, estrazione AI dei 16 campi, dedup, upsert. Processo batch separato dall'app.</td><td><code>scraper/</code> (top-level) + cron route</td><td><code>grants</code>, <code>grant_sources</code>, <code>grant_providers</code></td></tr>
+    <tr><td><strong>Workflow</strong></td><td>Pipeline personale dei bandi salvati; auto-popolamento track record; le 4 pagine.</td><td><code>app/src/lib/saved-grants/</code> + pagine</td><td><code>saved_grants</code></td></tr>
+    <tr><td><strong>Notifications</strong></td><td>Digest email settimanale sopra soglia score.</td><td><code>app/src/lib/alerts/</code> + cron route</td><td><code>user_settings</code></td></tr>
+  </tbody>
+</table></div>
+
+<h4>Relazioni fra contesti</h4>
+<ul>
+  <li><strong>Matching ← Profiling / Ingestion</strong>: il matching consuma <code>EntityProfile</code> e <code>Grant</code> come input puri. Non conosce Supabase: è un modulo profondo con interfaccia <code>calculateMatch(profile, grant) → MatchResult</code>.</li>
+  <li><strong>Workflow → Profiling</strong>: spostare un saved grant su "Esito: Finanziato" scrive una riga di track record nel profilo (unico punto in cui Workflow scrive su <code>profiles</code>).</li>
+  <li><strong>Ingestion → tutti</strong>: pubblica bandi condivisi; nessun contesto scrive su <code>grants</code> se non Ingestion (RLS: INSERT solo di sistema).</li>
+  <li><strong>Notifications ← Matching</strong>: il digest riusa <code>calculateMatch</code> lato server per filtrare sopra soglia.</li>
+</ul>
+
+<h3 id="p1-inv">1.3 — Regole e invarianti di dominio</h3>
+
+<div class="scroll"><table>
+  <thead><tr><th>#</th><th>Invariante</th><th>Dove è garantita</th></tr></thead>
+  <tbody>
+    <tr><td>I1</td><td>Un account = un ente: <code>profiles.user_id</code> e <code>user_settings.user_id</code> sono UNIQUE.</td><td>DB constraint + RLS (branch 001)</td></tr>
+    <tr><td>I2</td><td>I pesi delle 6 dimensioni sommano <strong>esattamente 100</strong>: 28+22+18+14+12+6. Bonus/malus (+5, +3, −5) si applicano dopo, con clamp finale 0–100.</td><td>Test di invariante nel matching engine (branch 002)</td></tr>
+    <tr><td>I3</td><td>La capacità è sempre <strong>calcolata</strong> dalle 6 domande; se le domande non sono compilate, capacità = <code>null</code> e la dimensione 4 usa il valore neutro.</td><td><code>calculateCapacity()</code> (branch 002), ADR-004</td></tr>
+    <tr><td>I4</td><td>Un bando referenzia un erogatore <strong>solo per <code>provider_id</code></strong> dalla lista predefinita (o <code>null</code> se non riconosciuto). Mai stringa libera nel matching storico.</td><td>FK su <code>grants.provider_id</code> (001), ADR-005</td></tr>
+    <tr><td>I5</td><td><code>grants.url</code> è la chiave di dedup: stesso URL → upsert, mai duplicato.</td><td>UNIQUE constraint + pipeline dedup (001, 007)</td></tr>
+    <tr><td>I6</td><td>La state machine di <code>saved_grants.status</code> è: <code>salvato → in_preparazione → candidato → {finanziato | non_ammesso}</code>. È permesso tornare indietro; <code>finanziato</code> scatena l'auto-popolamento del track record <strong>una sola volta</strong>.</td><td>Server action + flag <code>track_record_written</code> (branch 010)</td></tr>
+    <tr><td>I7</td><td>Verdetti: Candidabile (≥75 e documenti ok) &middot; Da preparare (≥75, documenti mancanti) &middot; Da valutare (≥50) &middot; Bassa priorità (≥30) &middot; Non compatibile (&lt;30) &middot; Storico (bando chiuso, prevale su tutto).</td><td><code>verdict.ts</code> (branch 002)</td></tr>
+    <tr><td>I8</td><td>I dati mancanti non azzerano mai una dimensione: producono il <strong>valore neutro</strong> documentato (territorio 12/18, documenti 8/12, capacità matrice, tipi eleggibili assenti 22/22).</td><td>Tabelle §2 del design doc, test per ogni caso neutro (002)</td></tr>
+    <tr><td>I9</td><td>La regione dell'ente è sempre <strong>derivata dalla provincia</strong> (mappa 107 province → 20 regioni), mai inserita a mano.</td><td><code>constants.ts</code> + form profilo (002, 004)</td></tr>
+    <tr><td>I10</td><td>Il matching non viene mai persistito: si ricalcola a ogni render. Nessuna cache da invalidare quando il profilo cambia.</td><td>Architettura (ADR-003)</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ================================================================ -->
+<!-- PART 2: ADRs -->
+<!-- ================================================================ -->
+<h2 id="p2"><span class="num">Parte 2.</span> Architecture Decision Records</h2>
+
+<p class="tagline">Formato breve: contesto → decisione → perché. Da copiare in <code>docs/adr/000N-slug.md</code> nel primo branch che tocca l'area (indicato per ogni ADR). Tutte con status: <span class="badge b-green">accepted</span>.</p>
+
+<div class="box adr" id="adr1">
+  <h3>ADR-001 — Un account = un ente (niente multi-tenant)</h3>
+  <p>Il target sono enti singoli, non consulenti con portafogli di clienti. Decidiamo che ogni account Supabase Auth possiede esattamente un profilo ente: nessuna tabella <code>organizations</code>, nessun sistema di ruoli, nessuna condivisione. RLS diventa banale (<code>user_id = auth.uid()</code>) e la UI non ha selettori di contesto. <strong>Trade-off accettato:</strong> se in futuro servisse il multi-tenant, la migrazione richiederà una tabella ponte — costo rinviato deliberatamente perché il segmento consulenti è esplicitamente fuori target. <em>File: <code>docs/adr/0001-one-account-one-entity.md</code> (branch 001).</em></p>
+</div>
+
+<div class="box adr" id="adr2">
+  <h3>ADR-002 — Scraping AI provider-agnostic</h3>
+  <p>L'estrazione strutturata dei 16 campi dipende da un LLM, ma i prezzi e le qualità dei provider cambiano ogni trimestre. Decidiamo una seam reale: interfaccia minima <code>LLMProvider</code> (un metodo, <code>extract(prompt, schema) → json</code>) con 4 adapter (Gemini default/free, Anthropic, Groq, OpenAI) selezionati da env var <code>AI_PROVIDER</code>. Cambiare provider = cambiare una env var, zero modifiche di codice. La seam è giustificata da subito: 2+ adapter reali (Gemini in produzione, fake in test) più i fallback commerciali. <em>File: <code>docs/adr/0002-ai-provider-agnostic.md</code> (branch 007).</em></p>
+</div>
+
+<div class="box adr" id="adr3">
+  <h3>ADR-003 — Matching rule-based + AI on-demand</h3>
+  <p>Lo score deve essere istantaneo, gratuito, spiegabile e deterministico (stesso input → stesso score, testabile). Decidiamo: il matching a 6 dimensioni è <strong>puramente rule-based</strong>, calcolato on-the-fly senza persistenza né chiamate AI; l'AI interviene solo <strong>on-demand</strong> ("Analisi AI approfondita", con disclaimer) e in fase di ingestion. Alternativa scartata: scoring via LLM — non deterministico, costoso a ogni render, impossibile da testare come invariante. <em>File: <code>docs/adr/0003-rule-based-matching.md</code> (branch 002).</em></p>
+</div>
+
+<div class="box adr" id="adr4">
+  <h3>ADR-004 — Capacità calcolata, non dropdown</h3>
+  <p>Un dropdown "capacità: bassa/media/alta" autodichiarato produce dati inaffidabili (tutti si dichiarano "media"). Decidiamo di calcolare la capacità da 6 domande concrete e verificabili (persone stabili, admin dedicato, progetti finanziati, rendicontazione, budget, esperienza EU). La funzione <code>calculateCapacity()</code> è deterministica e testata; la UI mostra il risultato con la spiegazione, l'utente non può forzarlo. <em>File: <code>docs/adr/0004-calculated-capacity.md</code> (branch 002).</em></p>
+</div>
+
+<div class="box adr" id="adr5">
+  <h3>ADR-005 — Lista predefinita di erogatori</h3>
+  <p>Il matching "storico specifico" (già finanziato / già candidato / conosce l'erogatore) richiede di confrontare l'erogatore di un bando con quelli nello storico dell'ente. Con testo libero il match è impossibile ("Fondazione Cariplo" vs "Cariplo" vs "F.ne Cariplo S.p.A."). Decidiamo una tabella <code>grant_providers</code> con ~70 erogatori curati; sia lo storico del profilo sia lo scraper referenziano per <code>provider_id</code>. L'AI dello scraper normalizza il nome trovato sulla lista (o <code>null</code>). Il fuzzy match resta solo al secondo livello, sul <em>nome del bando</em>. <em>File: <code>docs/adr/0005-predefined-provider-list.md</code> (branch 001).</em></p>
+</div>
+
+<div class="box adr" id="adr6">
+  <h3>ADR-006 — Desktop-first responsive</h3>
+  <p>Il momento di valutazione e azione (leggere il PDF del bando, analizzare il breakdown, compilare 40 campi) è un'attività da desktop; il mobile serve per la discovery veloce. Decidiamo desktop-first con layout responsive (breakpoint ~760px), web app non nativa, PWA rinviata alla fase 5. Niente app store, un solo codebase. <em>File: <code>docs/adr/0006-desktop-first.md</code> (branch 005).</em></p>
+</div>
+
+<div class="box adr" id="adr7">
+  <h3>ADR-007 — Sviluppo branch-per-feature</h3>
+  <p>Il progetto è sviluppato in gran parte da agenti AI con review umana. Decidiamo: ogni feature vive in un branch <code>feat/NNN-slug</code> piccolo e autonomo, creato da <code>main</code>, mergiato via PR solo quando typecheck, test e criteri di accettazione passano. <code>main</code> è sempre deployabile. Regole: (a) un branch non dipende mai da branch non ancora mergiati, salvo dipendenze dichiarate in questa roadmap; (b) ogni branch include i propri test — nessun branch "solo test" a posteriori; (c) migrazioni DB solo additive dopo il merge di 001; (d) niente branch long-lived: se un branch supera ~1 settimana, va spezzato. <em>File: <code>docs/adr/0007-branch-per-feature.md</code> (branch 001).</em></p>
+</div>
+
+<!-- ================================================================ -->
+<!-- PART 3: BRANCH ROADMAP -->
+<!-- ================================================================ -->
+<h2 id="p3"><span class="num">Parte 3.</span> Roadmap dei branch</h2>
+
+<h4>Grafo delle dipendenze</h4>
+<div class="erd"><pre><code>Fase 1              Fase 2               Fase 3              Fase 4                Fase 5
+──────              ──────               ──────              ──────                ──────
+001 schema ──┬──► 003 auth ──► 004 profile ──► 005 grant display ──► 006 dashboard
+             │                    │                  │
+002 matching─┼────────────────────┘                  ├──► 010 saved grants ──► (013)
+  engine v2  │                                       │
+             ├──► 007 scraper infra ──► 008 AI adapters ──► 009 cron+sources
+             │                                       │
+             │                                       ├──► 011 AI on-demand (dopo 008)
+             │                                       └──► 012 email alerts (dopo 006)
+             │
+             └──► 013 storico ──► (indipendente da 010 per il matching; UI dopo 005)
+                  014 economic coherence (dopo 002+005)
+                  015 PWA + mobile (dopo 006)</code></pre></div>
+
+<div class="scroll"><table>
+  <thead><tr><th>Branch</th><th>Nome</th><th>Dipende da</th><th class="center">Complessità</th></tr></thead>
+  <tbody>
+    <tr><td><a href="#b001"><code>feat/001-supabase-schema</code></a></td><td>Schema DB + migrations + RLS + seed</td><td>—</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b002"><code>feat/002-matching-engine-v2</code></a></td><td>Matching engine riscritto (6 dim, 100 pt)</td><td>—</td><td class="center"><span class="badge b-red">L</span></td></tr>
+    <tr><td><a href="#b003"><code>feat/003-auth-flow</code></a></td><td>Signup, login, sessione, middleware</td><td>001</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b004"><code>feat/004-profile-crud</code></a></td><td>Profilo 8 sezioni + onboarding + %</td><td>001, 002, 003</td><td class="center"><span class="badge b-red">L</span></td></tr>
+    <tr><td><a href="#b005"><code>feat/005-grant-display</code></a></td><td>Lista bandi, dettaglio, breakdown</td><td>002, 004</td><td class="center"><span class="badge b-red">L</span></td></tr>
+    <tr><td><a href="#b006"><code>feat/006-dashboard</code></a></td><td>Dashboard + Nuovi bandi + filtri</td><td>005</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b007"><code>feat/007-scraper-infra</code></a></td><td>Struttura scraper/ + pipeline + seam LLM</td><td>001</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b008"><code>feat/008-ai-adapters</code></a></td><td>Adapter Gemini, Anthropic, Groq, OpenAI</td><td>007</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b009"><code>feat/009-sources-cron</code></a></td><td>12 fonti + Vercel Cron + Browserless</td><td>008</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b010"><code>feat/010-saved-grants</code></a></td><td>Pipeline personale + auto track record</td><td>005</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b011"><code>feat/011-ai-analysis</code></a></td><td>Analisi AI on-demand + segnala URL</td><td>005, 008</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b012"><code>feat/012-email-alerts</code></a></td><td>Digest settimanale via Resend</td><td>006</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b013"><code>feat/013-storico-matching</code></a></td><td>Match a due livelli + badge storico</td><td>002, 005, 010</td><td class="center"><span class="badge b-yellow">M</span></td></tr>
+    <tr><td><a href="#b014"><code>feat/014-economic-coherence</code></a></td><td>Indicatore coerenza economica</td><td>002, 005</td><td class="center"><span class="badge b-green">S</span></td></tr>
+    <tr><td><a href="#b015"><code>feat/015-pwa-mobile</code></a></td><td>PWA + rifinitura mobile</td><td>006</td><td class="center"><span class="badge b-green">S</span></td></tr>
+  </tbody>
+</table></div>
+
+<p class="tagline">Complessità: <span class="badge b-green">S</span> ≤ 1 giorno &middot; <span class="badge b-yellow">M</span> 1–3 giorni &middot; <span class="badge b-red">L</span> 3–5 giorni. 001, 002 e 007 sono parallelizzabili da subito (002 e 007 non toccano il DB reale).</p>
+
+<!-- ============ FASE 1 ============ -->
+<h3 id="ph1">Fase 1 — Fondamenta</h3>
+
+<div class="branch" id="b001">
+  <div class="branch-head"><code>feat/001-supabase-schema</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: nessuna</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Le 6 tabelle del design (§6.2), gli enum, le policy RLS, gli indici e i dati seed (~70 erogatori, 12 fonti). Tutto ciò che segue legge o scrive questo schema: va mergiato per primo e da qui in poi le migrazioni sono solo additive (ADR-007).</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/supabase/migrations/0001_enums.sql</code> — enum: <code>geo_scope</code> (comunale/provinciale/regionale/nazionale/europeo), <code>complexity_level</code> e <code>capacity_level</code> (bassa/media/alta), <code>grant_status</code> (aperto/chiuso), <code>saved_grant_status</code> (salvato/in_preparazione/candidato/finanziato/non_ammesso), <code>provider_kind</code> (pubblico/privato/eu), <code>alert_frequency</code> (weekly/off)</li>
+      <li><code>app/supabase/migrations/0002_tables.sql</code> — le 6 tabelle. <code>profiles</code>: ~40 colonne tipizzate per le sezioni 1–8 (lo storico progetti come <code>project_history jsonb</code> di righe <code>{grant_name, provider_id, year, outcome, amount, notes}</code>); <code>grants</code>: i 16 campi estratti (<code>eligible_types text[]</code>, <code>tags text[]</code>, <code>required_documents text[]</code>, <code>amount numeric</code>, <code>cofunding_required numeric</code>, <code>deadline date</code>, <code>url text UNIQUE NOT NULL</code>, <code>provider_id</code> FK nullable, <code>source_id</code> FK nullable, <code>raw jsonb</code> per il payload AI); <code>grant_sources</code> con <code>scrape_config jsonb</code>, <code>enabled</code>, <code>last_run_at</code>, <code>last_error</code>; <code>saved_grants</code> con <code>UNIQUE(user_id, grant_id)</code> e <code>track_record_written boolean default false</code>; <code>user_settings</code> con <code>alert_threshold int default 50</code>. PK <code>uuid default gen_random_uuid()</code>, identificatori lowercase snake_case, indici su tutte le FK</li>
+      <li><code>app/supabase/migrations/0003_rls.sql</code> — RLS abilitata su tutte le tabelle. <code>profiles</code>/<code>saved_grants</code>/<code>user_settings</code>: ALL con <code>(select auth.uid()) = user_id</code> (subquery per performance); <code>grants</code>/<code>grant_providers</code>: SELECT per <code>authenticated</code>, scritture solo <code>service_role</code>; <code>grant_sources</code>: solo <code>service_role</code></li>
+      <li><code>app/supabase/migrations/0004_seed.sql</code> — INSERT dei ~70 <code>grant_providers</code> (nome canonico, kind, alias noti in colonna <code>aliases text[]</code>) e delle 12 <code>grant_sources</code> MVP con <code>enabled=false</code> (si attivano nel branch 009)</li>
+      <li><code>app/src/lib/supabase/database.types.ts</code> — tipi generati (<code>supabase gen types typescript</code>)</li>
+      <li><code>docs/adr/0001-one-account-one-entity.md</code>, <code>docs/adr/0005-predefined-provider-list.md</code>, <code>docs/adr/0007-branch-per-feature.md</code></li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li>Test di integrazione su Supabase locale (<code>supabase start</code>): con due utenti test, verifica che l'utente A non veda profilo/saved_grants/settings dell'utente B (RLS); che <code>authenticated</code> possa leggere ma non scrivere <code>grants</code>; che il doppio INSERT dello stesso <code>grants.url</code> fallisca; che il doppio profilo per lo stesso user fallisca (UNIQUE)</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li><code>supabase db reset</code> applica le 4 migration senza errori e i seed contano ~70 provider e 12 fonti</li>
+      <li>Tutte le tabelle hanno RLS attiva; il security advisor Supabase non segnala tabelle esposte</li>
+      <li>I tipi generati compilano e sono esportati da <code>database.types.ts</code></li>
+      <li>I test RLS multi-utente passano</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b002">
+  <div class="branch-head"><code>feat/002-matching-engine-v2</code><span class="badge b-red">L</span><span class="badge b-grey">dipendenze: nessuna (modulo puro)</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Riscrittura del motore in <code>app/src/lib/matching/</code> secondo §2 del design: 6 dimensioni che sommano a 100 (28/22/18/14/12/6), match forma giuridica per 8 gruppi, territorio strutturato provincia/regione, capacità calcolata × complessità, checklist documenti strutturata, track record, 3 bonus/malus, verdetti ricalibrati. L'interfaccia esterna resta stretta — <code>calculateMatch(profile, grant) → MatchResult</code> — i cambi stanno tutti nell'implementazione (modulo profondo: leverage per le pagine, locality per i futuri tuning dei pesi). Modulo puro senza I/O: sviluppabile e testabile in parallelo a 001.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/matching/types.ts</code> <span class="badge b-yellow">riscrivere</span> — <code>EntityProfile</code> (~40 campi tipizzati sulle 8 sezioni, coerenti con le colonne di 001; province come codice, capacità NON presente come campo: si calcola), <code>Grant</code> (i 16 campi), <code>MatchResult</code> (score, breakdown[6], verdict, indicators, bonuses, missingDocuments, actions), <code>Verdict</code> con i 6 valori di §2.9</li>
+      <li><code>app/src/lib/matching/constants.ts</code> <span class="badge b-yellow">estendere</span> — mantiene <code>LEGAL_TYPES</code> (62) e <code>TAGS</code> (47); aggiunge <code>LEGAL_TYPE_GROUPS</code> (8 gruppi → sottotipi, tabella §2.2), <code>TAG_MACRO_AREAS</code> (raggruppamento dei 47 tag, predisposizione match parziale), <code>PROVINCES</code> (107, con codice) e <code>PROVINCE_TO_REGION</code> (I9), <code>WEIGHTS = {themes:28, legalForm:22, territory:18, capacity:14, documents:12, trackRecord:6}</code>, <code>CAPACITY_MATRIX</code> (§2.4), soglie verdetti</li>
+      <li><code>app/src/lib/matching/dimensions/themes.ts</code> <span class="badge b-blue">nuovo</span> — intersezione tag esatta, 0–28</li>
+      <li><code>app/src/lib/matching/dimensions/legal-form.ts</code> <span class="badge b-blue">nuovo</span> — 22 esatto o bando aperto / 11 stesso gruppo / 0 (sostituisce il substring match di <code>helpers.ts</code>)</li>
+      <li><code>app/src/lib/matching/dimensions/territory.ts</code> <span class="badge b-blue">nuovo</span> — casi della tabella §2.3 (18/18/18/12 neutro/5 incerto/0); sostituisce <code>textOverlap</code></li>
+      <li><code>app/src/lib/matching/dimensions/capacity.ts</code> <span class="badge b-blue">nuovo</span> — <code>calculateCapacity(answers) → Bassa|Media|Alta|null</code> dalle 6 domande + matrice 3×3 (ADR-004)</li>
+      <li><code>app/src/lib/matching/dimensions/documents.ts</code> <span class="badge b-blue">nuovo</span> — copertura proporzionale <code>required_documents</code> vs campi strutturati dell'ente, neutro 8/12, produce anche <code>missingDocuments[]</code> (sostituisce <code>document-profile.ts</code>, che viene eliminato)</li>
+      <li><code>app/src/lib/matching/dimensions/track-record.ts</code> <span class="badge b-blue">nuovo</span> — 0/2/4/5 + bonus +1 stesso tipo di finanziamento (§2.6)</li>
+      <li><code>app/src/lib/matching/bonuses.ts</code> <span class="badge b-blue">nuovo</span> — partner +5, cofinanziamento gestibile +3, insostenibile −5</li>
+      <li><code>app/src/lib/matching/indicators.ts</code> <span class="badge b-blue">nuovo</span> — indicatore scadenza (§2.7B) e cofinanziamento (§2.7C); la coerenza economica arriva nel branch 014 con la stessa forma</li>
+      <li><code>app/src/lib/matching/calculate-match.ts</code> <span class="badge b-yellow">riscrivere</span> — orchestrazione: 6 dimensioni + bonus + clamp 0–100</li>
+      <li><code>app/src/lib/matching/verdict.ts</code>, <code>breakdown.ts</code>, <code>actions.ts</code> <span class="badge b-yellow">riscrivere</span> — soglie §2.9; breakdown = 6 voci con <code>value/max/note</code>; actions include la checklist "Per candidarti ti manca: …"</li>
+      <li><code>app/src/lib/matching/helpers.ts</code> <span class="badge b-red">eliminare logica obsoleta</span> — restano solo <code>deadlineDays</code>/<code>isClosedGrant</code>; via <code>textOverlap</code>, <code>legalTypeKey</code>, regex admin</li>
+      <li><code>app/src/lib/matching/index.ts</code> <span class="badge b-yellow">aggiornare</span> — barrel export della nuova interfaccia</li>
+      <li><code>docs/adr/0003-rule-based-matching.md</code>, <code>docs/adr/0004-calculated-capacity.md</code></li>
+    </ul>
+    <h5>Test (sostituire, non stratificare — i vecchi test si eliminano)</h5>
+    <ul>
+      <li><code>__tests__/calculate-match.test.ts</code> riscritto: test all'interfaccia <code>calculateMatch</code>, non alle dimensioni interne. Casi: profilo perfetto → 100; ogni riga delle tabelle §2.2–2.6 (inclusi tutti i neutri, I8); invariante I2 (proprietà: per profili/bandi generati, somma breakdown = score pre-bonus e score finale ∈ [0,100])</li>
+      <li><code>__tests__/capacity.test.ts</code>: le 6 domande → livello atteso su casi limite; domande incomplete → <code>null</code></li>
+      <li><code>__tests__/verdict.test.ts</code>: le 6 soglie, "Storico" prevale su bando chiuso anche con score 100</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li><code>npm test</code> verde; <code>tsc --noEmit</code> pulito; nessun riferimento residuo a <code>textOverlap</code>/<code>minCapacity</code>/<code>documentFiles</code></li>
+      <li>Ogni cella delle tabelle di punteggio del design doc ha un test con il valore esatto</li>
+      <li>Il breakdown ha sempre esattamente 6 voci e <code>sum(max) = 100</code></li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b003">
+  <div class="branch-head"><code>feat/003-auth-flow</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 001</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Supabase Auth (email + password) con <code>@supabase/ssr</code>: signup, login, logout, sessione via cookie, middleware che protegge le pagine app e reindirizza. Alla prima login senza profilo → redirect all'onboarding (che il branch 004 implementa; qui basta la rotta placeholder). Include il bottone "Elimina account" (GDPR, §8).</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/supabase/client.ts</code>, <code>server.ts</code>, <code>middleware.ts</code> — factory browser/server client e refresh sessione (pattern <code>@supabase/ssr</code>; leggere la doc in <code>node_modules/next/dist/docs/</code> per le convenzioni della versione Next.js in uso, come da <code>app/AGENTS.md</code>)</li>
+      <li><code>app/src/middleware.ts</code> — protegge <code>/(app)/*</code>; utenti non autenticati → <code>/login</code>; autenticati senza profilo → <code>/onboarding</code></li>
+      <li><code>app/src/app/(auth)/login/page.tsx</code>, <code>(auth)/signup/page.tsx</code> — form in italiano ("Accedi", "Registra il tuo ente"), errori in italiano</li>
+      <li><code>app/src/app/(auth)/actions.ts</code> — server actions <code>signIn</code>, <code>signUp</code>, <code>signOut</code>, <code>deleteAccount</code> (cancella auth user → cascade su profiles/saved_grants/settings)</li>
+      <li><code>app/src/app/(app)/layout.tsx</code> — shell autenticata: nav con le 4 pagine (Dashboard, Nuovi bandi, I miei bandi, Il mio profilo) + logout</li>
+      <li><code>app/src/app/(app)/onboarding/page.tsx</code> — placeholder ("Completa il profilo") che 004 sostituirà</li>
+      <li><code>app/.env.example</code> — <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code></li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li>Unit sulle server actions con client Supabase mockato (input invalidi → messaggi italiani; signup ok → redirect)</li>
+      <li>Verifica manuale end-to-end su Supabase locale (documentata nella PR): signup → onboarding; login/logout; rotta protetta senza sessione → /login</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Signup crea l'utente e reindirizza a /onboarding; login con credenziali errate mostra errore in italiano senza crash</li>
+      <li>Nessuna pagina sotto <code>(app)</code> è raggiungibile senza sessione; la sessione sopravvive al refresh (cookie, no localStorage)</li>
+      <li>"Elimina account" rimuove utente e dati collegati e reindirizza alla home</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ FASE 2 ============ -->
+<h3 id="ph2">Fase 2 — Feature core</h3>
+
+<div class="branch" id="b004">
+  <div class="branch-head"><code>feat/004-profile-crud</code><span class="badge b-red">L</span><span class="badge b-grey">dipendenze: 001, 002, 003</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>La pagina "Il mio profilo" con le 8 sezioni (§3), l'onboarding progressivo (12 campi essenziali, sezioni 1–3) e la % di completamento con suggerimenti mirati ("Compila la capacità gestionale per sbloccare 14 punti di matching"). Il profilo è l'input del matching: senza questo branch niente score reali.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/profile/schema.ts</code> — validazione (zod) delle 8 sezioni; mapping bidirezionale riga <code>profiles</code> ↔ <code>EntityProfile</code> del matching</li>
+      <li><code>app/src/lib/profile/completion.ts</code> — <code>profileCompletion(profile) → {percent, suggestions[]}</code>: pesa le sezioni per punti di matching sbloccati (sez. 4 → 14 pt, sez. 5 → 12 pt, sez. 7 → 6 pt + bonus); puro e testabile</li>
+      <li><code>app/src/lib/profile/actions.ts</code> — server actions <code>createProfile</code>, <code>updateProfileSection(section, data)</code> (salvataggio per sezione, non form monolitico)</li>
+      <li><code>app/src/app/(app)/onboarding/page.tsx</code> <span class="badge b-yellow">sostituire placeholder</span> — wizard 3 step (Identità → Territorio → Temi e attività), al termine crea la riga <code>profiles</code> e porta alla Dashboard</li>
+      <li><code>app/src/app/(app)/profilo/page.tsx</code> — le 8 sezioni come card espandibili con badge priorità (obbligatoria/suggerita/dopo), barra % completamento in testa</li>
+      <li><code>app/src/components/profile/</code> — <code>section-identity.tsx</code>, <code>section-territory.tsx</code> (select provincia → regione auto, readonly), <code>section-themes.tsx</code> (multi-select 47 tag + textarea attività), <code>section-capacity.tsx</code> (le 6 domande + capacità calcolata mostrata live con spiegazione), <code>section-documents.tsx</code> (campi RASD condizionali: visibili solo se gruppo legale SPORTIVI), <code>section-partnerships.tsx</code>, <code>section-history.tsx</code> (righe multiple: nome bando, erogatore da select ~70, anno, esito, importo, note), <code>section-contacts.tsx</code>, <code>completion-bar.tsx</code></li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>__tests__/completion.test.ts</code>: profilo vuoto → 0%, solo essenziali → valore atteso, completo → 100%; suggestions ordinate per punti sbloccati</li>
+      <li><code>__tests__/schema.test.ts</code>: round-trip riga DB ↔ <code>EntityProfile</code>; provincia → regione corretta (campione delle 107); validazione respinge tag fuori dai 47 e tipi fuori dai 62</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Nuovo utente completa l'onboarding in 3 step compilando solo i 12 campi essenziali e atterra sulla Dashboard</li>
+      <li>Ogni sezione salva indipendentemente; ricaricando la pagina i dati persistono; la % si aggiorna al salvataggio</li>
+      <li>La capacità calcolata appare appena le 6 domande sono compilate e coincide con <code>calculateCapacity</code></li>
+      <li>I campi RASD compaiono solo per enti sportivi; la regione non è mai editabile a mano</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b005">
+  <div class="branch-head"><code>feat/005-grant-display</code><span class="badge b-red">L</span><span class="badge b-grey">dipendenze: 002, 004</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>La card bando e la pagina di dettaglio (§5.3): score, verdetto, breakdown a 6 barre, indicatore scadenza, checklist documenti mancanti, link al bando originale. È il primo punto in cui matching + profilo + grants si incontrano a schermo. I bandi arrivano da un seed di sviluppo (lo scraping è fase 3). Include l'ADR-006 (desktop-first).</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/grants/queries.ts</code> — <code>getGrants()</code>, <code>getGrant(id)</code> (server-side, client Supabase di 003); mapping riga → <code>Grant</code> del matching</li>
+      <li><code>app/src/lib/grants/match-list.ts</code> — <code>buildMatchedGrants(profile, grants) → MatchedGrant[]</code>: applica <code>calculateMatch</code> e ordina per score (funzione pura, riusata da dashboard e digest)</li>
+      <li><code>app/src/components/grants/grant-card.tsx</code> — titolo, erogatore, badge scadenza colorato, score, verdetto; slot per badge storico (013) e importo colorato (014)</li>
+      <li><code>app/src/components/grants/score-breakdown.tsx</code> — 6 barre value/max con note</li>
+      <li><code>app/src/components/grants/deadline-badge.tsx</code>, <code>verdict-badge.tsx</code>, <code>document-checklist.tsx</code> ("Per candidarti ti manca: …")</li>
+      <li><code>app/src/app/(app)/bandi/[id]/page.tsx</code> — dettaglio completo §5.3 (bottoni "Salva" e "Analisi AI" come placeholder disabilitati con tooltip "in arrivo": si attivano in 010 e 011)</li>
+      <li><code>app/supabase/seed-dev/grants.sql</code> — 15–20 bandi realistici derivati da <code>auto-grants.json</code>, mappati sui 16 campi (solo ambiente dev)</li>
+      <li><code>docs/adr/0006-desktop-first.md</code></li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>__tests__/match-list.test.ts</code>: ordinamento stabile per score desc, bandi chiusi in coda con verdetto Storico</li>
+      <li>Component test (vitest + testing-library) su <code>score-breakdown</code> (6 barre, valori corretti) e <code>deadline-badge</code> (4 colori per 4 range di giorni)</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Con profilo compilato e seed caricato, la lista mostra card ordinate per score con verdetto e scadenza colorata</li>
+      <li>Il dettaglio mostra breakdown coerente con <code>calculateMatch</code> (stesso profilo+bando → stessi numeri) e la checklist elenca esattamente i documenti mancanti</li>
+      <li>Modificando il profilo (es. aggiungendo un tag) lo score cambia al refresh senza alcuna invalidazione manuale (I10)</li>
+      <li>Layout leggibile a 1280px e non rotto a 375px</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b006">
+  <div class="branch-head"><code>feat/006-dashboard</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 005</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Le due pagine di discovery (§5.1): <strong>Dashboard</strong> (tutti i bandi aperti ordinati per score) e <strong>Nuovi bandi</strong> (ultimi 7 giorni), con ordinamento e filtri: verdetto, scadenza, importo, geo scope, tag, solo-candidabili.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/app/(app)/page.tsx</code> — Dashboard: riusa <code>buildMatchedGrants</code> + <code>grant-card</code>; header con contatori (candidabili / da preparare / totale)</li>
+      <li><code>app/src/app/(app)/nuovi-bandi/page.tsx</code> — filtro <code>discovered_at &gt; now()-7d</code>, stessa griglia</li>
+      <li><code>app/src/lib/grants/filters.ts</code> — <code>applyFilters(matched, filters)</code> e <code>applySort(matched, sort)</code>: pure, sul risultato del matching (i filtri dipendono da score/verdetto, quindi post-match, non query SQL)</li>
+      <li><code>app/src/components/grants/filter-bar.tsx</code> — filtri in italiano, stato nella query string (condivisibile/bookmarkabile)</li>
+      <li><code>app/src/components/grants/empty-state.tsx</code> — nessun risultato → suggerisce di allargare i filtri o completare il profilo</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>__tests__/filters.test.ts</code>: ogni filtro isolato + combinazioni; sort per score/scadenza/importo; query string round-trip</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Dashboard ordinata per score desc di default; ogni filtro restringe correttamente e l'URL riflette lo stato</li>
+      <li>"Nuovi bandi" mostra solo bandi scoperti negli ultimi 7 giorni</li>
+      <li>Con profilo incompleto la dashboard funziona comunque (valori neutri, I8) e invita a completare il profilo</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ FASE 3 ============ -->
+<h3 id="ph3">Fase 3 — Scraping</h3>
+
+<div class="branch" id="b007">
+  <div class="branch-head"><code>feat/007-scraper-infra</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 001 (schema grants)</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>La cartella top-level <code>scraper/</code> (§4.3): tipi, la seam <code>LLMProvider</code>, la pipeline a 5 stadi (fetch → extract → enrich → dedup → save) e un fake provider per i test. Nessun adapter reale né cron: quelli arrivano in 008/009. Testabile al 100% offline.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>scraper/package.json</code>, <code>tsconfig.json</code>, <code>vitest.config.ts</code> — package indipendente da <code>app/</code>, Node 20, TS strict</li>
+      <li><code>scraper/src/providers/types.ts</code> — la seam: <code>interface LLMProvider { name: string; extract(input: {html: string; schema: JsonSchema; instructions: string}): Promise&lt;unknown&gt; }</code>. Error mode: throw <code>ProviderError</code> con retry hint; nessun altro metodo (interfaccia minima, ADR-002)</li>
+      <li><code>scraper/src/providers/fake.ts</code> — adapter deterministico per i test (risposte da fixture)</li>
+      <li><code>scraper/src/pipeline/types.ts</code> — <code>RawPage</code>, <code>ExtractedGrant</code> (i 16 campi, tutti nullable tranne <code>title</code> e <code>url</code>), <code>PipelineResult</code> (inserted/updated/skipped/errors per fonte)</li>
+      <li><code>scraper/src/pipeline/fetch-page.ts</code> — interfaccia <code>PageFetcher</code> (seconda seam: Browserless in prod arriva in 009, fixture HTML nei test)</li>
+      <li><code>scraper/src/pipeline/extract-grants.ts</code> — prompt italiano + JSON schema dei 16 campi; valida l'output AI (zod): tag fuori dai 47 → scartati, tipi fuori dai 62 → scartati, date non ISO → null; provider name → lookup su <code>grant_providers.name/aliases</code> → <code>provider_id</code> o null</li>
+      <li><code>scraper/src/pipeline/enrich.ts</code> — normalizzazioni (importi "1.000.000 €" → numeric, geo_scope inference dall'area se assente)</li>
+      <li><code>scraper/src/pipeline/dedup.ts</code> — chiave = URL normalizzato (strip query tracking, trailing slash); esistente → update solo campi cambiati</li>
+      <li><code>scraper/src/pipeline/save.ts</code> — upsert su <code>grants</code> via client Supabase <code>service_role</code></li>
+      <li><code>scraper/src/pipeline/run.ts</code> — <code>runPipeline(sources, deps: {fetcher, llm, db}) → PipelineResult[]</code>: dipendenze iniettate, mai create dentro (testabilità); una fonte che fallisce non blocca le altre; aggiorna <code>grant_sources.last_run_at/last_error</code></li>
+      <li><code>scraper/env.example</code> — <code>AI_PROVIDER=gemini</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code></li>
+      <li><code>docs/adr/0002-ai-provider-agnostic.md</code></li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>scraper/tests/pipeline.test.ts</code> — end-to-end con fake fetcher + fake LLM + db in-memory: da 3 fixture HTML a <code>PipelineResult</code> atteso; rerun idempotente (0 inserted, N skipped); fonte che lancia → errore registrato, le altre completano</li>
+      <li><code>scraper/tests/extract-grants.test.ts</code> — output AI malformato (JSON invalido, tag inventati, date sporche) → mai crash, campi invalidi scartati/null</li>
+      <li><code>scraper/tests/dedup.test.ts</code> — normalizzazione URL, update parziale</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li><code>cd scraper &amp;&amp; npm test</code> verde senza rete e senza chiavi API</li>
+      <li>La pipeline è idempotente (secondo run identico = zero scritture)</li>
+      <li>Nessun import da <code>app/</code> a <code>scraper/</code> né viceversa (contesti separati)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b008">
+  <div class="branch-head"><code>feat/008-ai-adapters</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 007</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>I 4 adapter reali dietro la seam <code>LLMProvider</code>: Gemini (default, free tier), Anthropic, Groq, OpenAI. Selezione via <code>AI_PROVIDER</code>. Cambiare provider = cambiare una env var (ADR-002).</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>scraper/src/providers/gemini.ts</code> — REST API con <code>response_mime_type: application/json</code> + response schema; modello configurabile via <code>GEMINI_MODEL</code></li>
+      <li><code>scraper/src/providers/anthropic.ts</code> — Messages API con tool-use per output strutturato; <code>ANTHROPIC_MODEL</code></li>
+      <li><code>scraper/src/providers/groq.ts</code>, <code>openai.ts</code> — chat completions con JSON mode</li>
+      <li><code>scraper/src/providers/index.ts</code> — <code>getProvider(env) → LLMProvider</code>: legge <code>AI_PROVIDER</code>, valida la presenza della chiave, default gemini, errore chiaro se chiave mancante</li>
+      <li><code>scraper/src/providers/retry.ts</code> — wrapper condiviso: 429/5xx → backoff esponenziale (3 tentativi), timeout 60s, errori non-retryable propagati</li>
+      <li><code>scraper/env.example</code> <span class="badge b-yellow">estendere</span> — <code>GEMINI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GROQ_API_KEY</code>, <code>OPENAI_API_KEY</code> (solo quella del provider attivo è richiesta)</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li>Unit con fetch mockato per ogni adapter: request corretta (endpoint, header, schema), parsing risposta, 429 → retry → successo, JSON troncato → <code>ProviderError</code></li>
+      <li><code>index.test.ts</code>: ogni valore di <code>AI_PROVIDER</code> → adapter giusto; valore ignoto o chiave assente → errore esplicativo</li>
+      <li>Smoke test opzionale contro Gemini reale, skippato se <code>GEMINI_API_KEY</code> assente (non gira in CI)</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Tutti i test passano senza chiavi reali; lo smoke test con chiave reale estrae i 16 campi da una fixture HTML vera</li>
+      <li>Cambiando solo <code>AI_PROVIDER</code> la pipeline usa l'adapter corrispondente (nessun altro file toccato)</li>
+      <li>Nessun adapter espone dettagli propri fuori dalla seam (nessun tipo Gemini/Anthropic importato dalla pipeline)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b009">
+  <div class="branch-head"><code>feat/009-sources-cron</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 008</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Mette in produzione la pipeline: adapter Browserless per il fetch, configurazione delle 12 fonti MVP, endpoint cron su Vercel triggerato ogni 48h. Da questo branch in poi <code>grants</code> si popola da solo.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>scraper/src/pipeline/browserless-fetcher.ts</code> — adapter <code>PageFetcher</code> via API Browserless.io (<code>/content</code>, timeout 30s, 1 retry); <code>BROWSERLESS_API_KEY</code></li>
+      <li><code>scraper/src/sources/index.ts</code> — loader: legge le 12 righe <code>grant_sources</code> abilitate dal DB, ognuna con <code>scrape_config</code> (url lista, selettore/istruzione per trovare i link ai bandi, max pagine per run)</li>
+      <li><code>app/supabase/migrations/0005_enable_sources.sql</code> — <code>enabled=true</code> sulle 12 fonti + eventuale rifinitura di <code>scrape_config</code> per fonte (sport nazionale, terzo settore nazionale, regione Emilia-Romagna, aggregatori, grandi fondazioni, EU)</li>
+      <li><code>app/src/app/api/cron/scrape/route.ts</code> — POST protetto da <code>CRON_SECRET</code> (header Authorization); importa <code>runPipeline</code> dallo scraper con i deps di produzione; logga <code>PipelineResult</code>; <code>maxDuration</code> configurata per il piano Vercel</li>
+      <li><code>vercel.json</code> — <code>{"crons": [{"path": "/api/cron/scrape", "schedule": "0 3 */2 * *"}]}</code> (ogni 48h alle 03:00)</li>
+      <li><code>scraper/src/cli.ts</code> — <code>npm run scrape [--source=slug] [--dry-run]</code> per run manuali e debug</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li>Unit: route cron respinge richieste senza secret (401); fetcher Browserless con fetch mockato (request shape, timeout)</li>
+      <li>Integrazione manuale documentata in PR: <code>--dry-run</code> su 2 fonti reali → 16 campi estratti sensati; run completo su ambiente di staging → righe in <code>grants</code></li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Il run manuale su una fonte reale inserisce bandi con tag/tipi validi e <code>provider_id</code> risolto quando l'erogatore è in lista</li>
+      <li>Due run consecutivi non creano duplicati (I5); una fonte irraggiungibile registra <code>last_error</code> senza bloccare le altre</li>
+      <li>Il cron è visibile e attivo nel dashboard Vercel; budget: ≤ ~720 sessioni Browserless/mese con 12 fonti ogni 48h</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ FASE 4 ============ -->
+<h3 id="ph4">Fase 4 — Feature utente</h3>
+
+<div class="branch" id="b010">
+  <div class="branch-head"><code>feat/010-saved-grants</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 005</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>La pagina "I miei bandi": pipeline personale a 4 stati + 2 esiti (§5.2), vista kanban, note per bando. Spostare su "Esito: Finanziato" auto-popola una riga di track record nella sezione 7 del profilo (I6) — il loop virtuoso del prodotto.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/saved-grants/actions.ts</code> — <code>saveGrant(grantId)</code>, <code>updateStatus(savedGrantId, status)</code>, <code>updateNotes</code>, <code>removeSavedGrant</code>. In <code>updateStatus → finanziato</code>: se <code>track_record_written=false</code>, appende a <code>profiles.project_history</code> la riga <code>{grant_name, provider_id, year: anno corrente, outcome: "finanziato", amount}</code> dal bando e setta il flag (transazione: o entrambe le scritture o nessuna)</li>
+      <li><code>app/src/lib/saved-grants/status.ts</code> — state machine: stati, transizioni permesse (avanti e indietro), label e colori italiani (Salvato grigio, In preparazione giallo, Candidato blu, Finanziato verde, Non ammesso rosso)</li>
+      <li><code>app/src/app/(app)/i-miei-bandi/page.tsx</code> — kanban 4 colonne (gli esiti come stati terminali nella colonna Candidato o colonna dedicata), spostamento via select/bottoni (drag &amp; drop opzionale, non richiesto)</li>
+      <li><code>app/src/components/saved-grants/kanban-column.tsx</code>, <code>saved-grant-card.tsx</code>, <code>notes-editor.tsx</code></li>
+      <li><code>app/src/app/(app)/bandi/[id]/page.tsx</code> <span class="badge b-yellow">modificare</span> — attiva il bottone "Salva" (toggle salvato/rimuovi, mostra stato corrente)</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>__tests__/status.test.ts</code>: transizioni valide/invalide della state machine</li>
+      <li><code>__tests__/actions.test.ts</code> (db mockato/locale): finanziato → riga di track record con i campi giusti; secondo passaggio a finanziato → <strong>nessuna</strong> seconda riga (flag); doppio <code>saveGrant</code> stesso bando → un solo record (UNIQUE)</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Salva dal dettaglio → il bando appare in "I miei bandi" colonna Salvato; lo stato si cambia e persiste</li>
+      <li>Finanziato → la sezione 7 del profilo mostra la nuova riga senza data entry; il matching track record (dim. 6) migliora di conseguenza al refresh</li>
+      <li>Le note si salvano per bando e sono visibili solo al proprietario (RLS)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b011">
+  <div class="branch-head"><code>feat/011-ai-analysis</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 005, 008</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Due feature AI on-demand che riusano la seam <code>LLMProvider</code> di 007/008: (a) "Analisi AI approfondita" nel dettaglio bando — analisi personalizzata profilo×bando con disclaimer GDPR (§8); (b) crowdsourcing "Segnala un bando" (§4.4) — l'utente incolla un URL, l'AI lo struttura nei 16 campi, il bando diventa disponibile per tutti.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/ai/provider.ts</code> — riesporta/adatta <code>getProvider</code> dello scraper per l'uso server-side nell'app (unica dipendenza condivisa consentita: il package provider, non la pipeline)</li>
+      <li><code>app/src/lib/ai/analyze-grant.ts</code> — prompt italiano: dati profilo + 16 campi bando → analisi strutturata (punti di forza, rischi, suggerimenti per la candidatura, passi successivi); output validato zod</li>
+      <li><code>app/src/app/api/ai/analyze/route.ts</code> — POST autenticato, rate limit semplice (max N/utente/ora in <code>user_settings</code> o header), timeout 60s</li>
+      <li><code>app/src/components/grants/ai-analysis-panel.tsx</code> — bottone "Analisi AI approfondita" → pannello con disclaimer ("Analisi generata da AI: verifica sempre il testo ufficiale del bando"), stato loading, errore in italiano</li>
+      <li><code>app/src/app/api/grants/submit-url/route.ts</code> — POST autenticato: fetch pagina (Browserless), <code>extract-grants</code> dello scraper, dedup, insert con <code>source_id=null, import_mode='user'</code>; risponde con il bando creato o "già presente"</li>
+      <li><code>app/src/components/grants/submit-url-dialog.tsx</code> — "Segnala un bando" in Dashboard: input URL + anteprima dei campi estratti + conferma</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>analyze-grant.test.ts</code> con fake provider: output valido → renderizzabile; output malformato → errore gestito, mai testo AI raw non validato a schermo</li>
+      <li><code>submit-url.test.ts</code>: URL già presente → nessun duplicato; pagina non-bando (estrazione vuota) → messaggio "Non sembra un bando" senza insert</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>L'analisi arriva in &lt;30s con Gemini, è in italiano, mostra il disclaimer, e cita elementi reali del profilo (non testo generico)</li>
+      <li>Un URL di bando reale incollato produce un bando visibile a un <em>altro</em> utente di test</li>
+      <li>Utente non autenticato → 401 su entrambe le route</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b012">
+  <div class="branch-head"><code>feat/012-email-alerts</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 006</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Digest email settimanale (§5.4): i nuovi bandi della settimana sopra la soglia score dell'utente (default 50), via Resend, con preferenze in <code>user_settings</code> e cron dedicato.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/alerts/build-digest.ts</code> — <code>buildDigest(profile, settings, grants) → Digest | null</code>: filtra nuovi bandi (7 giorni) con <code>calculateMatch ≥ threshold</code>, max 10 ordinati per score; null se vuoto (niente email vuote). Pura, riusa <code>buildMatchedGrants</code></li>
+      <li><code>app/src/lib/alerts/render-email.ts</code> — HTML email in italiano: card compatte (titolo, erogatore, score, scadenza, link al dettaglio), footer con link "Gestisci le preferenze"</li>
+      <li><code>app/src/lib/alerts/send.ts</code> — adapter Resend (<code>RESEND_API_KEY</code>), interfaccia <code>EmailSender</code> con fake per i test</li>
+      <li><code>app/src/app/api/cron/digest/route.ts</code> — protetto da <code>CRON_SECRET</code>: itera gli utenti con <code>alert_frequency='weekly'</code>, costruisce e invia; errori per-utente loggati senza bloccare il batch</li>
+      <li><code>vercel.json</code> <span class="badge b-yellow">estendere</span> — <code>{"path": "/api/cron/digest", "schedule": "0 7 * * 1"}</code> (lunedì 07:00)</li>
+      <li><code>app/src/app/(app)/profilo/page.tsx</code> <span class="badge b-yellow">estendere</span> — sezione "Notifiche": soglia score (slider 0–100, default 50) e frequenza (settimanale/disattivata)</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>build-digest.test.ts</code>: soglia rispettata, solo bandi nuovi, cap a 10, nessun bando → null</li>
+      <li><code>digest-route.test.ts</code> con fake sender: utente con frequenza off → nessun invio; errore su un utente → gli altri ricevono comunque</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Trigger manuale del cron su staging → email ricevuta, renderizzata correttamente (Gmail), link funzionanti verso i dettagli</li>
+      <li>Utente sotto soglia o con alert disattivati non riceve nulla; nessuna email inviata se non ci sono bandi nuovi sopra soglia</li>
+      <li>Cambiare la soglia dal profilo cambia il contenuto del digest successivo</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ FASE 5 ============ -->
+<h3 id="ph5">Fase 5 — Rifinitura</h3>
+
+<div class="branch" id="b013">
+  <div class="branch-head"><code>feat/013-storico-matching</code><span class="badge b-yellow">M</span><span class="badge b-grey">dipendenze: 002, 005, 010</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Il matching "storico specifico" (§2.8): confronta lo storico progetti dell'ente con il bando corrente a due livelli — (1) provider match esatto per <code>provider_id</code>, (2) grant name match fuzzy con normalizzazione — e produce i badge <span class="badge b-green">Già finanziato</span> <span class="badge b-blue">Già candidato</span> <span class="badge b-grey">Conosce l'erogatore</span> (badge, non punti). Aggiunge anche il bonus +1 della dimensione 6 (stesso tipo di finanziamento) se non già completo da 002.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/matching/storico-match.ts</code> <span class="badge b-blue">nuovo</span> — <code>matchHistory(history: ProjectHistoryRow[], grant: Grant) → HistoryBadge | null</code>. Normalizzazione nome: lowercase, rimozione "S.p.A.", "edizione XXXX"/anni, punteggiatura, spazi multipli; similarità (trigram o Levenshtein normalizzato ≥ 0.85). Priorità: già finanziato &gt; già candidato &gt; conosce l'erogatore</li>
+      <li><code>app/src/lib/matching/calculate-match.ts</code> <span class="badge b-yellow">estendere</span> — include <code>historyBadge</code> in <code>MatchResult</code> (fuori dallo score)</li>
+      <li><code>app/src/components/grants/history-badge.tsx</code> <span class="badge b-blue">nuovo</span> — riempi lo slot predisposto in <code>grant-card</code> (005) e nel dettaglio</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li><code>storico-match.test.ts</code>: stesso provider_id + esito finanziato → "Già finanziato"; stesso provider, bando diverso → "Conosce l'erogatore"; "Bando Sport 2024 — edizione 2024" ≈ "bando sport" → name match; nomi diversi ma provider diverso → null; storico vuoto → null; <strong>lo score non cambia mai</strong> per effetto del badge</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Un ente con riga di storico (manuale o auto-popolata da 010) vede il badge corretto su card e dettaglio</li>
+      <li>Il badge non altera score né verdetto (property test)</li>
+      <li>Falsi positivi controllati: fixture di 20 coppie nome-bando reali (10 match attesi, 10 no) tutte classificate correttamente</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b014">
+  <div class="branch-head"><code>feat/014-economic-coherence</code><span class="badge b-green">S</span><span class="badge b-grey">dipendenze: 002, 005</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>L'indicatore visivo di coerenza economica (§2.7A): rapporto importo bando / budget annuale ente → badge colorato ("alla tua portata" / "ambizioso" / "fuori scala" / "da verificare"). Non scored.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/lib/matching/economic-coherence.ts</code> <span class="badge b-blue">nuovo</span> — <code>economicCoherence(grantAmount, entityBudgetBand) → {ratio, level, label}</code>; il budget dell'ente è una fascia (&lt;20k / 20–100k / 100–500k / &gt;500k): usare il punto medio della fascia (500k+ → 750k) documentandolo nel codice; soglie: &lt;0.05 da verificare, 0.05–1.0 alla tua portata, 1.0–2.0 ambizioso, &gt;2.0 fuori scala, dati mancanti → da verificare</li>
+      <li><code>app/src/lib/matching/indicators.ts</code> <span class="badge b-yellow">estendere</span> — espone il terzo indicatore accanto a scadenza e cofinanziamento</li>
+      <li><code>app/src/components/grants/amount-badge.tsx</code> <span class="badge b-blue">nuovo</span> — importo formattato it-IT (€ 1.500.000) + colore; riempie lo slot in <code>grant-card</code> e nel dettaglio</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li>Tutte le righe della tabella §2.7A inclusi i bordi esatti (0.05, 0.3, 1.0, 2.0) e i casi dati-mancanti; formattazione importi it-IT</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Ogni card e dettaglio mostra l'importo colorato; senza budget nel profilo → "da verificare" con invito a compilare la sezione 4/7</li>
+      <li>Lo score non cambia (indicatore non scored)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="branch" id="b015">
+  <div class="branch-head"><code>feat/015-pwa-mobile</code><span class="badge b-green">S</span><span class="badge b-grey">dipendenze: 006</span></div>
+  <div class="branch-body">
+    <h5>Cosa e perché</h5>
+    <p>Chiusura del cerchio desktop-first → mobile-friendly (ADR-006): manifest PWA (installabile su home screen), icone, e rifinitura responsive sistematica delle 4 pagine per il caso d'uso mobile = discovery veloce.</p>
+    <h5>File da creare/modificare</h5>
+    <ul class="files">
+      <li><code>app/src/app/manifest.ts</code> — nome "BANDI-SCANNER", lingua it, theme color, display standalone</li>
+      <li><code>app/public/icons/</code> — icone 192/512 + apple-touch</li>
+      <li><code>app/src/app/(app)/layout.tsx</code> <span class="badge b-yellow">modificare</span> — nav → bottom tab bar sotto 760px</li>
+      <li>Rifinitura responsive mirata: <code>grant-card</code> (colonna singola), <code>filter-bar</code> (collassata in drawer), kanban (colonne scrollabili orizzontali), form profilo (sezioni a fisarmonica), <code>score-breakdown</code> (etichette sopra le barre)</li>
+    </ul>
+    <h5>Test</h5>
+    <ul>
+      <li>Checklist manuale documentata in PR: le 4 pagine a 375px, 768px, 1280px senza overflow orizzontale né tap target &lt; 44px</li>
+      <li>Lighthouse: PWA installabile, accessibilità ≥ 90 su Dashboard e dettaglio</li>
+    </ul>
+    <h5>Criteri di accettazione</h5>
+    <ul>
+      <li>Chrome Android/Safari iOS propongono "Aggiungi a schermata Home" e l'app si apre standalone</li>
+      <li>Flusso mobile completo senza zoom: login → dashboard → dettaglio → salva bando</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- PART 4: ACCEPTANCE TEST PLAN -->
+<!-- ================================================================ -->
+<h2 id="p4"><span class="num">Parte 4.</span> Piano di test di accettazione per fase</h2>
+
+<p>Test manuali end-to-end da eseguire (e spuntare) <strong>prima di iniziare la fase successiva</strong>. Ambiente: staging (Vercel preview + Supabase branch). Ogni fase presuppone il superamento delle precedenti.</p>
+
+<h3>Gate Fase 1 → Fase 2</h3>
+<ul>
+  <li>☐ <code>supabase db reset</code> pulito; advisor Supabase senza warning di sicurezza</li>
+  <li>☐ Due account di test: nessuno vede i dati dell'altro (verifica manuale via SQL con i due JWT)</li>
+  <li>☐ Suite matching verde; revisione a campione di 5 coppie profilo/bando calcolate a mano vs engine (numeri identici)</li>
+  <li>☐ Signup → onboarding → logout → login → sessione persistente; "Elimina account" pulisce tutto</li>
+</ul>
+
+<h3>Gate Fase 2 → Fase 3</h3>
+<ul>
+  <li>☐ Onboarding a 3 step in &lt; 5 minuti con dati di un ente reale (dogfooding con l'ente del fondatore)</li>
+  <li>☐ Le 8 sezioni salvano e ricaricano; % completamento cresce coerentemente; capacità calcolata corretta per l'ente reale</li>
+  <li>☐ Dashboard con seed: ordinamento per score credibile a occhio (i bandi giusti in alto), breakdown del top match spiegabile a voce</li>
+  <li>☐ Aggiungere un tag al profilo cambia gli score al refresh; filtri e URL condivisibili funzionano</li>
+</ul>
+
+<h3>Gate Fase 3 → Fase 4</h3>
+<ul>
+  <li>☐ Run completo delle 12 fonti su staging: ≥ 8 fonti producono bandi; errori delle altre leggibili in <code>last_error</code></li>
+  <li>☐ Campione di 10 bandi estratti confrontati con la pagina originale: titolo, scadenza, importo, erogatore corretti in ≥ 8/10; nessun tag/tipo fuori lista</li>
+  <li>☐ Secondo run a distanza di 48h: zero duplicati, aggiornamenti applicati</li>
+  <li>☐ Consumi entro i free tier: sessioni Browserless e chiamate Gemini del run × 15 run/mese sotto quota</li>
+</ul>
+
+<h3>Gate Fase 4 → Fase 5</h3>
+<ul>
+  <li>☐ Ciclo completo: salvo un bando → in preparazione → candidato → finanziato → riga nello storico → la dimensione track record sale al refresh</li>
+  <li>☐ Analisi AI su 3 bandi reali: in italiano, personalizzata, con disclaimer; costo per analisi stimato e registrato</li>
+  <li>☐ "Segnala un bando" con URL reale → visibile al secondo account di test</li>
+  <li>☐ Digest ricevuto su Gmail con i bandi giusti sopra soglia; disattivazione alert rispettata</li>
+</ul>
+
+<h3>Gate Fase 5 → Beta privata</h3>
+<ul>
+  <li>☐ Badge storico corretti sull'ente reale del fondatore (che ha storico vero)</li>
+  <li>☐ Indicatori economici sensati su 10 bandi a campione</li>
+  <li>☐ PWA installata su un Android e un iPhone reali; flusso discovery mobile completo</li>
+  <li>☐ Checklist GDPR: dati in Frankfurt, nessun analytics terzo, cookie solo tecnici, privacy policy pubblicata, elimina account funzionante</li>
+  <li>☐ Smoke test finale dei 4 percorsi critici su produzione: signup+onboarding, matching+dettaglio, salvataggio+pipeline, digest</li>
+</ul>
+
+<!-- ================================================================ -->
+<!-- PART 5: COSTS -->
+<!-- ================================================================ -->
+<h2 id="p5"><span class="num">Parte 5.</span> Proiezione costi infrastruttura</h2>
+
+<p>Costi mensili stimati (€/mese, IVA esclusa) per numero di utenti paganti. Lo scraping è un costo <strong>fisso</strong> (12 fonti ogni 48h indipendentemente dagli utenti); i costi variabili sono analisi AI on-demand ed email.</p>
+
+<div class="scroll"><table>
+  <thead><tr><th>Voce</th><th class="num">0 utenti (dev)</th><th class="num">10 utenti</th><th class="num">50 utenti</th><th class="num">100 utenti</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>Vercel (hosting + cron)</td><td class="num">0</td><td class="num">0–20</td><td class="num">20</td><td class="num">20</td><td>Hobby → Pro quando serve team/analytics o si superano i limiti free</td></tr>
+    <tr><td>Supabase (Postgres + Auth, Frankfurt)</td><td class="num">0</td><td class="num">0–25</td><td class="num">25</td><td class="num">25</td><td>Free fino a 500MB/50k MAU; Pro consigliato dai primi paganti (backup)</td></tr>
+    <tr><td>Browserless.io</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0–50</td><td>~720 sessioni/mese fisse, dentro il free tier (1000); a 100 utenti più fonti → piano paid</td></tr>
+    <tr><td>AI ingestion (Gemini free)</td><td class="num">~2</td><td class="num">~2</td><td class="num">~2</td><td class="num">~5</td><td>Fisso per lo scraping; cresce solo aggiungendo fonti</td></tr>
+    <tr><td>AI on-demand (analisi)</td><td class="num">0</td><td class="num">~2</td><td class="num">~10</td><td class="num">~20</td><td>~€0,02–0,05/analisi × ~4 analisi/utente/mese</td></tr>
+    <tr><td>Resend (email)</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">~18</td><td>Free 3.000 email/mese; 100 utenti × 4 digest = 400, margine ampio (paid solo con altre email transazionali)</td></tr>
+    <tr><td><strong>Totale infra</strong></td><td class="num"><strong>~2</strong></td><td class="num"><strong>~4–49</strong></td><td class="num"><strong>~57</strong></td><td class="num"><strong>~88–138</strong></td><td></td></tr>
+    <tr><td><strong>Ricavi (piano €40/mese)</strong></td><td class="num">0</td><td class="num">400</td><td class="num">2.000</td><td class="num">4.000</td><td>Punto medio del range €30–50</td></tr>
+    <tr><td><strong>Margine lordo</strong></td><td class="num">−2</td><td class="num">~<strong>88–99%</strong></td><td class="num">~<strong>97%</strong></td><td class="num">~<strong>97%</strong></td><td>Break-even a 2–3 utenti paganti, come da design doc</td></tr>
+  </tbody>
+</table></div>
+
+<div class="callout callout-green">
+  <strong>Lettura:</strong> il costo marginale per utente è ~€1–2/mese (analisi AI + quota email); il grosso è fisso e coperto dai primi 2–3 abbonamenti. La prima soglia di spesa reale è il passaggio Vercel Pro + Supabase Pro (~€45/mese), consigliato appena ci sono utenti paganti per avere backup e supporto. Nessuna voce di costo scala linearmente con gli utenti fino a ~100.
+</div>
+
+<hr>
+<p class="tagline">BANDI-SCANNER v2 — Specifica funzionale &amp; roadmap branch-by-branch. Fonte delle decisioni di prodotto: <code>bandi-scanner-v2-definitive.html</code>. Convenzioni: UI italiana, codice inglese, D.Lgs 117/2017. L'app non riguarda fatture/OCR: è per il matching bandi. <a href="#p1">↑ Torna all'inizio</a></p>
+
+</div>
