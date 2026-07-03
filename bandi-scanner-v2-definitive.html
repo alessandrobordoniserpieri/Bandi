@@ -1,0 +1,763 @@
+<title>BANDI-SCANNER v2 — Design Definitivo</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #f6f7f9;
+    --bg-card: #fafbfc;
+    --text: #1a2233;
+    --text-soft: #5a6478;
+    --border: #dde2ea;
+    --border-strong: #c3cad6;
+    --accent: #1b5fae;
+    --accent-soft: #e8f0fa;
+    --green: #1a7f4b;
+    --green-bg: #e4f4ea;
+    --yellow: #9a6b00;
+    --yellow-bg: #fdf3d7;
+    --red: #b4232a;
+    --red-bg: #fbe7e8;
+    --grey: #5a6478;
+    --grey-bg: #eef0f4;
+    --blue: #1b5fae;
+    --blue-bg: #e8f0fa;
+    --black-badge: #1a2233;
+    --code-bg: #f1f3f7;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --shadow: 0 1px 3px rgba(20,30,50,.07), 0 4px 14px rgba(20,30,50,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181f;
+      --bg-soft: #1b212b;
+      --bg-card: #191f28;
+      --text: #e6eaf1;
+      --text-soft: #9aa5b8;
+      --border: #2b3342;
+      --border-strong: #3b455a;
+      --accent: #6aa5e8;
+      --accent-soft: #1d2b40;
+      --green: #4fc586;
+      --green-bg: #16301f;
+      --yellow: #e3b53f;
+      --yellow-bg: #33290e;
+      --red: #f08289;
+      --red-bg: #3a1a1c;
+      --grey: #9aa5b8;
+      --grey-bg: #242b37;
+      --blue: #6aa5e8;
+      --blue-bg: #1d2b40;
+      --black-badge: #e6eaf1;
+      --code-bg: #10141b;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --bg-soft: #f6f7f9; --bg-card: #fafbfc;
+    --text: #1a2233; --text-soft: #5a6478;
+    --border: #dde2ea; --border-strong: #c3cad6;
+    --accent: #1b5fae; --accent-soft: #e8f0fa;
+    --green: #1a7f4b; --green-bg: #e4f4ea;
+    --yellow: #9a6b00; --yellow-bg: #fdf3d7;
+    --red: #b4232a; --red-bg: #fbe7e8;
+    --grey: #5a6478; --grey-bg: #eef0f4;
+    --blue: #1b5fae; --blue-bg: #e8f0fa;
+    --black-badge: #1a2233; --code-bg: #f1f3f7;
+    --shadow: 0 1px 3px rgba(20,30,50,.07), 0 4px 14px rgba(20,30,50,.05);
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181f; --bg-soft: #1b212b; --bg-card: #191f28;
+    --text: #e6eaf1; --text-soft: #9aa5b8;
+    --border: #2b3342; --border-strong: #3b455a;
+    --accent: #6aa5e8; --accent-soft: #1d2b40;
+    --green: #4fc586; --green-bg: #16301f;
+    --yellow: #e3b53f; --yellow-bg: #33290e;
+    --red: #f08289; --red-bg: #3a1a1c;
+    --grey: #9aa5b8; --grey-bg: #242b37;
+    --blue: #6aa5e8; --blue-bg: #1d2b40;
+    --black-badge: #e6eaf1; --code-bg: #10141b;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", sans-serif;
+    margin: 0;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: 0 0 .35rem; letter-spacing: -.02em; }
+  h2 {
+    font-size: 1.45rem; margin: 3.2rem 0 1rem; padding-top: 1.2rem;
+    border-top: 3px solid var(--accent); letter-spacing: -.01em;
+  }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: .4rem; }
+  h3 { font-size: 1.12rem; margin: 2rem 0 .6rem; }
+  h4 { font-size: .95rem; margin: 1.4rem 0 .4rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-soft); }
+  p { margin: .6rem 0; }
+  .lead { color: var(--text-soft); font-size: 1.05rem; margin-bottom: 1.6rem; }
+  .meta { color: var(--text-soft); font-size: .85rem; margin-bottom: 2rem; }
+  a { color: var(--accent); }
+  ul, ol { padding-left: 1.4rem; margin: .5rem 0; }
+  li { margin: .25rem 0; }
+  strong { font-weight: 650; }
+
+  code, .mono {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--code-bg); padding: .1em .35em; border-radius: 4px;
+  }
+  pre {
+    font-family: var(--mono); font-size: .82rem; line-height: 1.55;
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.2rem; overflow-x: auto; margin: 1rem 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  .scroll { overflow-x: auto; margin: 1rem 0; }
+  table {
+    border-collapse: collapse; width: 100%; font-size: .88rem;
+    background: var(--bg-card);
+  }
+  th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); font-weight: 650; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.center, th.center { text-align: center; }
+  tbody tr:hover { background: var(--bg-soft); }
+
+  .badge {
+    display: inline-block; font-size: .74rem; font-weight: 650; letter-spacing: .02em;
+    padding: .12em .55em; border-radius: 999px; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .b-green  { color: var(--green);  background: var(--green-bg);  border-color: color-mix(in srgb, var(--green) 30%, transparent); }
+  .b-yellow { color: var(--yellow); background: var(--yellow-bg); border-color: color-mix(in srgb, var(--yellow) 30%, transparent); }
+  .b-red    { color: var(--red);    background: var(--red-bg);    border-color: color-mix(in srgb, var(--red) 30%, transparent); }
+  .b-grey   { color: var(--grey);   background: var(--grey-bg);   border-color: color-mix(in srgb, var(--grey) 30%, transparent); }
+  .b-blue   { color: var(--blue);   background: var(--blue-bg);   border-color: color-mix(in srgb, var(--blue) 30%, transparent); }
+  .b-black  { color: var(--bg);     background: var(--black-badge); }
+
+  .box {
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-card); padding: 1.1rem 1.3rem; margin: 1rem 0;
+    box-shadow: var(--shadow);
+  }
+  .box-accent { border-left: 4px solid var(--accent); }
+  .box-key {
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    background: var(--accent-soft); border-radius: 12px;
+    padding: 1.3rem 1.5rem; margin: 1.4rem 0 2rem;
+  }
+  .box-key h3 { margin-top: 0; }
+  .callout {
+    border-left: 4px solid var(--yellow); background: var(--yellow-bg);
+    border-radius: 0 8px 8px 0; padding: .8rem 1.1rem; margin: 1rem 0; font-size: .92rem;
+  }
+  .callout-green { border-left-color: var(--green); background: var(--green-bg); }
+  .callout-red { border-left-color: var(--red); background: var(--red-bg); }
+  .callout-blue { border-left-color: var(--blue); background: var(--blue-bg); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+  /* TOC */
+  .toc {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg-card); padding: 1.2rem 1.5rem; margin: 1.5rem 0 1rem;
+    columns: 2; column-gap: 2.5rem;
+  }
+  @media (max-width: 700px) { .toc { columns: 1; } }
+  .toc ol { margin: 0; padding-left: 1.4rem; }
+  .toc li { margin: .3rem 0; break-inside: avoid; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .sub { font-size: .84rem; color: var(--text-soft); padding-left: 1.1rem; list-style: none; margin-top: .15rem; }
+
+  /* score bars */
+  .dims { margin: 1.2rem 0; }
+  .dim-row { display: grid; grid-template-columns: 220px 1fr 56px; gap: .8rem; align-items: center; margin: .4rem 0; font-size: .9rem; }
+  @media (max-width: 620px) { .dim-row { grid-template-columns: 1fr; gap: .15rem; } .dim-row .pts { text-align: left; } }
+  .bar { height: 14px; background: var(--grey-bg); border-radius: 7px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 7px; background: var(--accent); }
+  .pts { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text-soft); }
+
+  /* flow diagrams */
+  .flow {
+    display: flex; align-items: stretch; gap: 0; flex-wrap: wrap;
+    margin: 1.2rem 0; justify-content: flex-start;
+  }
+  .fnode {
+    border: 1.5px solid var(--border-strong); border-radius: 10px;
+    background: var(--bg-card); padding: .7rem .95rem; min-width: 130px;
+    text-align: center; font-size: .85rem; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .fnode b { display: block; font-size: .92rem; }
+  .fnode small { color: var(--text-soft); font-size: .74rem; line-height: 1.35; display: block; margin-top: .15rem; }
+  .farrow {
+    display: flex; align-items: center; padding: 0 .55rem;
+    color: var(--accent); font-weight: 700; font-size: 1.15rem;
+  }
+  .fnode.f-green { border-color: var(--green); }
+  .fnode.f-yellow { border-color: var(--yellow); }
+  .fnode.f-blue { border-color: var(--blue); }
+  .fnode.f-red { border-color: var(--red); }
+  .fnode.f-grey { border-color: var(--border-strong); }
+
+  /* verdict cards */
+  .verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .7rem; margin: 1rem 0; }
+  .vcard { border-radius: 10px; padding: .7rem .8rem; font-size: .82rem; border: 1px solid var(--border); }
+  .vcard b { display: block; font-size: .92rem; margin-bottom: .15rem; }
+  .v-green { background: var(--green-bg); border-color: color-mix(in srgb, var(--green) 35%, transparent); }
+  .v-green b { color: var(--green); }
+  .v-blue { background: var(--blue-bg); border-color: color-mix(in srgb, var(--blue) 35%, transparent); }
+  .v-blue b { color: var(--blue); }
+  .v-yellow { background: var(--yellow-bg); border-color: color-mix(in srgb, var(--yellow) 35%, transparent); }
+  .v-yellow b { color: var(--yellow); }
+  .v-red { background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
+  .v-red b { color: var(--red); }
+  .v-grey { background: var(--grey-bg); }
+  .v-grey b { color: var(--grey); }
+
+  /* matrix cells */
+  .cell-hi { background: var(--green-bg); color: var(--green); font-weight: 700; }
+  .cell-mid { background: var(--yellow-bg); color: var(--yellow); font-weight: 700; }
+  .cell-lo { background: var(--red-bg); color: var(--red); font-weight: 700; }
+
+  .tagline { font-size: .8rem; color: var(--text-soft); }
+  .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: .75rem;
+    font-weight: 700; color: var(--accent); margin-bottom: .4rem;
+  }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .backtop { font-size: .78rem; }
+
+  @media print {
+    :root { --bg: #fff; --bg-soft: #f4f4f4; --bg-card: #fff; --text: #111; --text-soft: #444; --shadow: none; }
+    body { font-size: 11pt; }
+    h2 { break-after: avoid; }
+    .box, table, .flow, pre { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+
+<div class="wrap">
+
+<div class="kicker">Design Document — Single Source of Truth</div>
+<h1>BANDI-SCANNER v2</h1>
+<p class="lead">Piattaforma SaaS italiana per il matching tra bandi pubblici/privati e enti non profit (ASD, ETS, cooperative, fondazioni). Documento definitivo delle decisioni di design — esito della sessione di grilling a 30 domande.</p>
+<p class="meta">Versione 2.0 definitiva &middot; 3 luglio 2026 &middot; Stato: <span class="badge b-green">Approvato per sviluppo</span></p>
+
+<!-- ============ DECISIONI CHIAVE ============ -->
+<div class="box-key">
+  <h3>Decisioni chiave</h3>
+  <div class="scroll"><table>
+    <tbody>
+      <tr><th>Target</th><td>Enti singoli (ASD, ETS, cooperative, fondazioni) — <strong>non</strong> consulenti. Un account = un ente. Nessun multi-tenant, nessuna organization, nessun ruolo.</td></tr>
+      <tr><th>Value proposition</th><td>Matching personalizzato (score 0–100 con spiegazione) + AI assistant per la candidatura. Differenziatore vs InfoBandi/Granter: mostra <strong>solo i bandi rilevanti per te</strong>, con score e motivazione.</td></tr>
+      <tr><th>Matching engine</th><td><strong>6 dimensioni scored (100 pt)</strong>: Temi 28 &middot; Forma giuridica 22 &middot; Territorio 18 &middot; Capacità×Complessità 14 &middot; Documenti 12 &middot; Track record 6. Più 3 indicatori visivi non scored e 3 bonus/malus.</td></tr>
+      <tr><th>Profilo ente</th><td>~40 campi in 8 sezioni. Onboarding progressivo: 12 campi essenziali subito, il resto suggerito dopo. % completamento visibile. Il track record si auto-popola dall'uso dell'app.</td></tr>
+      <tr><th>Scraping</th><td>Vercel Cron → Browserless.io → AI Provider (Gemini free, agnostico) → Supabase. 12 fonti MVP, ogni 48h, 16 campi estratti per bando. + crowdsourcing URL dagli utenti.</td></tr>
+      <tr><th>Stack</th><td>Next.js su Vercel &middot; Supabase Postgres + Auth (regione EU Frankfurt) &middot; Browserless.io &middot; Gemini free &middot; Resend. Costo infra ~€15–85/mese, break-even a 2–3 utenti paganti.</td></tr>
+      <tr><th>Pricing</th><td>Piano unico €30–50/mese, tutto incluso, nessun limite artificiale.</td></tr>
+      <tr><th>UI</th><td>Desktop-first, responsive. Web app (no native); PWA possibile in futuro. 4 pagine: Dashboard, Nuovi bandi, I miei bandi, Il mio profilo.</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ============ TOC ============ -->
+<nav class="toc">
+  <ol>
+    <li><a href="#s1">Scopo e target</a></li>
+    <li><a href="#s2">Matching engine (100 pt)</a>
+      <ul class="sub">
+        <li><a href="#s2-dims">6 dimensioni scored</a></li>
+        <li><a href="#s2-visual">3 indicatori visivi</a></li>
+        <li><a href="#s2-bonus">Bonus, malus e storico</a></li>
+        <li><a href="#s2-verdict">Verdetti e soglie</a></li>
+      </ul>
+    </li>
+    <li><a href="#s3">Profilo ente (~40 campi)</a></li>
+    <li><a href="#s4">Scraping / ingestion</a></li>
+    <li><a href="#s5">User workflow</a></li>
+    <li><a href="#s6">Stack tecnico e DB schema</a></li>
+    <li><a href="#s7">Approccio UI</a></li>
+    <li><a href="#s8">Privacy / GDPR</a></li>
+    <li><a href="#s9">Pricing</a></li>
+    <li><a href="#s10">Migrazione dal codice esistente</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1. SCOPO ============ -->
+<h2 id="s1"><span class="num">1.</span> Scopo e target</h2>
+
+<p>BANDI-SCANNER risolve un problema concreto: gli enti del terzo settore e dello sport ricevono newsletter con decine di bandi generici e devono capire da soli quali sono realmente candidabili. La piattaforma inverte il modello: <strong>mostra solo i bandi rilevanti per il tuo ente</strong>, con uno score 0–100, un breakdown per dimensione e una spiegazione del perché.</p>
+
+<div class="grid2">
+  <div class="box box-accent">
+    <h4>Chi è il target</h4>
+    <ul>
+      <li><strong>Enti singoli</strong>: ASD, SSD, ETS (APS/ODV), cooperative sociali, fondazioni</li>
+      <li>Il fondatore usa il proprio ente come primo utente/tester (dogfooding)</li>
+      <li>Utente tipo: responsabile progetti o segretario di un ente piccolo/medio, non un grant-writer professionista</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h4>Chi NON è il target</h4>
+    <ul>
+      <li><strong>Consulenti</strong> che gestiscono portafogli di clienti</li>
+      <li>Nessun multi-tenant enterprise, nessuna <em>organization</em>, nessun sistema di ruoli</li>
+      <li><strong>Un account = un ente</strong>, punto. Questa scelta semplifica radicalmente auth, RLS e UI</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Value proposition e differenziazione</h3>
+<div class="scroll"><table>
+  <thead><tr><th></th><th>InfoBandi / Granter (aggregatori)</th><th>BANDI-SCANNER</th></tr></thead>
+  <tbody>
+    <tr><th>Contenuto</th><td>Tutti i bandi, per tutti</td><td>Solo i bandi <strong>rilevanti per il tuo ente</strong></td></tr>
+    <tr><th>Valutazione</th><td>Lettura manuale del testo del bando</td><td>Score 0–100 + breakdown 6 dimensioni + verdetto</td></tr>
+    <tr><th>Spiegazione</th><td>Assente</td><td>"Perché questo bando fa per te" + checklist documenti mancanti</td></tr>
+    <tr><th>Candidatura</th><td>Fai da te</td><td>AI assistant per l'analisi approfondita e la preparazione</td></tr>
+  </tbody>
+</table></div>
+
+<div class="callout callout-blue"><strong>Pricing headline:</strong> €30–50/mese, tutto incluso, nessun limite artificiale (dettagli in <a href="#s9">§9</a>).</div>
+
+<!-- ============ 2. MATCHING ENGINE ============ -->
+<h2 id="s2"><span class="num">2.</span> Matching engine (100 punti)</h2>
+
+<p>Il cuore del prodotto. Ogni bando viene confrontato con il profilo dell'ente su <strong>6 dimensioni scored</strong> la cui somma fa esattamente 100 punti. Accanto allo score, <strong>3 indicatori visivi non scored</strong> e <strong>3 bonus/filtri</strong> arricchiscono la valutazione senza inquinare il punteggio.</p>
+
+<div class="dims box">
+  <div class="dim-row"><span><strong>1. Temi</strong> (47 tag)</span><div class="bar"><span style="width:28%"></span></div><span class="pts">28 pt</span></div>
+  <div class="dim-row"><span><strong>2. Forma giuridica</strong> (8 gruppi)</span><div class="bar"><span style="width:22%"></span></div><span class="pts">22 pt</span></div>
+  <div class="dim-row"><span><strong>3. Territorio</strong> (strutturato)</span><div class="bar"><span style="width:18%"></span></div><span class="pts">18 pt</span></div>
+  <div class="dim-row"><span><strong>4. Capacità × Complessità</strong></span><div class="bar"><span style="width:14%"></span></div><span class="pts">14 pt</span></div>
+  <div class="dim-row"><span><strong>5. Documenti</strong> (checklist)</span><div class="bar"><span style="width:12%"></span></div><span class="pts">12 pt</span></div>
+  <div class="dim-row"><span><strong>6. Track record generico</strong></span><div class="bar"><span style="width:6%"></span></div><span class="pts">6 pt</span></div>
+  <div class="dim-row" style="border-top:1px solid var(--border); padding-top:.5rem; margin-top:.5rem;"><span><strong>Totale</strong></span><div class="bar"><span style="width:100%"></span></div><span class="pts">100 pt</span></div>
+</div>
+
+<h3 id="s2-dims">2.1 — Dimensione 1: Temi <span class="badge b-blue">28 pt</span></h3>
+<ul>
+  <li><strong>47 tag tematici fissi</strong> (lista chiusa, ereditata dalla beta). L'AI dello scraper mappa i tag dalla pagina del bando alla lista canonica.</li>
+  <li><strong>Match esatto tag per ora</strong>: intersezione fra i tag dell'ente e i tag del bando.</li>
+  <li>I tag sono <strong>raggruppati in macro-aree</strong>, predisposizione per il match parziale futuro (tag diversi ma stessa macro-area → punteggio parziale).</li>
+  <li><strong>Predisposto per embedding</strong> (pgvector su Supabase) come potenziamento futuro: la descrizione attività dell'ente (textarea, §3 sezione 3) è già raccolta con questo scopo.</li>
+</ul>
+
+<h3>2.2 — Dimensione 2: Forma giuridica <span class="badge b-blue">22 pt</span></h3>
+<p>Sostituisce il vecchio match per substring su <code>legalTypeKey</code> con un <strong>match per gruppi di compatibilità</strong>. I 62 tipi legali sono organizzati in 8 gruppi con sottotipi:</p>
+
+<div class="scroll"><table>
+  <thead><tr><th>Gruppo</th><th>Sottotipi</th></tr></thead>
+  <tbody>
+    <tr><td><code>SPORTIVI</code></td><td>ASD, SSD, SSD a r.l., ASD/SSD iscritta RASD</td></tr>
+    <tr><td><code>PROMOZIONE</code></td><td>EPS, FSN, DSA, AB, Comitato territoriale EPS/FSN</td></tr>
+    <tr><td><code>TERZO_SETT</code></td><td>APS, ODV, ETS, Rete associativa ETS, ONLUS, ONG/OSC</td></tr>
+    <tr><td><code>COOPERATIVE</code></td><td>Coop sociale A, Coop sociale B, Consorzio coop, Impresa sociale</td></tr>
+    <tr><td><code>FONDAZIONI</code></td><td>Fondazione ETS, di comunità, bancaria, privata, pubblica</td></tr>
+    <tr><td><code>ENTI_PUBBL</code></td><td>Comune, Unione Comuni, Provincia, Regione, Ente pubblico</td></tr>
+    <tr><td><code>FORMAZIONE</code></td><td>Istituto scolastico, Università, Centro ricerca, Ente formazione</td></tr>
+    <tr><td><code>IMPRESE</code></td><td>Impresa, PMI, Start-up, Società benefit</td></tr>
+  </tbody>
+</table></div>
+
+<div class="scroll"><table>
+  <thead><tr><th>Condizione</th><th class="num">Punteggio</th></tr></thead>
+  <tbody>
+    <tr><td>Match esatto del tipo o del sottotipo</td><td class="num cell-hi">22 / 22</td></tr>
+    <tr><td>Bando senza tipi eleggibili specificati (aperto a tutti)</td><td class="num cell-hi">22 / 22</td></tr>
+    <tr><td>Stesso gruppo di compatibilità, ma non il sottotipo esatto</td><td class="num cell-mid">11 / 22</td></tr>
+    <tr><td>Nessun match (gruppo diverso)</td><td class="num cell-lo">0 / 22</td></tr>
+  </tbody>
+</table></div>
+
+<h3>2.3 — Dimensione 3: Territorio <span class="badge b-blue">18 pt</span></h3>
+<p>Match <strong>strutturato provincia/regione</strong>, non <code>textOverlap</code>. L'ente ha <code>province</code> (codice) e <code>region</code> (auto-calcolata dalla provincia). Il bando ha <code>area</code> e <code>geoScope</code> ∈ {Comunale, Provinciale, Regionale, Nazionale, Europeo}.</p>
+
+<div class="scroll"><table>
+  <thead><tr><th>Caso</th><th class="num">Punteggio</th></tr></thead>
+  <tbody>
+    <tr><td><code>geoScope</code> = Europeo o Nazionale → valido per tutti</td><td class="num cell-hi">18 / 18</td></tr>
+    <tr><td><code>geoScope</code> = Regionale e stessa regione dell'ente</td><td class="num cell-hi">18 / 18</td></tr>
+    <tr><td><code>geoScope</code> = Provinciale (o Comunale) e stessa provincia dell'ente</td><td class="num cell-hi">18 / 18</td></tr>
+    <tr><td>Bando senza dati territoriali → neutro</td><td class="num cell-mid">12 / 18</td></tr>
+    <tr><td>Regione diversa, ma <code>geoScope</code> assente (incertezza)</td><td class="num cell-lo">5 / 18</td></tr>
+    <tr><td>Nessun match territoriale</td><td class="num cell-lo">0 / 18</td></tr>
+  </tbody>
+</table></div>
+
+<h3>2.4 — Dimensione 4: Capacità × Complessità <span class="badge b-blue">14 pt</span></h3>
+<p>La capacità gestionale dell'ente <strong>non è un dropdown autodichiarato</strong>: è <strong>calcolata</strong> da 6 domande concrete (profilo, §3 sezione 4):</p>
+<ol>
+  <li><strong>Persone stabili</strong>: 0–2 / 3–10 / 11–30 / 30+</li>
+  <li><strong>Persona dedicata all'amministrazione</strong>: Sì / No</li>
+  <li><strong>Progetti finanziati negli ultimi 3 anni</strong>: 0 / 1–2 / 3–5 / 5+</li>
+  <li><strong>Esperienza di rendicontazione</strong>: Mai / Qualche volta / Regolarmente</li>
+  <li><strong>Budget annuale</strong>: &lt;€20k / €20–100k / €100–500k / &gt;€500k</li>
+  <li><strong>Ha gestito un progetto europeo</strong>: Sì / No</li>
+</ol>
+<p>Il risultato è una capacità <strong>Bassa / Media / Alta</strong>, incrociata con la complessità del bando (estratta dall'AI scraper):</p>
+
+<div class="scroll"><table>
+  <thead><tr><th>Capacità ente ↓ / Complessità bando →</th><th class="center">Bassa</th><th class="center">Media</th><th class="center">Alta</th></tr></thead>
+  <tbody>
+    <tr><th>Bassa</th><td class="center cell-hi">14</td><td class="center cell-mid">7</td><td class="center cell-lo">2</td></tr>
+    <tr><th>Media</th><td class="center cell-hi">14</td><td class="center cell-hi">14</td><td class="center cell-mid">8</td></tr>
+    <tr><th>Alta</th><td class="center cell-hi">14</td><td class="center cell-hi">14</td><td class="center cell-hi">14</td></tr>
+  </tbody>
+</table></div>
+<p class="tagline">Un ente capace non viene mai penalizzato da un bando semplice; un ente piccolo viene avvisato che un bando complesso lo supererà.</p>
+
+<h3>2.5 — Dimensione 5: Documenti <span class="badge b-blue">12 pt</span></h3>
+<p><strong>Checklist strutturata</strong>: cosa richiede il bando vs cosa possiede l'ente. Sostituisce la vecchia regex su testo concatenato.</p>
+<ul>
+  <li>Requisiti del bando estratti dall'AI scraper come lista: <code>["statuto", "bilancio", "DURC", …]</code></li>
+  <li>L'ente ha campi strutturati: stato statuto, stato bilancio, iscrizione RUNTS, iscrizione RASD, DURC, certificazioni</li>
+</ul>
+<div class="scroll"><table>
+  <thead><tr><th>Copertura documenti richiesti</th><th class="num">Punteggio</th></tr></thead>
+  <tbody>
+    <tr><td>4/4 posseduti</td><td class="num cell-hi">12 / 12</td></tr>
+    <tr><td>3/4 posseduti</td><td class="num cell-mid">9 / 12</td></tr>
+    <tr><td>Bando che non specifica documenti → neutro</td><td class="num cell-mid">8 / 12</td></tr>
+    <tr><td>1/4 posseduti</td><td class="num cell-lo">3 / 12</td></tr>
+  </tbody>
+</table></div>
+<p>Il punteggio è proporzionale alla frazione posseduta. La dimensione produce anche una <strong>checklist azionabile</strong> nel dettaglio bando:</p>
+<div class="callout"><strong>Esempio UI:</strong> "Per candidarti ti manca: bilancio aggiornato, DURC."</div>
+
+<h3>2.6 — Dimensione 6: Track record generico <span class="badge b-blue">6 pt</span></h3>
+<div class="scroll"><table>
+  <thead><tr><th>Progetti finanziati in storico</th><th class="num">Punteggio</th></tr></thead>
+  <tbody>
+    <tr><td>0 progetti</td><td class="num cell-lo">0 / 6</td></tr>
+    <tr><td>1–2 progetti</td><td class="num cell-mid">2 / 6</td></tr>
+    <tr><td>3–5 progetti</td><td class="num cell-mid">4 / 6</td></tr>
+    <tr><td>5+ progetti</td><td class="num cell-hi">5 / 6</td></tr>
+    <tr><td><strong>Bonus +1</strong> se ha già ricevuto lo stesso tipo di finanziamento del bando (pubblico / privato / EU)</td><td class="num cell-hi">max 6 / 6</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="s2-visual">2.7 — Indicatori visivi (NON scored)</h3>
+<p>Tre segnali sempre visibili sulla card e nel dettaglio, che <strong>non entrano nel punteggio</strong> ma orientano la decisione.</p>
+
+<h4>A. Importo del bando — coerenza economica</h4>
+<p>Sempre visibile e prominente. Color-coded in base al rapporto <code>importo bando / budget annuale ente</code>:</p>
+<div class="scroll"><table>
+  <thead><tr><th>Ratio (bando / budget ente)</th><th>Lettura</th><th>Indicatore</th></tr></thead>
+  <tbody>
+    <tr><td class="num">&lt; 0.05</td><td>Troppo piccolo per lo sforzo</td><td><span class="badge b-grey">da verificare</span></td></tr>
+    <tr><td class="num">0.05 – 0.3</td><td>Ideale (fascia bassa)</td><td><span class="badge b-green">alla tua portata</span></td></tr>
+    <tr><td class="num">0.3 – 1.0</td><td>Ideale (fascia alta)</td><td><span class="badge b-green">alla tua portata</span></td></tr>
+    <tr><td class="num">1.0 – 2.0</td><td>Ambizioso ma possibile</td><td><span class="badge b-yellow">ambizioso</span></td></tr>
+    <tr><td class="num">&gt; 2.0</td><td>Fuori scala per l'ente</td><td><span class="badge b-red">fuori scala</span></td></tr>
+    <tr><td>Dati mancanti (importo o budget)</td><td>Non valutabile</td><td><span class="badge b-grey">da verificare</span></td></tr>
+  </tbody>
+</table></div>
+
+<h4>B. Scadenza</h4>
+<div class="scroll"><table>
+  <thead><tr><th>Giorni alla scadenza</th><th>Indicatore</th></tr></thead>
+  <tbody>
+    <tr><td>&gt; 30 giorni</td><td><span class="badge b-green">verde</span></td></tr>
+    <tr><td>&lt; 15 giorni</td><td><span class="badge b-yellow">giallo</span></td></tr>
+    <tr><td>&lt; 7 giorni</td><td><span class="badge b-red">rosso</span></td></tr>
+    <tr><td>Bando chiuso</td><td><span class="badge b-black">nero — chiuso</span></td></tr>
+  </tbody>
+</table></div>
+
+<h4>C. Cofinanziamento</h4>
+<p>Badge con la % richiesta dal bando, colorato in base alla capacità di cofinanziamento dichiarata dall'ente (§3 sezione 7).</p>
+
+<h3 id="s2-bonus">2.8 — Bonus, malus e storico specifico</h3>
+<div class="scroll"><table>
+  <thead><tr><th>Regola</th><th class="num">Effetto</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Partner</strong>: l'ente ha partnership attive e il bando le richiede</td><td class="num" style="color:var(--green)">+5</td></tr>
+    <tr><td><strong>Cofinanziamento gestibile</strong>: la % richiesta rientra nella capacità dell'ente</td><td class="num" style="color:var(--green)">+3</td></tr>
+    <tr><td><strong>Cofinanziamento insostenibile</strong>: il bando richiede &gt;20% e l'ente non può</td><td class="num" style="color:var(--red)">−5</td></tr>
+  </tbody>
+</table></div>
+
+<h4>Storico specifico (badge, non punti)</h4>
+<p>Badge sulla card: <span class="badge b-green">Già finanziato</span> <span class="badge b-blue">Già candidato</span> <span class="badge b-grey">Conosce l'erogatore</span></p>
+<ul>
+  <li>Il match avviene tramite <strong>lista predefinita di ~70 enti erogatori</strong> (tabella <code>grant_providers</code>), <strong>non testo libero</strong>.</li>
+  <li><strong>Match a due livelli</strong>:
+    <ol>
+      <li><strong>Provider match</strong> — esatto, dalla lista (stesso <code>provider_id</code> tra storico ente e bando)</li>
+      <li><strong>Grant name match</strong> — fuzzy con normalizzazione: lowercase, rimozione di "S.p.A.", "edizione XXXX", punteggiatura</li>
+    </ol>
+  </li>
+</ul>
+
+<h3 id="s2-verdict">2.9 — Verdetti e soglie</h3>
+<div class="verdicts">
+  <div class="vcard v-green"><b>Candidabile</b>score ≥ 75 e documenti ok</div>
+  <div class="vcard v-blue"><b>Da preparare</b>score ≥ 75 ma documenti mancanti</div>
+  <div class="vcard v-yellow"><b>Da valutare</b>score ≥ 50</div>
+  <div class="vcard v-yellow"><b>Bassa priorità</b>score ≥ 30</div>
+  <div class="vcard v-red"><b>Non compatibile</b>score &lt; 30</div>
+  <div class="vcard v-grey"><b>Storico</b>bando chiuso</div>
+</div>
+
+<!-- ============ 3. PROFILO ENTE ============ -->
+<h2 id="s3"><span class="num">3.</span> Profilo ente (~40 campi, 8 sezioni)</h2>
+
+<p><strong>Onboarding progressivo</strong>: al primo accesso si compilano solo i <strong>12 campi essenziali</strong> (sezioni 1–3); il resto viene suggerito in seguito. Il profilo mostra sempre la <strong>% di completamento</strong> con suggerimenti mirati ("Compila la capacità gestionale per sbloccare 14 punti di matching").</p>
+
+<div class="scroll"><table>
+  <thead><tr><th style="width:1%">#</th><th>Sezione</th><th>Priorità</th><th>Campi</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>1</td><th>Identità</th><td><span class="badge b-red">obbligatoria</span></td>
+      <td>Nome ente &middot; Tipo legale (select, 62 tipi) &middot; Anno di fondazione &middot; CF / P.IVA &middot; Sito web</td>
+    </tr>
+    <tr>
+      <td>2</td><th>Territorio</th><td><span class="badge b-red">obbligatoria</span></td>
+      <td>Provincia (select, 107) &middot; Regione (auto-calcolata) &middot; Comune sede &middot; Ambito operativo (select) &middot; Opera in più province? (multi-select)</td>
+    </tr>
+    <tr>
+      <td>3</td><th>Temi e attività</th><td><span class="badge b-red">obbligatoria</span></td>
+      <td>Temi (multi-select, 47 tag) &middot; Descrizione attività (textarea — futuro embedding pgvector) &middot; Destinatari principali (multi-select: minori / giovani / anziani / disabili / famiglie / migranti / donne / comunità / tutti)</td>
+    </tr>
+    <tr>
+      <td>4</td><th>Capacità gestionale</th><td><span class="badge b-yellow">suggerita</span></td>
+      <td>Le 6 domande che calcolano la capacità (§2.4): persone stabili &middot; persona dedicata all'amministrazione &middot; progetti finanziati ultimi 3 anni &middot; esperienza rendicontazione &middot; budget annuale &middot; progetto europeo gestito</td>
+    </tr>
+    <tr>
+      <td>5</td><th>Documenti e registri</th><td><span class="badge b-grey">dopo</span></td>
+      <td>Statuto aggiornato &middot; Bilancio approvato &middot; Iscrizione RUNTS &middot; RASD (condizionale: solo enti sportivi) &middot; Organismo sportivo di affiliazione &middot; Numero RASD &middot; Certificazioni (multi-select) &middot; DURC</td>
+    </tr>
+    <tr>
+      <td>6</td><th>Partnership</th><td><span class="badge b-grey">dopo</span></td>
+      <td>Partner pubblici (sì/no + quali) &middot; Partner privati (sì/no + quali) &middot; Reti / consorzi di appartenenza &middot; Esperienza di co-progettazione</td>
+    </tr>
+    <tr>
+      <td>7</td><th>Storico e finanze</th><td><span class="badge b-grey">dopo</span></td>
+      <td><strong>Storico progetti (strutturato, righe multiple)</strong>: nome bando &middot; ente erogatore (dalla lista ~70) &middot; anno &middot; esito (select) &middot; importo &middot; note. Poi: fondi pubblici ricevuti &middot; fondi privati &middot; fondi EU &middot; capacità di cofinanziamento (select %) &middot; fonti di entrata (multi-select)</td>
+    </tr>
+    <tr>
+      <td>8</td><th>Contatti</th><td><span class="badge b-grey">quando vuoi</span></td>
+      <td>Referente &middot; Ruolo &middot; Email &middot; Telefono &middot; Note</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout callout-green">
+  <strong>Il track record si costruisce da solo.</strong> Quando l'utente sposta un bando salvato su "Esito: Finanziato" (§5), la riga di storico viene <strong>auto-popolata</strong> nella sezione 7. L'uso dell'app arricchisce il profilo, il profilo migliora il matching: loop virtuoso senza data entry manuale.
+</div>
+
+<!-- ============ 4. SCRAPING ============ -->
+<h2 id="s4"><span class="num">4.</span> Scraping / ingestion</h2>
+
+<h3>4.1 — Architettura della pipeline</h3>
+<div class="flow">
+  <div class="fnode f-grey"><b>Vercel Cron</b><small>trigger ogni 48h</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-blue"><b>Browserless.io</b><small>rendering pagine<br>free tier 1000 sessioni/mese<br>uso: ~720</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-yellow"><b>AI Provider</b><small>estrazione strutturata<br>Gemini free (default)<br>~€2/mese</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-green"><b>Supabase</b><small>dedup + upsert<br>tabella <code>grants</code></small></div>
+</div>
+
+<ul>
+  <li><strong>12 fonti per l'MVP</strong> (non le 35 della beta): sport nazionale, terzo settore nazionale, regionale Emilia-Romagna, aggregatori, grandi fondazioni, EU.</li>
+  <li><strong>Frequenza: ogni 48h</strong> — sufficiente per bandi con scadenze a settimane, e resta dentro i free tier.</li>
+  <li><strong>Costo AI: ~€2/mese</strong> con Gemini free.</li>
+</ul>
+
+<h3>4.2 — I 16 campi estratti per bando</h3>
+<div class="scroll"><table>
+  <thead><tr><th>Campo</th><th>Tipo / vincolo</th><th>Uso nel matching</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>Display, fuzzy match storico</td></tr>
+    <tr><td><code>provider</code></td><td>dalla lista predefinita ~70</td><td>Storico specifico (§2.8)</td></tr>
+    <tr><td><code>deadline</code></td><td>data ISO</td><td>Indicatore scadenza, verdetto Storico</td></tr>
+    <tr><td><code>status</code></td><td>aperto / chiuso</td><td>Verdetto</td></tr>
+    <tr><td><code>amount</code></td><td>number (€)</td><td>Coerenza economica (§2.7A)</td></tr>
+    <tr><td><code>cofunding_required</code></td><td>% richiesta</td><td>Bonus/malus cofinanziamento</td></tr>
+    <tr><td><code>eligible_types</code></td><td>subset dei 62 tipi legali</td><td>Dimensione 2 (22 pt)</td></tr>
+    <tr><td><code>tags</code></td><td>subset dei 47 tag canonici</td><td>Dimensione 1 (28 pt)</td></tr>
+    <tr><td><code>area</code></td><td>string territoriale</td><td>Dimensione 3 (18 pt)</td></tr>
+    <tr><td><code>geo_scope</code></td><td>Comunale / Provinciale / Regionale / Nazionale / Europeo</td><td>Dimensione 3 (18 pt)</td></tr>
+    <tr><td><code>complexity</code></td><td>Bassa / Media / Alta</td><td>Dimensione 4 (14 pt)</td></tr>
+    <tr><td><code>required_documents</code></td><td>lista strutturata</td><td>Dimensione 5 (12 pt) + checklist</td></tr>
+    <tr><td><code>summary</code></td><td>string</td><td>Display card/dettaglio</td></tr>
+    <tr><td><code>requirements</code></td><td>string</td><td>Display dettaglio</td></tr>
+    <tr><td><code>url</code></td><td>string</td><td>Link "Apri bando originale", dedup</td></tr>
+    <tr><td><code>beneficiaries</code></td><td>string/lista</td><td>Display, futuro match destinatari</td></tr>
+  </tbody>
+</table></div>
+
+<h3>4.3 — AI Provider: seam agnostico</h3>
+<p>Lo scraper vive in una <strong>cartella top-level separata dall'app</strong>. Il provider AI è un <strong>modulo profondo</strong>: dietro l'interfaccia minima <code>LLMProvider</code> stanno adapter intercambiabili. La seam è reale (4 adapter esistenti), e <strong>cambiare provider = cambiare una env var</strong>.</p>
+
+<pre><code>scraper/                  ← top-level, separato da app/
+  src/
+    providers/            ← AI adapters
+      types.ts            ← interfaccia LLMProvider (la seam)
+      gemini.ts           ← default, free
+      anthropic.ts
+      groq.ts
+      openai.ts
+      index.ts            ← legge ENV → restituisce il provider
+    sources/              ← configurazione delle 12 fonti
+    pipeline/             ← fetch-page, extract-grants, enrich, dedup, save, run
+  tests/
+  env.example             ← AI_PROVIDER=gemini</code></pre>
+
+<h3>4.4 — Crowdsourcing utente</h3>
+<div class="flow">
+  <div class="fnode"><b>Utente</b><small>incolla un URL<br>di un bando</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-yellow"><b>AI</b><small>struttura la pagina<br>nei 16 campi</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-green"><b>grants</b><small>il bando diventa<br>disponibile per <strong>tutti</strong> gli utenti</small></div>
+</div>
+
+<!-- ============ 5. WORKFLOW ============ -->
+<h2 id="s5"><span class="num">5.</span> User workflow</h2>
+
+<h3>5.1 — Le 4 pagine</h3>
+<div class="scroll"><table>
+  <thead><tr><th style="width:1%">#</th><th>Pagina</th><th>Contenuto</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><th>Dashboard</th><td>Bandi ordinati per match score. Card con: titolo, erogatore, scadenza (colorata), score, importo (colorato per coerenza economica), badge storico, verdetto.</td></tr>
+    <tr><td>2</td><th>Nuovi bandi</th><td>Bandi degli ultimi 7 giorni, filtrabili.</td></tr>
+    <tr><td>3</td><th>I miei bandi</th><td>Pipeline personale a 4 stati (sotto). Spostare su "Esito: Finanziato" auto-popola il track record.</td></tr>
+    <tr><td>4</td><th>Il mio profilo</th><td>Le 8 sezioni di campi, % completamento, suggerimenti sui campi che sbloccano punti di matching.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>5.2 — Pipeline "I miei bandi" (4 stati)</h3>
+<div class="flow">
+  <div class="fnode f-grey"><b>Salvato</b><small>grigio</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-yellow"><b>In preparazione</b><small>giallo</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-blue"><b>Candidato</b><small>blu</small></div>
+  <div class="farrow">→</div>
+  <div class="fnode f-green"><b>Esito: Finanziato</b><small>verde — auto-popola<br>lo storico progetti</small></div>
+</div>
+<div class="flow" style="margin-top:-.4rem">
+  <div class="fnode" style="visibility:hidden; min-width:130px; padding:0"></div>
+  <div class="farrow" style="visibility:hidden">→</div>
+  <div class="fnode" style="visibility:hidden; min-width:130px; padding:0"></div>
+  <div class="farrow" style="visibility:hidden">→</div>
+  <div class="farrow">↳</div>
+  <div class="fnode f-red"><b>Esito: Non ammesso</b><small>rosso</small></div>
+</div>
+
+<h3>5.3 — Dettaglio bando</h3>
+<div class="box box-accent">
+  <ul>
+    <li><strong>Score breakdown</strong>: 6 barre, una per dimensione, con punti ottenuti / punti massimi</li>
+    <li><strong>3 indicatori visivi</strong>: importo (coerenza economica), scadenza, cofinanziamento</li>
+    <li><strong>Badge storico</strong>: Già finanziato / Già candidato / Conosce l'erogatore</li>
+    <li><strong>Checklist documenti</strong>: "Per candidarti ti manca: …"</li>
+    <li>Bottone <strong>"Analisi AI approfondita"</strong> (on-demand, con disclaimer AI — §8)</li>
+    <li>Bottone <strong>"Salva"</strong> → entra nella pipeline "I miei bandi"</li>
+    <li>Link <strong>"Apri bando originale"</strong></li>
+  </ul>
+</div>
+
+<h3>5.4 — Email alert</h3>
+<ul>
+  <li>Frequenza <strong>settimanale</strong> (configurabile in <code>user_settings</code>)</li>
+  <li>Contiene i nuovi bandi sopra la soglia di score dell'utente (<strong>default 50</strong>)</li>
+  <li>Invio via Resend o Supabase Edge Functions (§6)</li>
+</ul>
+
+<!-- ============ 6. STACK ============ -->
+<h2 id="s6"><span class="num">6.</span> Stack tecnico e DB schema</h2>
+
+<h3>6.1 — Componenti</h3>
+<div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Tecnologia</th><th>Costo</th></tr></thead>
+  <tbody>
+    <tr><td>Frontend + API</td><td>Next.js su Vercel</td><td>free → €20/mese</td></tr>
+    <tr><td>Database + Auth</td><td>Supabase Postgres + Auth — <strong>regione EU (Frankfurt)</strong></td><td>free → €25/mese</td></tr>
+    <tr><td>Scraping browser</td><td>Browserless.io</td><td>free tier (1000 sessioni/mese)</td></tr>
+    <tr><td>AI</td><td>Gemini free di default, architettura provider-agnostic (§4.3)</td><td>~€2/mese</td></tr>
+    <tr><td>Email</td><td>Resend o Supabase Edge Functions</td><td>free tier</td></tr>
+  </tbody>
+</table></div>
+
+<div class="callout callout-green"><strong>Economics:</strong> costo infra totale ~€15–85/mese &middot; costo marginale per utente ~€1–2/mese (quota scraping + AI) &middot; <strong>break-even a 2–3 utenti paganti</strong>.</div>
+
+<h3>6.2 — DB schema (6 tabelle)</h3>
+<div class="scroll"><table>
+  <thead><tr><th>Tabella</th><th>Contenuto</th><th>Row Level Security</th></tr></thead>
+  <tbody>
+    <tr><td><code>profiles</code></td><td>Profilo ente (~40 campi) + <code>user_id</code> di auth</td><td><code>user_id = auth.uid()</code></td></tr>
+    <tr><td><code>grants</code></td><td>Tutti i bandi, condivisi, visibili a tutti gli utenti</td><td>SELECT per tutti, INSERT solo di sistema</td></tr>
+    <tr><td><code>grant_sources</code></td><td>Fonti monitorate con configurazione di scraping</td><td>Solo admin</td></tr>
+    <tr><td><code>saved_grants</code></td><td>Bandi salvati dall'utente: status (4 stati, §5.2) + note</td><td><code>user_id = auth.uid()</code></td></tr>
+    <tr><td><code>user_settings</code></td><td>Preferenze alert: soglia score, frequenza email</td><td><code>user_id = auth.uid()</code></td></tr>
+    <tr><td><code>grant_providers</code></td><td>Lista predefinita di ~70 enti erogatori (condivisa)</td><td>Read-only per gli utenti</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ============ 7. UI ============ -->
+<h2 id="s7"><span class="num">7.</span> Approccio UI</h2>
+<ul>
+  <li><strong>Desktop-first, responsive per mobile.</strong> Motivazione: il momento di "valutazione e azione" — leggere il PDF del bando, analizzare il breakdown, compilare il profilo — è un'attività da desktop. Il mobile serve per la <em>discovery</em> veloce: scorrere la dashboard, salvare bandi.</li>
+  <li><strong>Web app, non nativa.</strong> PWA possibile in futuro.</li>
+  <li>Lingua UI: <strong>italiano</strong>. Lingua codice/commenti: inglese.</li>
+</ul>
+
+<!-- ============ 8. PRIVACY ============ -->
+<h2 id="s8"><span class="num">8.</span> Privacy / GDPR</h2>
+<div class="scroll"><table>
+  <tbody>
+    <tr><th>Residenza dati</th><td>Supabase regione EU (Frankfurt)</td></tr>
+    <tr><th>Analytics</th><td>Nessun analytics di terze parti → <strong>nessun cookie banner necessario</strong></td></tr>
+    <tr><th>Cookie</th><td>Solo tecnici (sessione di autenticazione)</td></tr>
+    <tr><th>AI</th><td>Disclaimer per l'analisi AI on-demand ("Analisi AI approfondita")</td></tr>
+    <tr><th>Diritto alla cancellazione</th><td>Bottone "Elimina account" in-app</td></tr>
+    <tr><th>Privacy policy</th><td>Semplice, in italiano</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ============ 9. PRICING ============ -->
+<h2 id="s9"><span class="num">9.</span> Pricing</h2>
+<ul>
+  <li><strong>Piano unico</strong>, tutto incluso: <strong>€30–50/mese</strong></li>
+  <li><strong>Nessun limite artificiale</strong> per l'MVP (no cap su bandi salvati, analisi AI, alert)</li>
+  <li>Costi per utente: ~€1–2/mese (quota scraping + AI) → margine ampio</li>
+  <li><strong>Futuro possibile</strong>: tier free (matching rule-based only) + tier pro (con AI)</li>
+</ul>
+
+<!-- ============ 10. MIGRAZIONE ============ -->
+<h2 id="s10"><span class="num">10.</span> Migrazione dal codice esistente</h2>
+
+<p>Il matching engine TypeScript già scritto in <code>app/src/lib/matching/</code> è una buona base, ma va allineato al nuovo design. L'interfaccia del modulo resta stretta (profilo + bando → risultato di match); i cambi si concentrano nell'implementazione — è lì che la <em>locality</em> paga.</p>
+
+<div class="scroll"><table>
+  <thead><tr><th>File</th><th>Azione</th><th>Dettaglio</th></tr></thead>
+  <tbody>
+    <tr><td><code>types.ts</code></td><td><span class="badge b-yellow">modificare</span></td><td>Ridurre al nuovo profilo da ~40 campi</td></tr>
+    <tr><td><code>constants.ts</code></td><td><span class="badge b-green">estendere</span></td><td>Mantenere 62 tipi legali e 47 tag; <strong>aggiungere</strong> <code>LEGAL_TYPE_GROUPS</code> (8 gruppi) e la lista <code>GRANT_PROVIDERS</code> (~70)</td></tr>
+    <tr><td><code>helpers.ts</code></td><td><span class="badge b-red">sostituire logica</span></td><td>Via <code>textOverlap</code> → match territoriale strutturato; via substring su <code>legalTypeKey</code> → match per gruppi</td></tr>
+    <tr><td><code>calculate-match.ts</code></td><td><span class="badge b-yellow">modificare</span></td><td>Nuovi pesi che sommano a 100, nuove dimensioni (§2)</td></tr>
+    <tr><td><code>document-profile.ts</code></td><td><span class="badge b-red">sostituire logica</span></td><td>Checklist strutturata al posto della regex su testo concatenato</td></tr>
+    <tr><td><code>breakdown.ts</code></td><td><span class="badge b-yellow">modificare</span></td><td>Aggiornare per i nuovi pesi</td></tr>
+    <tr><td><code>actions.ts</code></td><td><span class="badge b-yellow">modificare</span></td><td>Aggiornare per i nuovi campi</td></tr>
+    <tr><td><code>verdict.ts</code></td><td><span class="badge b-yellow">modificare</span></td><td>Ricalibrare le soglie (§2.9)</td></tr>
+    <tr><td><code>economic-coherence.ts</code></td><td><span class="badge b-blue">nuovo</span></td><td>Indicatore visivo di coerenza economica (non scored, §2.7A)</td></tr>
+    <tr><td><code>storico-match.ts</code></td><td><span class="badge b-blue">nuovo</span></td><td>Match a due livelli su lista provider + fuzzy sul nome bando (§2.8)</td></tr>
+  </tbody>
+</table></div>
+
+<hr>
+<p class="tagline">BANDI-SCANNER v2 — documento di design definitivo. Contesto normativo: Codice del Terzo Settore, D.Lgs 117/2017. L'app non riguarda fatture/OCR fatture: è per il matching bandi. <a class="backtop" href="#s1">↑ Torna all'inizio</a></p>
+
+</div>
