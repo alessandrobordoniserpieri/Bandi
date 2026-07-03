@@ -1,137 +1,128 @@
-export interface ClientProfile {
-  id: string;
-  name: string;
-  type: string;
-  legalAddress: string;
-  city: string;
-  province: string;
-  region: string;
-  operationalSite: string;
-  area: string;
-  geoScope: string;
-  status: string;
-  contact: string;
-  contactInfo: string;
-  website: string;
-  vat: string;
-  founded: string;
-  capacity: CapacityLevel;
-  priority: number;
-  budget: string;
-  cofunding: string;
-  staff: string;
-  volunteers: string;
-  statuteStatus: string;
-  financialReports: string;
-  registryRunts: string;
-  registryRasd: string;
-  registryOther: string;
-  rasdName: string;
-  rasdNumber: string;
-  sportBody: string;
-  sportActivities: string;
-  rasdCheckStatus: string;
-  rasdLastCheck: string;
-  spaces: string;
-  documents: string;
-  documentFiles: ClientDocument[];
-  documentInsights: string;
-  documentTags: string[];
-  fundingInsights: string;
-  fundingTypes: string[];
-  winningCriteria: string[];
-  tags: string[];
-  activities: string;
-  strengths: string;
-  weaknesses: string;
-  publicPartners: string;
-  privatePartners: string;
-  projectHistory: string;
-  fundedProjects: string;
-  reportingHistory: string;
-  goals: string;
-  notes: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ClientDocument {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  uploadedAt: string;
-  text: string;
-  preview: string;
-  extractionMethod: string;
-  extractionQuality: number;
-  tags: string[];
-  projectSignals: string[];
-  fundingType: string;
-  fundingEvidence: string[];
-  winningCriteria: string[];
-}
-
-export interface Grant {
-  id: string;
-  title: string;
-  provider: string;
-  sourceId: string;
-  url: string;
-  status: string;
-  deadline: string;
-  area: string;
-  geoScope: string;
-  amount: string;
-  cofunding: string;
-  eligibleTypes: string[];
-  tags: string[];
-  minCapacity: CapacityLevel;
-  complexity: ComplexityLevel;
-  requirements: string;
-  expenses: string;
-  summary: string;
-  notes: string;
-  beneficiaries: string;
-  detail: string;
-  importMode: string;
-  discoveredAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
+// Domain enums — lowercase values align with branch-001 Postgres enums.
+export type GeoScope = "comunale" | "provinciale" | "regionale" | "nazionale" | "europeo";
+export type ComplexityLevel = "bassa" | "media" | "alta";
 export type CapacityLevel = "Bassa" | "Media" | "Alta";
-export type ComplexityLevel = "Bassa" | "Media" | "Alta";
+export type ProviderKind = "pubblico" | "privato" | "eu";
+export type GrantStatus = "aperto" | "chiuso";
+export type ProjectOutcome = "finanziato" | "non_ammesso" | "in_valutazione" | "altro";
 
 export type Verdict =
   | "Candidabile"
   | "Da preparare"
-  | "Da verificare"
+  | "Da valutare"
   | "Bassa priorità"
+  | "Non compatibile"
   | "Storico";
 
-export interface BreakdownItem {
-  label: string;
+// The 6 answers that CALCULATE capacity (design §2.4). Never a declared level.
+export interface CapacityAnswers {
+  stableStaff: "0-2" | "3-10" | "11-30" | "30+";
+  dedicatedAdmin: boolean;
+  fundedProjects3y: "0" | "1-2" | "3-5" | "5+";
+  reportingExperience: "mai" | "qualche_volta" | "regolarmente";
+  annualBudget: "<20k" | "20-100k" | "100-500k" | ">500k";
+  euProject: boolean;
+}
+
+// Structured document possession (design §2.5) — booleans, not text.
+export interface EntityDocuments {
+  statuto: boolean;
+  bilancio: boolean;
+  runts: boolean;
+  rasd: boolean;
+  durc: boolean;
+  certificazioni: boolean;
+}
+
+export interface ProjectHistoryRow {
+  grantName: string;
+  providerId: string | null;
+  year: number | null;
+  outcome: ProjectOutcome;
+  amount: number | null;
+  kind: ProviderKind | null; // funding kind of that past grant
+}
+
+// The matching input — the subset of the ~40-field profile the engine consumes.
+export interface EntityProfile {
+  legalType: string;               // one of LEGAL_TYPES
+  province: string;                // province code (§2 territory)
+  region: string;                  // derived from province (I9)
+  operatingProvinces: string[];    // extra province codes the entity works in
+  themes: string[];                // subset of TAGS (§3)
+  capacity: CapacityAnswers | null;// §4 — null until answered
+  documents: EntityDocuments;      // §5
+  publicPartners: boolean;         // §6
+  privatePartners: boolean;        // §6
+  projectHistory: ProjectHistoryRow[]; // §7
+  fundingTypesReceived: ProviderKind[]; // §7 — pubblico/privato/eu received
+  cofundingCapacity: number | null;// §7 — % the entity can co-fund
+}
+
+// The 16 extracted fields (design §4.2).
+export interface Grant {
+  id: string;
+  title: string;
+  providerId: string | null;
+  providerKind: ProviderKind | null;
+  deadline: string | null;         // ISO date
+  status: GrantStatus;
+  amount: number | null;           // €
+  cofundingRequired: number | null;// %
+  eligibleTypes: string[];         // subset of LEGAL_TYPES
+  tags: string[];                  // subset of TAGS
+  area: string | null;
+  geoScope: GeoScope | null;
+  complexity: ComplexityLevel | null;
+  requiredDocuments: string[];     // canonical DOCUMENT_KEYS
+  summary: string;
+  requirements: string;
+  url: string;
+  beneficiaries: string;
+}
+
+export interface DimensionScore {
   value: number;
   max: number;
   note: string;
 }
 
-export interface DocumentProfile {
-  score: number;
+export type DimensionKey =
+  | "themes" | "legalForm" | "territory" | "capacity" | "documents" | "trackRecord";
+
+export interface BreakdownItem {
+  key: DimensionKey;
+  label: string;   // Italian
+  value: number;
+  max: number;
+  note: string;    // Italian
+}
+
+export interface BonusItem {
+  key: string;
+  label: string;   // Italian
+  value: number;   // +5 / +3 / -5
+}
+
+export type DeadlineColor = "verde" | "giallo" | "rosso" | "nero";
+export interface DeadlineIndicator { days: number | null; color: DeadlineColor; label: string; }
+export interface CofundingIndicator {
+  required: number | null;
+  color: "verde" | "giallo" | "rosso" | "grigio";
   label: string;
-  found: string[];
-  missing: string[];
-  totalDocs: number;
+}
+export interface Indicators {
+  deadline: DeadlineIndicator;
+  cofunding: CofundingIndicator;
 }
 
 export interface MatchResult {
-  score: number;
-  plus: string[];
-  minus: string[];
-  sharedTags: string[];
-  breakdown: BreakdownItem[];
-  actions: string[];
-  client: ClientProfile;
-  grant: Grant;
+  score: number;               // final, 0..100
+  baseScore: number;           // sum of the 6 dimensions, pre-bonus
+  verdict: Verdict;
+  breakdown: BreakdownItem[];  // exactly 6
+  bonuses: BonusItem[];
+  indicators: Indicators;
+  missingDocuments: string[];
+  actions: string[];           // Italian
 }

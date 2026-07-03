@@ -1,335 +1,88 @@
 import { describe, it, expect } from "vitest";
-import {
-  calculateMatch,
-  matchDecisionLabel,
-  hasCompatibleLegalType,
-  legalTypeKey,
-  isSportEntity,
-  textOverlap,
-  isClosedGrant,
-  clientDocumentProfile,
-  LEGAL_TYPES,
-  TAGS,
-} from "../index";
-import type { ClientProfile, Grant } from "../types";
+import { calculateMatch } from "../index";
+import type { EntityProfile, Grant, CapacityAnswers } from "../types";
 
-function makeClient(overrides: Partial<ClientProfile> = {}): ClientProfile {
+const maxAnswers: CapacityAnswers = {
+  stableStaff: "30+", dedicatedAdmin: true, fundedProjects3y: "5+",
+  reportingExperience: "regolarmente", annualBudget: ">500k", euProject: true,
+};
+
+function makeProfile(o: Partial<EntityProfile> = {}): EntityProfile {
   return {
-    id: "c-test",
-    name: "Rimini Rugby Sociale",
-    type: "ASD",
-    legalAddress: "",
-    city: "Rimini",
-    province: "RN",
-    region: "Emilia-Romagna",
-    operationalSite: "",
-    area: "Rimini / Emilia-Romagna",
-    geoScope: "Provinciale",
-    status: "Cliente potenziale",
-    contact: "Responsabile progettazione",
-    contactInfo: "info@example.it",
-    website: "",
-    vat: "",
-    founded: "1998",
-    capacity: "Media",
-    priority: 8,
-    budget: "90000",
-    cofunding: "15%",
-    staff: "6 tecnici",
-    volunteers: "25 volontari",
-    statuteStatus: "Disponibile aggiornato",
-    financialReports: "Ultimo bilancio disponibile",
-    registryRunts: "Non applicabile",
-    registryRasd: "Iscritto",
-    registryOther: "",
-    rasdName: "Rimini Rugby Sociale ASD",
-    rasdNumber: "12345",
-    sportBody: "FIR",
-    sportActivities: "Rugby",
-    rasdCheckStatus: "Verificato",
-    rasdLastCheck: "",
-    spaces: "Campo sportivo, club house",
-    documents: "Statuto, ultimo bilancio, affiliazione sportiva",
-    documentFiles: [],
-    documentInsights: "",
-    documentTags: [],
-    fundingInsights: "",
-    fundingTypes: [],
-    winningCriteria: [],
-    tags: ["sport", "giovani", "scuola", "inclusione", "outdoor", "famiglie", "impianti sportivi", "prevenzione"],
-    activities: "Attività sportiva giovanile",
-    strengths: "Radicamento locale",
-    weaknesses: "Rendicontazione da rafforzare",
-    publicPartners: "Comune, scuole secondarie, AUSL",
-    privatePartners: "Sponsor locali",
-    projectHistory: "Centri estivi sportivi, open day",
-    fundedProjects: "2 progetti finanziati",
-    reportingHistory: "",
-    goals: "Finanziare attività inclusive",
-    notes: "",
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-    ...overrides,
+    legalType: "ASD - Associazione Sportiva Dilettantistica",
+    province: "RN", region: "Emilia-Romagna", operatingProvinces: [],
+    themes: ["sport", "giovani", "inclusione"],
+    capacity: maxAnswers,
+    documents: { statuto: true, bilancio: true, runts: true, rasd: true, durc: true, certificazioni: true },
+    publicPartners: true, privatePartners: false,
+    projectHistory: [
+      { grantName: "x", providerId: null, year: 2023, outcome: "finanziato", amount: 1000, kind: "pubblico" },
+      { grantName: "y", providerId: null, year: 2022, outcome: "finanziato", amount: 1000, kind: "pubblico" },
+      { grantName: "z", providerId: null, year: 2021, outcome: "finanziato", amount: 1000, kind: "pubblico" },
+    ],
+    fundingTypesReceived: ["pubblico"], cofundingCapacity: 50,
+    ...o,
   };
 }
-
-function makeGrant(overrides: Partial<Grant> = {}): Grant {
-  const deadline = new Date();
-  deadline.setDate(deadline.getDate() + 42);
+function makeGrant(o: Partial<Grant> = {}): Grant {
+  const d = new Date(); d.setDate(d.getDate() + 40);
   return {
-    id: "g-test",
-    title: "Sport Inclusivo Territoriale",
-    provider: "Ente nazionale sport",
-    sourceId: "",
-    url: "",
-    status: "Aperto",
-    deadline: deadline.toISOString().split("T")[0],
-    area: "Italia",
-    geoScope: "Nazionale",
-    amount: "25000",
-    cofunding: "20%",
-    eligibleTypes: ["ASD", "SSD", "ETS", "APS"],
-    tags: ["sport", "inclusione", "giovani", "disabilità", "scuola", "prevenzione"],
-    minCapacity: "Media",
-    complexity: "Media",
-    requirements: "Esperienza sportiva, attività rivolte a giovani o persone fragili, rete territoriale documentata.",
-    expenses: "Operatori, attrezzature, comunicazione, trasporto.",
-    summary: "Contributo per progetti sportivi con impatto sociale e inclusivo.",
-    notes: "",
-    beneficiaries: "",
-    detail: "",
-    importMode: "",
-    discoveredAt: "",
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-    ...overrides,
+    id: "g", title: "Sport inclusivo", providerId: null, providerKind: "pubblico",
+    deadline: d.toISOString().split("T")[0], status: "aperto", amount: 20000, cofundingRequired: 10,
+    eligibleTypes: ["ASD - Associazione Sportiva Dilettantistica"],
+    tags: ["sport", "giovani", "inclusione"], area: "Emilia-Romagna", geoScope: "regionale",
+    complexity: "media", requiredDocuments: ["statuto", "bilancio"],
+    summary: "", requirements: "", url: "https://x", beneficiaries: "",
+    ...o,
   };
 }
-
-describe("constants", () => {
-  it("has 62 legal types", () => {
-    expect(LEGAL_TYPES).toHaveLength(62);
-  });
-
-  it("has 47 tags", () => {
-    expect(TAGS).toHaveLength(47);
-  });
-});
-
-describe("legalTypeKey", () => {
-  it("normalizes ASD full name", () => {
-    const key = legalTypeKey("ASD - Associazione Sportiva Dilettantistica");
-    expect(key).toContain("asd");
-  });
-
-  it("normalizes short form", () => {
-    expect(legalTypeKey("ASD")).toBe("asd");
-  });
-});
-
-describe("hasCompatibleLegalType", () => {
-  it("matches ASD with full form", () => {
-    expect(hasCompatibleLegalType("ASD", ["ASD - Associazione Sportiva Dilettantistica"])).toBe(true);
-  });
-
-  it("matches ASD with short form", () => {
-    expect(hasCompatibleLegalType("ASD", ["ASD", "SSD"])).toBe(true);
-  });
-
-  it("rejects incompatible type", () => {
-    expect(hasCompatibleLegalType("Comune", ["ASD", "SSD"])).toBe(false);
-  });
-
-  it("matches when eligible list is empty", () => {
-    // Note: empty eligible list is handled in calculateMatch, not here
-    expect(hasCompatibleLegalType("ASD", [])).toBe(false);
-  });
-});
-
-describe("isSportEntity", () => {
-  it("recognizes ASD", () => {
-    expect(isSportEntity("ASD")).toBe(true);
-  });
-
-  it("recognizes SSD a r.l.", () => {
-    expect(isSportEntity("SSD a r.l.")).toBe(true);
-  });
-
-  it("does not match Comune", () => {
-    expect(isSportEntity("Comune")).toBe(false);
-  });
-});
-
-describe("textOverlap", () => {
-  it("finds common words", () => {
-    expect(textOverlap("Rimini Emilia-Romagna", "Regione Emilia-Romagna")).toBe(true);
-  });
-
-  it("ignores short words", () => {
-    expect(textOverlap("di la il", "di la il")).toBe(false);
-  });
-
-  it("returns false for no overlap", () => {
-    expect(textOverlap("Roma Lazio", "Milano Lombardia")).toBe(false);
-  });
-});
-
-describe("isClosedGrant", () => {
-  it("detects Chiuso status", () => {
-    expect(isClosedGrant(makeGrant({ status: "Chiuso" }))).toBe(true);
-  });
-
-  it("detects past deadline", () => {
-    expect(isClosedGrant(makeGrant({ status: "Aperto", deadline: "2020-01-01" }))).toBe(true);
-  });
-
-  it("open grant with future deadline", () => {
-    expect(isClosedGrant(makeGrant())).toBe(false);
-  });
-});
-
-describe("clientDocumentProfile", () => {
-  it("scores a well-documented client higher", () => {
-    const client = makeClient();
-    const profile = clientDocumentProfile(client, makeGrant());
-    expect(profile.score).toBeGreaterThan(50);
-    expect(profile.found.length).toBeGreaterThan(0);
-  });
-
-  it("scores an empty client low", () => {
-    const client = makeClient({
-      documents: "",
-      statuteStatus: "",
-      financialReports: "",
-      registryRunts: "",
-      registryRasd: "",
-      registryOther: "",
-      rasdNumber: "",
-      sportBody: "",
-      projectHistory: "",
-      fundedProjects: "",
-      reportingHistory: "",
-      documentFiles: [],
-    });
-    const profile = clientDocumentProfile(client, makeGrant());
-    expect(profile.score).toBeLessThan(40);
-  });
-});
 
 describe("calculateMatch", () => {
-  it("returns a score between 0 and 100", () => {
-    const result = calculateMatch(makeClient(), makeGrant());
-    expect(result.score).toBeGreaterThanOrEqual(0);
-    expect(result.score).toBeLessThanOrEqual(100);
+  it("perfect profile → 100", () => {
+    expect(calculateMatch(makeProfile(), makeGrant()).score).toBe(100);
   });
-
-  it("high-match scenario: sport ASD + sport grant", () => {
-    const result = calculateMatch(makeClient(), makeGrant());
-    expect(result.score).toBeGreaterThanOrEqual(65);
-    expect(result.sharedTags.length).toBeGreaterThan(0);
-    expect(result.breakdown).toHaveLength(8);
+  it("breakdown always has 6 items summing max to 100", () => {
+    const r = calculateMatch(makeProfile(), makeGrant());
+    expect(r.breakdown).toHaveLength(6);
+    expect(r.breakdown.reduce((s, b) => s + b.max, 0)).toBe(100);
   });
-
-  it("low-match scenario: incompatible type and area", () => {
-    const client = makeClient({
-      type: "Comune",
-      city: "Roma",
-      province: "RM",
-      region: "Lazio",
-      area: "Roma / Lazio",
-      tags: ["cultura", "turismo"],
-      publicPartners: "",
-      privatePartners: "",
-      cofunding: "",
-      fundedProjects: "",
-      reportingHistory: "",
-      fundingTypes: [],
-    });
-    const grant = makeGrant({
-      eligibleTypes: ["ASD", "SSD"],
-      area: "Emilia-Romagna",
-      geoScope: "Regionale",
-      tags: ["sport", "inclusione"],
-    });
-    const result = calculateMatch(client, grant);
-    expect(result.score).toBeLessThan(50);
+  it("I2: baseScore equals sum of breakdown values; final score in [0,100]", () => {
+    const r = calculateMatch(makeProfile({ publicPartners: false }), makeGrant());
+    expect(r.baseScore).toBe(r.breakdown.reduce((s, b) => s + b.value, 0));
+    expect(r.score).toBeGreaterThanOrEqual(0);
+    expect(r.score).toBeLessThanOrEqual(100);
   });
-
-  it("closed grant gets heavy penalty", () => {
-    const result = calculateMatch(
-      makeClient(),
-      makeGrant({ status: "Chiuso" }),
+  it("I8: empty grant data yields documented neutrals, not zero", () => {
+    const r = calculateMatch(makeProfile({ capacity: null }), makeGrant({
+      tags: [], eligibleTypes: [], geoScope: null, area: null, complexity: null, requiredDocuments: [],
+    }));
+    const by = Object.fromEntries(r.breakdown.map((b) => [b.key, b.value]));
+    expect(by.themes).toBe(19);
+    expect(by.territory).toBe(12);
+    expect(by.capacity).toBe(9);
+    expect(by.documents).toBe(8);
+    expect(by.legalForm).toBe(22); // open to all
+  });
+  it("low match: wrong type, region, themes → Non compatibile or Bassa priorità", () => {
+    const r = calculateMatch(
+      makeProfile({ legalType: "Comune", province: "PA", region: "Sicilia", themes: ["cultura"],
+        capacity: null, documents: { statuto: false, bilancio: false, runts: false, rasd: false, durc: false, certificazioni: false },
+        publicPartners: false, projectHistory: [], fundingTypesReceived: [], cofundingCapacity: 0 }),
+      makeGrant({ complexity: "alta" }),
     );
-    const openResult = calculateMatch(makeClient(), makeGrant());
-    expect(result.score).toBeLessThan(openResult.score);
+    expect(["Non compatibile", "Bassa priorità"]).toContain(r.verdict);
   });
-
-  it("breakdown sums are reasonable", () => {
-    const result = calculateMatch(makeClient(), makeGrant());
-    const maxPossible = result.breakdown.reduce((sum, b) => sum + b.max, 0);
-    expect(maxPossible).toBe(129);
-    for (const b of result.breakdown) {
-      expect(b.value).toBeLessThanOrEqual(b.max);
-      expect(b.value).toBeGreaterThanOrEqual(0);
-    }
+  it("closed grant → Storico", () => {
+    expect(calculateMatch(makeProfile(), makeGrant({ status: "chiuso" })).verdict).toBe("Storico");
   });
-
-  it("returns actions array", () => {
-    const result = calculateMatch(makeClient(), makeGrant());
-    expect(Array.isArray(result.actions)).toBe(true);
-    expect(result.actions.length).toBeLessThanOrEqual(4);
-  });
-});
-
-describe("matchDecisionLabel", () => {
-  it("returns Candidabile for high score + good docs", () => {
-    const result = calculateMatch(makeClient(), makeGrant());
-    if (result.score >= 75) {
-      const verdict = matchDecisionLabel(result);
-      expect(["Candidabile", "Da preparare"]).toContain(verdict);
-    }
-  });
-
-  it("returns Storico for closed grant", () => {
-    const result = calculateMatch(
-      makeClient(),
-      makeGrant({ status: "Chiuso" }),
+  it("missing required docs downgrades Candidabile to Da preparare", () => {
+    const r = calculateMatch(
+      makeProfile({ documents: { statuto: true, bilancio: false, runts: false, rasd: false, durc: false, certificazioni: false } }),
+      makeGrant({ requiredDocuments: ["statuto", "bilancio"] }),
     );
-    expect(matchDecisionLabel(result)).toBe("Storico");
-  });
-
-  it("returns Bassa priorità for very low score", () => {
-    const client = makeClient({
-      type: "Gruppo informale",
-      tags: [],
-      documentTags: [],
-      city: "",
-      province: "",
-      region: "",
-      area: "",
-      capacity: "Bassa",
-      publicPartners: "",
-      privatePartners: "",
-      cofunding: "",
-      statuteStatus: "",
-      financialReports: "",
-      documents: "",
-      fundedProjects: "",
-      reportingHistory: "",
-      fundingTypes: [],
-      winningCriteria: [],
-      documentFiles: [],
-      priority: 1,
-    });
-    const grant = makeGrant({
-      eligibleTypes: ["ASD"],
-      area: "Sicilia",
-      geoScope: "Regionale",
-      complexity: "Alta",
-      minCapacity: "Alta",
-    });
-    const result = calculateMatch(client, grant);
-    const verdict = matchDecisionLabel(result);
-    expect(["Bassa priorità", "Da verificare"]).toContain(verdict);
+    if (r.score >= 75) {
+      expect(r.verdict).toBe("Da preparare");
+      expect(r.missingDocuments).toContain("bilancio");
+    }
   });
 });

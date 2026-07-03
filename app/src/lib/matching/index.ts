@@ -1,31 +1,23 @@
 export { calculateMatch } from "./calculate-match";
-export type { MatchContext } from "./calculate-match";
-export { buildMatchBreakdown } from "./breakdown";
-export { buildMatchActions } from "./actions";
-export { matchDecisionLabel } from "./verdict";
-export { clientDocumentProfile, clientHasDocumentSignal } from "./document-profile";
+export { deriveVerdict } from "./verdict";
+export { buildBreakdown } from "./breakdown";
+export { buildActions } from "./actions";
+export { buildIndicators } from "./indicators";
+export { computeBonuses } from "./bonuses";
+export { scoreThemes } from "./dimensions/themes";
+export { scoreLegalForm } from "./dimensions/legal-form";
+export { scoreTerritory } from "./dimensions/territory";
+export { calculateCapacity, scoreCapacity } from "./dimensions/capacity";
+export { scoreDocuments } from "./dimensions/documents";
+export { scoreTrackRecord } from "./dimensions/track-record";
+export { deadlineDays, isClosedGrant } from "./helpers";
 export {
-  hasCompatibleLegalType,
-  legalTypeKey,
-  isSportEntity,
-  textOverlap,
-  deadlineDays,
-  deadlineLabel,
-  isClosedGrant,
-  isOpenGrant,
-  matchSignals,
-  inferGrantEvaluationCriteria,
-  inferGrantRequestedDocuments,
-} from "./helpers";
-export { LEGAL_TYPES, TAGS, CAPACITY_SCORE, GEO_SCORE } from "./constants";
+  LEGAL_TYPES, TAGS, LEGAL_TYPE_GROUPS, TAG_MACRO_AREAS, PROVINCES, PROVINCE_TO_REGION,
+  WEIGHTS, CAPACITY_MATRIX, DOCUMENT_KEYS, VERDICT_THRESHOLDS, NEUTRAL,
+  regionForProvince, groupForLegalType,
+} from "./constants";
 export type {
-  ClientProfile,
-  ClientDocument,
-  Grant,
-  CapacityLevel,
-  ComplexityLevel,
-  Verdict,
-  BreakdownItem,
-  DocumentProfile,
-  MatchResult,
+  GeoScope, ComplexityLevel, CapacityLevel, ProviderKind, GrantStatus, ProjectOutcome,
+  Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant,
+  DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult,
 } from "./types";
