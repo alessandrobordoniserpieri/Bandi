@@ -23,4 +23,8 @@ describe("scoreThemes", () => {
     expect(r.value).toBe(28);
     expect(r.max).toBe(28);
   });
+  it("de-duplicates repeated themes (no ratio inflation)", () => {
+    // profile ["sport","sport"] vs grant ["sport","giovani"] → 1 distinct shared / 2 → 14, not 28
+    expect(scoreThemes(p(["sport", "sport"]), g(["sport", "giovani"])).value).toBe(14);
+  });
 });

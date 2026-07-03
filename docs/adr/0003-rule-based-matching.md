@@ -70,3 +70,29 @@ dell'ente o i dati del bando cambiano (invariante I10 del design).
   stesso score possono avere "qualità" percepita diversa che l'engine non
   cattura — è un compromesso accettato in cambio di determinismo e costo
   zero per il livello 1.
+
+## Note di integrazione (per branch 004 e successivi)
+
+1. **Contratto di `grant.area` (IMPORTANTE)**: in `territory.ts`, il campo
+   `grant.area` viene interpretato in due modi diversi a seconda di
+   `grant.geoScope`. Quando `geoScope === "regionale"`, `area` è letto come
+   **nome regione** e confrontato per match esatto di stringa con i valori
+   di `PROVINCE_TO_REGION` (le chiavi della mappa in `constants.ts`).
+   Quando `geoScope` è `provinciale` o `comunale`, `area` è invece letto
+   come **codice provincia** e confrontato con i codici provincia
+   dell'ente. Il mapping DB → `Grant` del branch 004 deve quindi emettere
+   nomi di regione scritti ESATTAMENTE come in `PROVINCE_TO_REGION` (es.
+   `Emilia-Romagna`, `Friuli-Venezia Giulia`, `Valle d'Aosta` con apice
+   dritto, `Trentino-Alto Adige`) — una grafia diversa fa scattare un
+   mismatch silenzioso e lo score di territorialità risulta 0 senza alcun
+   errore visibile.
+2. **Banda scadenza 15–30 giorni → verde**: la §2.7B della spec lascia
+   indefinito il comportamento per l'intervallo 15–30 giorni. L'implementazione
+   in `indicators.ts` colora questo intervallo come `verde` (la condizione è
+   `days >= 15`). Si tratta di una scelta deliberata, non di una svista.
+3. **Proxy bonus partner**: la §2.8 della spec richiede "+5 se l'ente ha
+   partner E il bando li richiede", ma tra i 16 campi strutturati del bando
+   non esiste un flag esplicito "richiede partner". Il bonus in `bonuses.ts`
+   usa `grant.complexity === "alta"` come proxy per questa condizione: va
+   sostituito con un campo strutturato dedicato non appena lo scraper sarà
+   in grado di estrarlo.
