@@ -1185,7 +1185,9 @@ export function deadlineDays(deadline: string | null): number | null {
 export function isClosedGrant(grant: Grant): boolean {
   if (grant.status === "chiuso") return true;
   const days = deadlineDays(grant.deadline);
-  return days != null && days < 0;
+  // <= 0: a deadline that just passed (within ~24h) ceils to -0/0, and a
+  // future "closes today" deadline yields 1 (end-of-day anchor), so 0 means closed.
+  return days != null && days <= 0;
 }
 ```
 
