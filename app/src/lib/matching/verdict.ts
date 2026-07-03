@@ -1,15 +1,16 @@
-import type { MatchResult, Verdict } from "./types";
-import { isClosedGrant } from "./helpers";
-import { clientDocumentProfile } from "./document-profile";
+import type { Verdict } from "./types";
+import { VERDICT_THRESHOLDS } from "./constants";
 
-export function matchDecisionLabel(match: MatchResult): Verdict {
-  if (isClosedGrant(match.grant)) return "Storico";
-
-  const docs = clientDocumentProfile(match.client, match.grant).score;
-
-  if (match.score >= 75 && docs >= 65) return "Candidabile";
-  if (match.score >= 75) return "Da preparare";
-  if (match.score >= 55) return "Da preparare";
-  if (match.score >= 35) return "Da verificare";
-  return "Bassa priorità";
+export function deriveVerdict(
+  score: number,
+  hasAllDocuments: boolean,
+  isClosed: boolean,
+): Verdict {
+  if (isClosed) return "Storico";
+  if (score >= VERDICT_THRESHOLDS.candidabile) {
+    return hasAllDocuments ? "Candidabile" : "Da preparare";
+  }
+  if (score >= VERDICT_THRESHOLDS.daValutare) return "Da valutare";
+  if (score >= VERDICT_THRESHOLDS.bassaPriorita) return "Bassa priorità";
+  return "Non compatibile";
 }

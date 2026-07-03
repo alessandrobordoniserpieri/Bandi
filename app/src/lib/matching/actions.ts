@@ -1,71 +1,25 @@
-import type { ClientProfile, Grant } from "./types";
-import type { MatchContext } from "./calculate-match";
-import {
-  isSportEntity,
-  isClosedGrant,
-  inferGrantEvaluationCriteria,
-} from "./helpers";
+import type { Grant, BreakdownItem } from "./types";
+import { isClosedGrant } from "./helpers";
 
-export function buildMatchActions(
-  client: ClientProfile,
+export function buildActions(
   grant: Grant,
-  ctx: MatchContext,
+  breakdown: BreakdownItem[],
+  missingDocuments: string[],
 ): string[] {
   const actions: string[] = [];
-
-  if (!ctx.areaHit)
-    actions.push(
-      "Verificare domicilio operativo, sedi secondarie o partner territoriali ammessi.",
-    );
-
-  if (ctx.capacityGap < 0)
-    actions.push(
-      "Rafforzare capofila, rendicontazione o partenariato prima di candidare.",
-    );
-
-  if (ctx.documentProfile?.missing?.length)
-    actions.push(
-      `Completare fascicolo: ${ctx.documentProfile.missing.slice(0, 3).join(", ")}.`,
-    );
-  else if (
-    !/disponibile|aggiornato|iscritto|ultim|bilancio sociale|accredit/i.test(
-      ctx.adminReadiness,
-    )
-  )
-    actions.push(
-      "Caricare statuto, bilanci/rendiconti e prove di iscrizione ai registri.",
-    );
-
-  if (isSportEntity(client.type) && client.registryRasd !== "Iscritto")
-    actions.push(
-      "Completare il controllo RASD sul Registro nazionale prima della candidatura sportiva.",
-    );
-
-  if (
-    !(client.publicPartners || client.privatePartners) &&
-    grant.complexity !== "Bassa"
-  )
-    actions.push(
-      "Costruire almeno un partner coerente con territorio e destinatari.",
-    );
-
-  if (
-    !ctx.sharedCriteria.length &&
-    inferGrantEvaluationCriteria(grant).length
-  )
-    actions.push(
-      "Confrontare i criteri del bando con progetti già finanziati o relazioni caricate.",
-    );
-
-  if (Number.isFinite(ctx.days) && ctx.days < 8 && !isClosedGrant(grant))
-    actions.push(
-      "Valutare candidatura rapida solo se documenti e budget sono già pronti.",
-    );
-
-  if (isClosedGrant(grant))
-    actions.push(
-      "Usare il bando come storico, non come opportunità candidabile.",
-    );
-
+  if (missingDocuments.length) {
+    actions.push(`Per candidarti ti manca: ${missingDocuments.join(", ")}.`);
+  }
+  const territory = breakdown.find((b) => b.key === "territory");
+  if (territory && territory.value === 0) {
+    actions.push("Verifica se il bando ammette enti fuori dal suo ambito territoriale.");
+  }
+  const capacity = breakdown.find((b) => b.key === "capacity");
+  if (capacity && capacity.value <= 2) {
+    actions.push("Il bando è complesso per la tua capacità gestionale: valuta un partner capofila.");
+  }
+  if (isClosedGrant(grant)) {
+    actions.push("Bando chiuso: usalo come riferimento storico, non è candidabile.");
+  }
   return actions.slice(0, 4);
 }
