@@ -351,3 +351,16 @@ insert into public.grant_sources (name, url, scrape_config, enabled) values
 ## Execution Handoff
 
 Subagent-driven where a task authors files (SQL/ADR); controller runs every live-DB step (apply/advisors/RLS tests/type-gen) against project `Bandi`. Proceed task-by-task, verifying each on the real database before commit.
+
+---
+
+## Note di integrazione per branch 004 (row ↔ EntityProfile/Grant mapping)
+
+Raccolte dalla review finale del branch 001. Il mapper DB↔matching di branch 004 deve tenerne conto:
+
+1. **`providerKind` non è una colonna di `grants`** — va risolto con un join a `grant_providers.kind`. La query dei bandi deve fare il join e proiettare `provider.kind` nel `Grant.providerKind`.
+2. **Testo nullable in `grants`** (`summary`, `requirements`, `beneficiaries` sono `null`-abili nel DB) vs stringhe non-null in `Grant` (types.ts): il mapper deve fare coalesce `null → ""`.
+3. **`capacity_level` (enum DB, lowercase `bassa/media/alta`) vs `CapacityLevel` (TS, capitalized `Bassa/Media/Alta`)**: l'enum DB è attualmente **non usato** (la capacità si calcola dalle 6 risposte, non si persiste come livello). Se un branch futuro dovesse persistere il livello calcolato, deve mappare con un lowercase al confine (TS `"Bassa"` → DB `"bassa"`).
+4. **`fundingTypesReceived`** (array in `EntityProfile`) è **derivato** dai tre booleani `public_funds` / `private_funds` / `eu_funds`, non è una colonna diretta: il mapper li traduce in `["pubblico","privato","eu"]` secondo quali sono `true`.
+5. **`project_history`** è `jsonb` di righe `{grant_name, provider_id, year, outcome, amount, kind}`; `provider_id` interno al jsonb **non** è vincolato da FK (tradeoff documentato in ADR-005).
+6. **Indici futuri**: valutare indici su `grants(deadline)` e `grants(status)` quando ci saranno dati reali (filtri comuni "bandi aperti per scadenza"); rinviato ora perché su DB vuoto l'advisor segnalerebbe indici inutilizzati.

@@ -105,9 +105,9 @@ create table public.user_settings (
 
 create index on public.grants (provider_id);
 create index on public.grants (source_id);
-create index on public.saved_grants (user_id);
 create index on public.saved_grants (grant_id);
--- (profiles.user_id and user_settings.user_id already indexed by UNIQUE)
+-- (profiles.user_id, user_settings.user_id already indexed by their UNIQUE constraint;
+--  saved_grants.user_id is covered by the leftmost prefix of unique(user_id, grant_id))
 
 create trigger trg_grants_updated before update on public.grants for each row execute function public.set_updated_at();
 create trigger trg_profiles_updated before update on public.profiles for each row execute function public.set_updated_at();
