@@ -3,8 +3,9 @@
 -- Not part of the migration chain — apply manually to a dev Supabase project only
 -- (e.g. via MCP execute_sql), never to staging/production.
 -- Deadlines are engineered relative to "today" = 2026-07-04 so all four
--- deadline-color buckets appear in the UI: verde (>30d), giallo (<=15d),
--- rosso (<=7d), and Storico (status='chiuso' + past deadline).
+-- deadline-color buckets appear in the UI: verde (>=15d), giallo (7..14d),
+-- rosso (<7d), and Storico (status='chiuso' or past deadline). Thresholds match
+-- indicators.ts exactly (days < 7 = rosso, days < 15 = giallo).
 
 insert into public.grants
   (title, provider_id, deadline, status, amount, cofunding_required,
