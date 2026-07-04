@@ -72,4 +72,26 @@ describe("extractGrants", () => {
     expect(out).toHaveLength(1);
     expect(out[0]!.providerId).toBeNull();
   });
+
+  it("drops items with a malformed url (bare domain, relative path, spaced string), keeps a valid one", async () => {
+    const llm = llmReturning([
+      { title: "Bare domain", url: "esempio.it/bando" },
+      { title: "Relative path", url: "/bandi/1" },
+      { title: "Not a url", url: "not a url" },
+      { title: "Valid", url: "https://esempio.it/bando/1" },
+    ]);
+    const out = await extractGrants(page("H"), { llm, db: new InMemoryGrantsDb() });
+    expect(out.map((g) => g.title)).toEqual(["Valid"]);
+  });
+
+  it("parses a string amount (Italian format) into a number; keeps a junk string amount as null", async () => {
+    const llm = llmReturning([
+      { title: "A", url: "https://x/1", amount: "€ 50.000,00", cofundingRequired: "€ 1.000,50" },
+      { title: "B", url: "https://x/2", amount: "not-a-number" },
+    ]);
+    const out = await extractGrants(page("H"), { llm, db: new InMemoryGrantsDb() });
+    expect(out[0]!.amount).toBe(50000);
+    expect(out[0]!.cofundingRequired).toBe(1000.5);
+    expect(out[1]!.amount).toBeNull();
+  });
 });

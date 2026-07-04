@@ -22,3 +22,7 @@ runs against fakes with no network or API keys.
   copy of the matching vocabularies (47 tags, 62 legal types) for validating AI output.
 - Real adapters (Browserless fetcher, provider SDKs, Supabase-backed GrantsDb) are wired in
   branches 008/009; branch 007 ships only seams, fakes, and the pure pipeline stages.
+- The Supabase-backed `GrantsDb` adapter (branch 009) must coalesce the scraper's nullable
+  text fields (`summary`/`requirements`/`beneficiaries`) to `""` and default `providerKind`
+  when mapping `ExtractedGrant` to the app's `Grant`, since the app's `Grant` types those
+  fields as non-null.

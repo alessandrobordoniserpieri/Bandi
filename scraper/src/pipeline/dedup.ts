@@ -25,7 +25,10 @@ const KEYS: (keyof ExtractedGrant)[] = [
 
 function equal(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((x, i) => x === b[i]);
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((x, i) => x === sortedB[i]);
   }
   return a === b;
 }

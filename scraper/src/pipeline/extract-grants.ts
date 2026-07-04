@@ -3,6 +3,7 @@ import type { LLMProvider, JsonSchema } from "../providers/types";
 import type { ExtractedGrant, GrantsDb, RawPage } from "./types";
 import { TAG_SET, LEGAL_TYPE_SET, DOCUMENT_KEY_SET, GEO_SCOPES, COMPLEXITY, GRANT_STATUS } from "./vocab";
 import type { GeoScope, Complexity, GrantStatus } from "./vocab";
+import { parseItalianAmount } from "./enrich";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -40,13 +41,25 @@ function stringOrNull(v: unknown): string | null {
 function stringArray(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
+// Numbers pass through; string amounts (e.g. "€ 50.000,00") are parsed via parseItalianAmount;
+// anything else (including unparseable strings) becomes null.
 function numOrNull(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
-  return null; // string amounts are normalized later in enrich
+  if (typeof v === "string") return parseItalianAmount(v);
+  return null;
 }
 
 function isUnknownArray(x: unknown): x is unknown[] {
   return Array.isArray(x);
+}
+
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 // Coerces without a provider: title/url validated up front so callers can skip
@@ -56,7 +69,7 @@ function coerce(raw: unknown): Omit<ExtractedGrant, "providerId"> | null {
   const o = raw as Record<string, unknown>;
   const title = stringOrNull(o.title);
   const url = stringOrNull(o.url);
-  if (!title || !url) return null;
+  if (!title || !url || !isValidHttpUrl(url)) return null;
 
   const deadlineRaw = stringOrNull(o.deadline);
   const deadline = deadlineRaw && ISO_DATE.test(deadlineRaw) ? deadlineRaw : null;

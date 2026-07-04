@@ -39,4 +39,10 @@ describe("diffGrant / decide", () => {
   it("insert when existing is null", () => {
     expect(decide(g({}), null)).toEqual({ action: "insert" });
   });
+  it("treats tags in a different order as equal (no spurious update)", () => {
+    const incoming = g({ tags: ["sport", "giovani"] });
+    const existing = g({ tags: ["giovani", "sport"] });
+    expect(diffGrant(incoming, existing)).toEqual({});
+    expect(decide(incoming, existing)).toEqual({ action: "skip" });
+  });
 });
