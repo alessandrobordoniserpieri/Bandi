@@ -6,7 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AuthState = { error: string } | undefined;
 
-export function italianAuthError(message: string): string {
+// Not exported on purpose: a "use server" module may only export async Server
+// Actions (Next.js build rule). This sync helper stays module-private.
+function italianAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "Email o password non corretti.";
   if (m.includes("already registered")) return "Esiste già un account con questa email.";
