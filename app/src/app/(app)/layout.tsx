@@ -28,7 +28,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {isOnboarded && (
           <>
             <Link href="/">Dashboard</Link>
-            <Link href="/bandi">Bandi</Link>
             <Link href="/nuovi-bandi">Nuovi bandi</Link>
             <Link href="/i-miei-bandi">I miei bandi</Link>
             <Link href="/profilo">Il mio profilo</Link>
