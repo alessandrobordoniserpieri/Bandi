@@ -1,0 +1,94 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const signInWithPassword = vi.fn();
+const signUp = vi.fn();
+const signOut = vi.fn();
+const getUser = vi.fn();
+const deleteUser = vi.fn();
+const redirect = vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); });
+
+vi.mock("next/navigation", () => ({ redirect: (u: string) => redirect(u) }));
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: async () => ({ auth: { signInWithPassword, signUp, signOut, getUser } }),
+}));
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => ({ auth: { admin: { deleteUser } } }),
+}));
+
+import { signIn, signUp as signUpAction, signOut as signOutAction, deleteAccount } from "../actions";
+
+const fd = (o: Record<string, string>) => {
+  const f = new FormData();
+  Object.entries(o).forEach(([k, v]) => f.set(k, v));
+  return f;
+};
+
+beforeEach(() => vi.clearAllMocks());
+
+describe("signIn", () => {
+  it("missing fields → Italian error, no Supabase call", async () => {
+    const res = await signIn(undefined, fd({ email: "", password: "" }));
+    expect(res).toEqual({ error: "Inserisci email e password." });
+    expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+  it("wrong credentials → Italian translation", async () => {
+    signInWithPassword.mockResolvedValue({ error: { message: "Invalid login credentials" } });
+    const res = await signIn(undefined, fd({ email: "a@b.it", password: "x" }));
+    expect(res).toEqual({ error: "Email o password non corretti." });
+  });
+  it("success → redirect to /", async () => {
+    signInWithPassword.mockResolvedValue({ error: null });
+    await expect(signIn(undefined, fd({ email: "a@b.it", password: "secret" }))).rejects.toThrow(/^REDIRECT:\/$/);
+  });
+});
+
+describe("signUp", () => {
+  it("short password → Italian error", async () => {
+    const res = await signUpAction(undefined, fd({ email: "a@b.it", password: "123" }));
+    expect(res).toEqual({ error: "La password deve avere almeno 6 caratteri." });
+    expect(signUp).not.toHaveBeenCalled();
+  });
+  it("duplicate → Italian translation", async () => {
+    signUp.mockResolvedValue({ error: { message: "User already registered" } });
+    const res = await signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }));
+    expect(res).toEqual({ error: "Esiste già un account con questa email." });
+  });
+  it("invalid email → Italian error, no Supabase call", async () => {
+    const res = await signUpAction(undefined, fd({ email: "noat", password: "secret1" }));
+    expect(res).toEqual({ error: "Inserisci un indirizzo email valido." });
+    expect(signUp).not.toHaveBeenCalled();
+  });
+  it("success → redirect to /onboarding", async () => {
+    signUp.mockResolvedValue({ data: { session: { access_token: "t" } }, error: null });
+    await expect(signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }))).rejects.toThrow(/^REDIRECT:\/onboarding$/);
+  });
+  it("with email confirmation on (no session) → returns info message, no redirect", async () => {
+    signUp.mockResolvedValue({ data: { session: null }, error: null });
+    const res = await signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }));
+    expect(res).toEqual({ message: "Ti abbiamo inviato un'email di conferma. Confermala e poi accedi." });
+  });
+});
+
+describe("signOut", () => {
+  it("signs out and redirects to /login", async () => {
+    signOut.mockResolvedValue({ error: null });
+    await expect(signOutAction()).rejects.toThrow(/^REDIRECT:\/login$/);
+    expect(signOut).toHaveBeenCalled();
+  });
+});
+
+describe("deleteAccount", () => {
+  it("deletes the auth user then redirects home", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    deleteUser.mockResolvedValue({ error: null });
+    signOut.mockResolvedValue({ error: null });
+    await expect(deleteAccount()).rejects.toThrow(/^REDIRECT:\/$/);
+    expect(deleteUser).toHaveBeenCalledWith("u1");
+  });
+
+  it("with no current user → redirects to /login without deleting", async () => {
+    getUser.mockResolvedValue({ data: { user: null } });
+    await expect(deleteAccount()).rejects.toThrow(/^REDIRECT:\/login$/);
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
+});
