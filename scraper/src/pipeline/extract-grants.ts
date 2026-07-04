@@ -2,6 +2,7 @@
 import type { LLMProvider, JsonSchema } from "../providers/types";
 import type { ExtractedGrant, GrantsDb, RawPage } from "./types";
 import { TAG_SET, LEGAL_TYPE_SET, DOCUMENT_KEY_SET, GEO_SCOPES, COMPLEXITY, GRANT_STATUS } from "./vocab";
+import type { GeoScope, Complexity, GrantStatus } from "./vocab";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -44,7 +45,13 @@ function numOrNull(v: unknown): number | null {
   return null; // string amounts are normalized later in enrich
 }
 
-function coerce(raw: unknown, providerId: string | null): ExtractedGrant | null {
+function isUnknownArray(x: unknown): x is unknown[] {
+  return Array.isArray(x);
+}
+
+// Coerces without a provider: title/url validated up front so callers can skip
+// the (async, potentially throwing) provider lookup for items that will be dropped anyway.
+function coerce(raw: unknown): Omit<ExtractedGrant, "providerId"> | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const title = stringOrNull(o.title);
@@ -55,16 +62,16 @@ function coerce(raw: unknown, providerId: string | null): ExtractedGrant | null 
   const deadline = deadlineRaw && ISO_DATE.test(deadlineRaw) ? deadlineRaw : null;
   const statusRaw = stringOrNull(o.status);
   const status = statusRaw && (GRANT_STATUS as readonly string[]).includes(statusRaw)
-    ? (statusRaw as ExtractedGrant["status"]) : null;
+    ? (statusRaw as GrantStatus) : null;
   const geoRaw = stringOrNull(o.geoScope);
   const geoScope = geoRaw && (GEO_SCOPES as readonly string[]).includes(geoRaw)
-    ? (geoRaw as ExtractedGrant["geoScope"]) : null;
+    ? (geoRaw as GeoScope) : null;
   const complexityRaw = stringOrNull(o.complexity);
   const complexity = complexityRaw && (COMPLEXITY as readonly string[]).includes(complexityRaw)
-    ? (complexityRaw as ExtractedGrant["complexity"]) : null;
+    ? (complexityRaw as Complexity) : null;
 
   return {
-    title, url, providerId, deadline, status,
+    title, url, deadline, status,
     amount: numOrNull(o.amount),
     cofundingRequired: numOrNull(o.cofundingRequired),
     eligibleTypes: stringArray(o.eligibleTypes).filter((t) => LEGAL_TYPE_SET.has(t)),
@@ -78,6 +85,20 @@ function coerce(raw: unknown, providerId: string | null): ExtractedGrant | null 
   };
 }
 
+// Provider lookup must never break the "extractGrants never throws" contract: a production
+// GrantsDb can fail on a network/DB error, in which case we keep the grant with providerId null
+// rather than dropping it or letting the error propagate.
+async function resolveProviderId(item: unknown, db: GrantsDb): Promise<string | null> {
+  const name = typeof item === "object" && item !== null
+    ? stringOrNull((item as Record<string, unknown>).providerName) : null;
+  if (!name) return null;
+  try {
+    return await db.findProviderIdByName(name);
+  } catch {
+    return null;
+  }
+}
+
 export async function extractGrants(
   page: RawPage, deps: { llm: LLMProvider; db: GrantsDb },
 ): Promise<ExtractedGrant[]> {
@@ -88,15 +109,14 @@ export async function extractGrants(
     return []; // provider error → no grants from this page, pipeline continues
   }
   if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { return []; } }
-  if (!Array.isArray(raw)) return [];
+  if (!isUnknownArray(raw)) return [];
 
   const out: ExtractedGrant[] = [];
   for (const item of raw) {
-    const name = typeof item === "object" && item !== null
-      ? stringOrNull((item as Record<string, unknown>).providerName) : null;
-    const providerId = name ? await deps.db.findProviderIdByName(name) : null;
-    const grant = coerce(item, providerId);
-    if (grant) out.push(grant);
+    const coerced = coerce(item);
+    if (!coerced) continue; // invalid item: skip before the (async) provider lookup
+    const providerId = await resolveProviderId(item, deps.db);
+    out.push({ ...coerced, providerId });
   }
   return out;
 }

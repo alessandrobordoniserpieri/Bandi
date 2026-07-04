@@ -58,4 +58,18 @@ describe("extractGrants", () => {
     const out = await extractGrants(page("H"), { llm: throwing, db: new InMemoryGrantsDb() });
     expect(out).toEqual([]);
   });
+
+  it("keeps the grant with providerId null (not a throw) when the db lookup errors", async () => {
+    class ThrowingDb extends InMemoryGrantsDb {
+      override async findProviderIdByName(): Promise<string | null> {
+        throw new Error("db down");
+      }
+    }
+    const llm = llmReturning([
+      { title: "A", url: "https://x/1", providerName: "Fondazione Test" },
+    ]);
+    const out = await extractGrants(page("H"), { llm, db: new ThrowingDb() });
+    expect(out).toHaveLength(1);
+    expect(out[0]!.providerId).toBeNull();
+  });
 });
