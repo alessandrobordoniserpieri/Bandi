@@ -4,7 +4,9 @@ import { DeadlineBadge } from "../deadline-badge";
 import { VerdictBadge } from "../verdict-badge";
 import { ScoreBreakdown } from "../score-breakdown";
 import { DocumentChecklist } from "../document-checklist";
+import { GrantCard } from "../grant-card";
 import type { BreakdownItem } from "@/lib/matching";
+import type { MatchedGrant } from "@/lib/grants/match-list";
 
 describe("DeadlineBadge", () => {
   it("renders each of the 4 colors from the indicator", () => {
@@ -55,5 +57,33 @@ describe("DocumentChecklist", () => {
   it("shows the all-clear message when nothing is missing", () => {
     const html = renderToStaticMarkup(<DocumentChecklist missing={[]} />);
     expect(html).toContain("Hai tutti i documenti richiesti");
+  });
+});
+
+describe("GrantCard", () => {
+  it("renders title link, provider, score and verdict", () => {
+    const matched = {
+      grant: {
+        id: "g1", title: "Bando Sport 2026", providerId: "p", providerKind: "privato",
+        deadline: "2026-12-31", status: "aperto", amount: 50000, cofundingRequired: null,
+        eligibleTypes: [], tags: [], area: null, geoScope: null, complexity: null,
+        requiredDocuments: [], summary: "", requirements: "", url: "https://x", beneficiaries: "",
+      },
+      providerName: "Fondazione Test",
+      match: {
+        score: 82, baseScore: 82, verdict: "Candidabile", breakdown: [], bonuses: [],
+        indicators: {
+          deadline: { days: 180, color: "verde", label: "scade tra 180 giorni" },
+          cofunding: { required: null, color: "grigio", label: "n/d" },
+        },
+        missingDocuments: [], actions: [],
+      },
+    } as unknown as MatchedGrant;
+    const html = renderToStaticMarkup(<GrantCard matched={matched} />);
+    expect(html).toContain("Bando Sport 2026");
+    expect(html).toContain("Fondazione Test");
+    expect(html).toContain("82");
+    expect(html).toContain('data-verdict="Candidabile"');
+    expect(html).toContain('href="/bandi/g1"');
   });
 });
