@@ -88,4 +88,12 @@ describe("updateProfileSection", () => {
     expect(res && "error" in res).toBe(true);
     expect(update).not.toHaveBeenCalled();
   });
+
+  it("redirects to /login when there is no user", async () => {
+    getUser.mockResolvedValue({ data: { user: null } });
+    const form = fd([["province", "RM"]]);
+    await expect(updateProfileSection("territory", undefined, form))
+      .rejects.toThrow(/^REDIRECT:\/login$/);
+    expect(update).not.toHaveBeenCalled();
+  });
 });

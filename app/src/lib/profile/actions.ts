@@ -10,12 +10,14 @@ import {
   deriveRegion,
 } from "./schema";
 import type { SectionKey } from "./constants";
-import type { TablesInsert, TablesUpdate } from "@/lib/supabase/database.types";
+import type { TablesInsert } from "@/lib/supabase/database.types";
 
 export type ProfileActionState = { error: string } | { ok: true } | undefined;
 
 const GENERIC_ERROR = "Controlla i campi e riprova.";
 
+// Not exported on purpose: a "use server" module may only export async Server
+// Actions (Next.js build rule). These sync helpers stay module-private.
 // ---- FormData readers -------------------------------------------------------
 function str(fd: FormData, k: string): string | undefined {
   const v = fd.get(k);
@@ -79,7 +81,7 @@ function readSection(section: SectionKey, fd: FormData): unknown {
 
 // Validate one section → a partial DB row (or an error). Derives region for territory.
 function validateSection(section: SectionKey, raw: unknown):
-  | { ok: true; patch: Record<string, unknown> }
+  | { ok: true; patch: Partial<TablesInsert<"profiles">> }
   | { ok: false; error: string } {
   const schemas = {
     identity: identitySchema, territory: territorySchema, themes: themesSchema,
@@ -89,7 +91,7 @@ function validateSection(section: SectionKey, raw: unknown):
   const parsed = schemas[section].safeParse(raw);
   if (!parsed.success) return { ok: false, error: GENERIC_ERROR };
 
-  const patch: Record<string, unknown> = { ...parsed.data };
+  const patch: Partial<TablesInsert<"profiles">> = { ...parsed.data };
   if (section === "territory") {
     patch.region = deriveRegion((parsed.data as { province: string }).province);
   }
@@ -103,13 +105,16 @@ export async function createProfile(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const patch: Record<string, unknown> = { user_id: user.id };
+  const patch: Partial<TablesInsert<"profiles">> = { user_id: user.id };
   for (const section of ["identity", "territory", "themes"] as const) {
     const res = validateSection(section, readSection(section, formData));
     if (!res.ok) return { error: res.error };
     Object.assign(patch, res.patch);
   }
 
+  // user_id is always set above; the cast only narrows the (statically)
+  // optional field back to required — every other key was already checked
+  // against real `profiles` columns when `patch` was built.
   const { error } = await supabase.from("profiles").insert(patch as TablesInsert<"profiles">);
   if (error) return { error: "Impossibile creare il profilo. Riprova." };
   redirect("/");
@@ -127,7 +132,7 @@ export async function updateProfileSection(
 
   const { error } = await supabase
     .from("profiles")
-    .update(res.patch as TablesUpdate<"profiles">)
+    .update(res.patch)
     .eq("user_id", user.id);
   if (error) return { error: "Salvataggio non riuscito. Riprova." };
 
