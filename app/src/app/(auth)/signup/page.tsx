@@ -14,7 +14,8 @@ export default function SignupPage() {
         <input id="email" name="email" type="email" autoComplete="email" required />
         <label htmlFor="password">Password</label>
         <input id="password" name="password" type="password" autoComplete="new-password" required minLength={6} />
-        {state?.error && <p role="alert">{state.error}</p>}
+        {state && "error" in state && <p role="alert">{state.error}</p>}
+        {state && "message" in state && <p role="status">{state.message}</p>}
         <button type="submit" disabled={pending}>{pending ? "Registrazione…" : "Registrati"}</button>
       </form>
       <p>Hai già un account? <Link href="/login">Accedi</Link></p>

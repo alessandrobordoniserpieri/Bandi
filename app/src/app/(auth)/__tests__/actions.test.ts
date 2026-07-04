@@ -59,8 +59,13 @@ describe("signUp", () => {
     expect(signUp).not.toHaveBeenCalled();
   });
   it("success → redirect to /onboarding", async () => {
-    signUp.mockResolvedValue({ error: null });
+    signUp.mockResolvedValue({ data: { session: { access_token: "t" } }, error: null });
     await expect(signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }))).rejects.toThrow(/^REDIRECT:\/onboarding$/);
+  });
+  it("with email confirmation on (no session) → returns info message, no redirect", async () => {
+    signUp.mockResolvedValue({ data: { session: null }, error: null });
+    const res = await signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }));
+    expect(res).toEqual({ message: "Ti abbiamo inviato un'email di conferma. Confermala e poi accedi." });
   });
 });
 

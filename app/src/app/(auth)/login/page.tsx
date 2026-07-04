@@ -14,7 +14,7 @@ export default function LoginPage() {
         <input id="email" name="email" type="email" autoComplete="email" required />
         <label htmlFor="password">Password</label>
         <input id="password" name="password" type="password" autoComplete="current-password" required />
-        {state?.error && <p role="alert">{state.error}</p>}
+        {state && "error" in state && <p role="alert">{state.error}</p>}
         <button type="submit" disabled={pending}>{pending ? "Accesso…" : "Accedi"}</button>
       </form>
       <p>Non hai un account? <Link href="/signup">Registra il tuo ente</Link></p>

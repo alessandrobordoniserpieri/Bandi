@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type AuthState = { error: string } | undefined;
+export type AuthState = { error: string } | { message: string } | undefined;
 
 // Not exported on purpose: a "use server" module may only export async Server
 // Actions (Next.js build rule). This sync helper stays module-private.
@@ -37,8 +37,12 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (password.length < 6) return { error: "La password deve avere almeno 6 caratteri." };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return { error: italianAuthError(error.message) };
+  if (!data.session) {
+    // Email confirmation is enabled: no session yet. Tell the user to confirm.
+    return { message: "Ti abbiamo inviato un'email di conferma. Confermala e poi accedi." };
+  }
   redirect("/onboarding");
 }
 
