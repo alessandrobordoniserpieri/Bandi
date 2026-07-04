@@ -38,7 +38,7 @@ describe("signIn", () => {
   });
   it("success → redirect to /", async () => {
     signInWithPassword.mockResolvedValue({ error: null });
-    await expect(signIn(undefined, fd({ email: "a@b.it", password: "secret" }))).rejects.toThrow("REDIRECT:/");
+    await expect(signIn(undefined, fd({ email: "a@b.it", password: "secret" }))).rejects.toThrow(/^REDIRECT:\/$/);
   });
 });
 
@@ -53,9 +53,22 @@ describe("signUp", () => {
     const res = await signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }));
     expect(res).toEqual({ error: "Esiste già un account con questa email." });
   });
+  it("invalid email → Italian error, no Supabase call", async () => {
+    const res = await signUpAction(undefined, fd({ email: "noat", password: "secret1" }));
+    expect(res).toEqual({ error: "Inserisci un indirizzo email valido." });
+    expect(signUp).not.toHaveBeenCalled();
+  });
   it("success → redirect to /onboarding", async () => {
     signUp.mockResolvedValue({ error: null });
-    await expect(signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }))).rejects.toThrow("REDIRECT:/onboarding");
+    await expect(signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }))).rejects.toThrow(/^REDIRECT:\/onboarding$/);
+  });
+});
+
+describe("signOut", () => {
+  it("signs out and redirects to /login", async () => {
+    signOut.mockResolvedValue({ error: null });
+    await expect(signOutAction()).rejects.toThrow(/^REDIRECT:\/login$/);
+    expect(signOut).toHaveBeenCalled();
   });
 });
 
@@ -64,7 +77,13 @@ describe("deleteAccount", () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     deleteUser.mockResolvedValue({ error: null });
     signOut.mockResolvedValue({ error: null });
-    await expect(deleteAccount()).rejects.toThrow("REDIRECT:/");
+    await expect(deleteAccount()).rejects.toThrow(/^REDIRECT:\/$/);
     expect(deleteUser).toHaveBeenCalledWith("u1");
+  });
+
+  it("with no current user → redirects to /login without deleting", async () => {
+    getUser.mockResolvedValue({ data: { user: null } });
+    await expect(deleteAccount()).rejects.toThrow(/^REDIRECT:\/login$/);
+    expect(deleteUser).not.toHaveBeenCalled();
   });
 });
