@@ -96,4 +96,21 @@ describe("updateProfileSection", () => {
       .rejects.toThrow(/^REDIRECT:\/login$/);
     expect(update).not.toHaveBeenCalled();
   });
+
+  it("writes null (not undefined/absent) for cleared optional fields, so supabase-js actually persists the clear", async () => {
+    // website/tax_code/founded_year are absent from the FormData (as they
+    // would be after the user blanks them out in the UI). Before the fix,
+    // `str()` mapped them to `undefined`, and the patch spread `{ ...parsed.data }`
+    // carried those `undefined`s through — which supabase-js's `.update()`
+    // drops entirely, silently no-oping the clear while still reporting success.
+    const form = fd([["name", "X"], ["legal_type", "ONLUS"]]);
+    const res = await updateProfileSection("identity", undefined, form);
+    expect(res).toEqual({ ok: true });
+    const patch = update.mock.calls[0][0];
+    expect(patch.website).toBeNull();
+    expect(patch.founded_year).toBeNull();
+    expect(patch.tax_code).toBeNull();
+    expect("website" in patch).toBe(true);
+    expect("founded_year" in patch).toBe(true);
+  });
 });

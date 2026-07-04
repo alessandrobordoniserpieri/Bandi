@@ -123,7 +123,7 @@ export function parseProjectHistory(json: unknown): ProjectHistoryRow[] {
 }
 
 // Are all 6 capacity answers present? (dedicated_admin / eu_project are bool|null.)
-function hasAllCapacityAnswers(r: ProfileRow): boolean {
+export function hasAllCapacityAnswers(r: ProfileRow): boolean {
   return (
     !!r.stable_staff && r.dedicated_admin !== null && !!r.funded_projects_3y &&
     !!r.reporting_experience && !!r.annual_budget && r.eu_project !== null

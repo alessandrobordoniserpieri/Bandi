@@ -1,7 +1,7 @@
 // app/src/lib/profile/__tests__/schema.test.ts
 import { describe, it, expect } from "vitest";
 import {
-  identitySchema, themesSchema, territorySchema,
+  identitySchema, themesSchema, territorySchema, documentsSchema,
   deriveRegion, rowToEntityProfile, parseProjectHistory,
   type ProfileRow,
 } from "../schema";
@@ -108,6 +108,17 @@ describe("rowToEntityProfile", () => {
     expect(rowToEntityProfile(row).capacity).toBeNull();
   });
 
+  it("builds a non-null capacity when dedicated_admin and eu_project are both false (false counts as answered)", () => {
+    const row = fullRow();
+    row.dedicated_admin = false;
+    row.eu_project = false;
+    const p = rowToEntityProfile(row);
+    expect(p.capacity).toEqual({
+      stableStaff: "3-10", dedicatedAdmin: false, fundedProjects3y: "1-2",
+      reportingExperience: "qualche_volta", annualBudget: "20-100k", euProject: false,
+    });
+  });
+
   it("converts project_history jsonb rows snake_case → camelCase", () => {
     const p = rowToEntityProfile(fullRow());
     expect(p.projectHistory).toEqual([
@@ -122,5 +133,21 @@ describe("parseProjectHistory", () => {
     expect(parseProjectHistory(null)).toEqual([]);
     expect(parseProjectHistory("{}")).toEqual([]);
     expect(parseProjectHistory([{ nope: 1 }])).toEqual([]);
+  });
+});
+
+describe("documentsSchema", () => {
+  it("accepts a payload with the RASD fields plus the always-on doc booleans", () => {
+    const r = documentsSchema.safeParse({
+      doc_statuto: true, doc_bilancio: true, doc_runts: false,
+      doc_rasd: true, doc_durc: false, doc_certificazioni: true,
+      sport_body: "FIGC", rasd_number: "12345",
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.doc_rasd).toBe(true);
+      expect(r.data.sport_body).toBe("FIGC");
+      expect(r.data.rasd_number).toBe("12345");
+    }
   });
 });

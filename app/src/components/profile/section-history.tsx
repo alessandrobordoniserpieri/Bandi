@@ -50,6 +50,13 @@ export function SectionHistory(
             </select>
             <input placeholder="Importo" type="number" value={r.amount ?? ""}
               onChange={(e) => update(i, { amount: e.target.value ? Number(e.target.value) : null })} />
+            <select value={r.kind ?? ""}
+              onChange={(e) => update(i, { kind: e.target.value || null })}>
+              <option value="">— tipo fondo —</option>
+              <option value="pubblico">Pubblico</option>
+              <option value="privato">Privato</option>
+              <option value="eu">UE</option>
+            </select>
             <button type="button" onClick={() => remove(i)}>Rimuovi</button>
           </div>
         ))}

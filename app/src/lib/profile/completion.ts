@@ -1,4 +1,4 @@
-import type { ProfileRow } from "./schema";
+import { hasAllCapacityAnswers, type ProfileRow } from "./schema";
 import { SECTION_META, type SectionKey } from "./constants";
 
 export type CompletionSuggestion = { section: SectionKey; points: number; message: string };
@@ -13,10 +13,10 @@ function isFilled(section: SectionKey, r: ProfileRow): boolean {
     case "territory": return !!r.province;
     case "themes":    return r.themes.length > 0;
     case "capacity":
-      return (
-        !!r.stable_staff && r.dedicated_admin !== null && !!r.funded_projects_3y &&
-        !!r.reporting_experience && !!r.annual_budget && r.eu_project !== null
-      );
+      return hasAllCapacityAnswers(r);
+    // The 6 doc_* columns are non-nullable and default false, so unlike
+    // identity/capacity (which require ALL sub-fields, joined with AND),
+    // "possesses at least one document" is the engagement signal here (OR).
     case "documents":
       return (
         r.doc_statuto || r.doc_bilancio || r.doc_runts ||

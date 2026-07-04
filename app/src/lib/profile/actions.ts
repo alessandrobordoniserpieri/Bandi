@@ -91,7 +91,15 @@ function validateSection(section: SectionKey, raw: unknown):
   const parsed = schemas[section].safeParse(raw);
   if (!parsed.success) return { ok: false, error: GENERIC_ERROR };
 
-  const patch: Partial<TablesInsert<"profiles">> = { ...parsed.data };
+  // Coalesce undefined -> null so clearing an optional field (empty string in
+  // the form, mapped to undefined by `str()`) is actually written: supabase-js
+  // `.update()` drops `undefined` keys entirely, which would silently no-op a
+  // field the user just blanked out. Arrays/booleans are never undefined here
+  // (they carry zod `.default()`s), so this only affects optional scalars.
+  const patch: Partial<TablesInsert<"profiles">> = {};
+  for (const [k, v] of Object.entries(parsed.data)) {
+    (patch as Record<string, unknown>)[k] = v === undefined ? null : v;
+  }
   if (section === "territory") {
     patch.region = deriveRegion((parsed.data as { province: string }).province);
   }
