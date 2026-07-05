@@ -1,0 +1,74 @@
+// scraper/src/run-production.ts
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { ExtractedGrant, GrantsDb, PipelineResult, StoredGrant } from "./pipeline/types";
+import { getProvider } from "./providers";
+import { BrowserlessFetcher } from "./pipeline/browserless-fetcher";
+import { SupabaseGrantsDb } from "./db/supabase-grants-db";
+import { loadEnabledSources } from "./sources";
+import { runPipeline } from "./pipeline/run";
+
+export interface ScrapeOptions {
+  source?: string;   // filter to a single source by name or id
+  dryRun?: boolean;  // read+extract but do not write to the DB
+}
+
+export function parseScrapeArgs(argv: string[]): ScrapeOptions {
+  const options: ScrapeOptions = {};
+  for (const arg of argv) {
+    if (arg === "--dry-run") options.dryRun = true;
+    else if (arg.startsWith("--source=")) options.source = arg.slice("--source=".length);
+  }
+  return options;
+}
+
+// Reads through to Supabase (for dedup + provider resolution) but logs writes instead of
+// performing them, so `--dry-run` can validate extraction without touching the DB.
+class DryRunGrantsDb implements GrantsDb {
+  private readonly real: SupabaseGrantsDb;
+  constructor(client: SupabaseClient) {
+    this.real = new SupabaseGrantsDb(client);
+  }
+  findByUrl(url: string): Promise<StoredGrant | null> {
+    return this.real.findByUrl(url);
+  }
+  async insert(grant: ExtractedGrant): Promise<void> {
+    console.log(`[dry-run] insert "${grant.title}" <${grant.url}> tags=${grant.tags.join(",")}`);
+  }
+  async update(id: string, patch: Partial<ExtractedGrant>): Promise<void> {
+    console.log(`[dry-run] update ${id}`, patch);
+  }
+  findProviderIdByName(name: string): Promise<string | null> {
+    return this.real.findProviderIdByName(name);
+  }
+  async updateSource(): Promise<void> {
+    /* no-op in dry-run */
+  }
+}
+
+function required(env: Record<string, string | undefined>, keys: string[]): void {
+  const missing = keys.filter((k) => !env[k]?.trim());
+  if (missing.length) throw new Error(`Variabili d'ambiente mancanti: ${missing.join(", ")}`);
+}
+
+// Wires the production deps (real provider, Browserless fetcher, Supabase DB) and runs the
+// pipeline over the enabled sources. Shared by the CLI and the Vercel cron route.
+export async function runProductionScrape(
+  env: Record<string, string | undefined> = process.env,
+  options: ScrapeOptions = {},
+): Promise<PipelineResult[]> {
+  const supabaseUrl = env.SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL;
+  required({ ...env, SUPABASE_URL: supabaseUrl }, ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "BROWSERLESS_API_KEY"]);
+
+  const client = createClient(supabaseUrl!, env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const llm = getProvider(env);
+  const fetcher = new BrowserlessFetcher({ apiKey: env.BROWSERLESS_API_KEY!, baseUrl: env.BROWSERLESS_URL });
+  const db: GrantsDb = options.dryRun ? new DryRunGrantsDb(client) : new SupabaseGrantsDb(client);
+
+  let sources = await loadEnabledSources(client);
+  if (options.source) {
+    sources = sources.filter((s) => s.name === options.source || s.id === options.source);
+  }
+  return runPipeline(sources, { fetcher, llm, db });
+}

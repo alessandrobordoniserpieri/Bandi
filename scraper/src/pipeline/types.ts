@@ -1,7 +1,16 @@
 // scraper/src/pipeline/types.ts
 import type { GeoScope, Complexity, GrantStatus } from "./vocab";
 
-export interface SourceConfig { id: string; name: string; url: string; }
+// Per-source scraping hints stored in grant_sources.scrape_config (jsonb). All optional:
+// listUrl overrides the source url for the listing page; maxPages caps pagination (MVP: 1);
+// waitFor is passed to the fetcher (CSS selector or ms) to wait before capturing HTML.
+export interface ScrapeConfig {
+  listUrl?: string;
+  maxPages?: number;
+  waitFor?: string;
+}
+
+export interface SourceConfig { id: string; name: string; url: string; scrapeConfig?: ScrapeConfig; }
 
 export interface RawPage { sourceId: string; url: string; html: string; }
 
