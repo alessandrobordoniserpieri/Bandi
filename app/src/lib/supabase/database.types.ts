@@ -387,7 +387,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_saved_grant_status: {
+        Args: {
+          p_saved_grant_id: string
+          p_status: Database["public"]["Enums"]["saved_grant_status"]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       alert_frequency: "weekly" | "off"

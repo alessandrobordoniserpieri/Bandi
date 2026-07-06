@@ -3,6 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
 import { getGrant } from "@/lib/grants/queries";
+import { getSavedGrantByGrantId } from "@/lib/saved-grants/queries";
+import { SaveButton } from "@/components/saved-grants/save-button";
 import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
 import { VerdictBadge } from "@/components/grants/verdict-badge";
@@ -23,6 +25,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
   if (!view) notFound();
 
   const { grant, providerName } = view;
+  const saved = await getSavedGrantByGrantId(grant.id);
   const match = calculateMatch(rowToEntityProfile(profile as ProfileRow), grant);
 
   return (
@@ -57,7 +60,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       {grant.beneficiaries && (<section><h2>Destinatari</h2><p>{grant.beneficiaries}</p></section>)}
 
       <section>
-        <button type="button" disabled title="In arrivo">Salva</button>{" "}
+        <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />{" "}
         <button type="button" disabled title="In arrivo">Analisi AI approfondita</button>{" "}
         <a href={grant.url} target="_blank" rel="noopener noreferrer">Apri bando originale</a>
       </section>
