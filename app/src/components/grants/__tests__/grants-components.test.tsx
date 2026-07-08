@@ -77,7 +77,7 @@ describe("GrantCard", () => {
           cofunding: { required: null, color: "grigio", label: "n/d" },
           economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: 50000, budgetKnown: false },
         },
-        missingDocuments: [], actions: [],
+        historyBadge: null, missingDocuments: [], actions: [],
       },
     } as unknown as MatchedGrant;
     const html = renderToStaticMarkup(<GrantCard matched={matched} />);

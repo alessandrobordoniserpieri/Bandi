@@ -5,6 +5,7 @@ export { buildActions } from "./actions";
 export { buildIndicators } from "./indicators";
 export { computeBonuses } from "./bonuses";
 export { economicCoherence } from "./economic-coherence";
+export { matchHistory, nameSimilarity, normalizeName } from "./storico-match";
 export { scoreThemes } from "./dimensions/themes";
 export { scoreLegalForm } from "./dimensions/legal-form";
 export { scoreTerritory } from "./dimensions/territory";
@@ -22,4 +23,5 @@ export type {
   Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant,
   DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult,
   EconomicLevel, EconomicCoherence, EconomicIndicator,
+  HistoryBadge, HistoryBadgeKind,
 } from "./types";
