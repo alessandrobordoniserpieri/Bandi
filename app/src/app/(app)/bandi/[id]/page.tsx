@@ -9,6 +9,7 @@ import { AIAnalysisPanel } from "@/components/grants/ai-analysis-panel";
 import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
 import { VerdictBadge } from "@/components/grants/verdict-badge";
+import { AmountBadge } from "@/components/grants/amount-badge";
 import { ScoreBreakdown } from "@/components/grants/score-breakdown";
 import { DocumentChecklist } from "@/components/grants/document-checklist";
 
@@ -43,7 +44,13 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
         <h2>Indicatori</h2>
         <p>Scadenza: <DeadlineBadge indicator={match.indicators.deadline} /></p>
         <p>Cofinanziamento: {match.indicators.cofunding.label}</p>
-        <p>Importo: {grant.amount != null ? `€ ${grant.amount.toLocaleString("it-IT")}` : "non specificato"}</p>
+        <p>Importo: <AmountBadge indicator={match.indicators.economic} /></p>
+        {!match.indicators.economic.budgetKnown && (
+          <p>
+            Aggiungi il budget annuale nel{" "}
+            <a href="/profilo">tuo profilo (sezione capacità)</a> per valutare la coerenza economica.
+          </p>
+        )}
       </section>
 
       <section>

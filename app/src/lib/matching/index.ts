@@ -4,6 +4,7 @@ export { buildBreakdown } from "./breakdown";
 export { buildActions } from "./actions";
 export { buildIndicators } from "./indicators";
 export { computeBonuses } from "./bonuses";
+export { economicCoherence } from "./economic-coherence";
 export { scoreThemes } from "./dimensions/themes";
 export { scoreLegalForm } from "./dimensions/legal-form";
 export { scoreTerritory } from "./dimensions/territory";
@@ -20,4 +21,5 @@ export type {
   GeoScope, ComplexityLevel, CapacityLevel, ProviderKind, GrantStatus, ProjectOutcome,
   Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant,
   DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult,
+  EconomicLevel, EconomicCoherence, EconomicIndicator,
 } from "./types";

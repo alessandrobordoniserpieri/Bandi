@@ -1,7 +1,9 @@
 import type {
   EntityProfile, Grant, Indicators, DeadlineIndicator, CofundingIndicator, DeadlineColor,
+  EconomicIndicator,
 } from "./types";
 import { deadlineDays, isClosedGrant } from "./helpers";
+import { economicCoherence } from "./economic-coherence";
 
 function deadlineIndicator(grant: Grant): DeadlineIndicator {
   if (isClosedGrant(grant)) return { days: deadlineDays(grant.deadline), color: "nero", label: "bando chiuso" };
@@ -24,6 +26,15 @@ function cofundingIndicator(profile: EntityProfile, grant: Grant): CofundingIndi
   return { required, color, label: `cofinanziamento richiesto ${required}%` };
 }
 
+function economicIndicator(profile: EntityProfile, grant: Grant): EconomicIndicator {
+  const band = profile.capacity?.annualBudget ?? null;
+  return { ...economicCoherence(grant.amount, band), amount: grant.amount, budgetKnown: band != null };
+}
+
 export function buildIndicators(profile: EntityProfile, grant: Grant): Indicators {
-  return { deadline: deadlineIndicator(grant), cofunding: cofundingIndicator(profile, grant) };
+  return {
+    deadline: deadlineIndicator(grant),
+    cofunding: cofundingIndicator(profile, grant),
+    economic: economicIndicator(profile, grant),
+  };
 }

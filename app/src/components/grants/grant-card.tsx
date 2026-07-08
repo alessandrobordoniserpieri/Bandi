@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { MatchedGrant } from "@/lib/grants/match-list";
 import { DeadlineBadge } from "./deadline-badge";
 import { VerdictBadge } from "./verdict-badge";
+import { AmountBadge } from "./amount-badge";
 
 export function GrantCard({ matched }: { matched: MatchedGrant }) {
   const { grant, providerName, match } = matched;
@@ -15,8 +16,8 @@ export function GrantCard({ matched }: { matched: MatchedGrant }) {
         <strong>{match.score}</strong>/100{" "}
         <VerdictBadge verdict={match.verdict} />
       </p>
+      <p><AmountBadge indicator={match.indicators.economic} /></p>
       {/* slot: storico badge (branch 013) */}
-      {/* slot: colored amount / economic coherence (branch 014) */}
     </article>
   );
 }

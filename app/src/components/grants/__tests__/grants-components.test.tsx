@@ -75,6 +75,7 @@ describe("GrantCard", () => {
         indicators: {
           deadline: { days: 180, color: "verde", label: "scade tra 180 giorni" },
           cofunding: { required: null, color: "grigio", label: "n/d" },
+          economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: 50000, budgetKnown: false },
         },
         missingDocuments: [], actions: [],
       },
