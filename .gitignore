@@ -1,0 +1,9 @@
+# Monorepo root
+node_modules/
+.DS_Store
+*.log
+
+# Build output / caches (also ignored per-package)
+.next/
+dist/
+.vercel/
