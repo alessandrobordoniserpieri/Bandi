@@ -14,6 +14,8 @@ import { SectionDocuments } from "@/components/profile/section-documents";
 import { SectionPartnerships } from "@/components/profile/section-partnerships";
 import { SectionHistory } from "@/components/profile/section-history";
 import { SectionContacts } from "@/components/profile/section-contacts";
+import { SectionNotifications } from "@/components/profile/section-notifications";
+import { DEFAULT_THRESHOLD } from "@/lib/alerts/build-digest";
 
 export default async function ProfiloPage() {
   const supabase = await createClient();
@@ -27,6 +29,9 @@ export default async function ProfiloPage() {
 
   const { data: providers } = await supabase
     .from("grant_providers").select("id,name").order("name");
+
+  const { data: settings } = await supabase
+    .from("user_settings").select("alert_threshold, alert_frequency").eq("user_id", user.id).maybeSingle();
 
   const { percent, suggestions } = profileCompletion(row);
 
@@ -74,6 +79,11 @@ export default async function ProfiloPage() {
         <summary>{SECTION_META.contacts.n}. {SECTION_META.contacts.label} — {SECTION_META.contacts.priority}</summary>
         <SectionForm section="contacts"><SectionContacts defaultValue={row} /></SectionForm>
       </details>
+
+      <SectionNotifications
+        initialThreshold={settings?.alert_threshold ?? DEFAULT_THRESHOLD}
+        initialFrequency={settings?.alert_frequency ?? "weekly"}
+      />
     </main>
   );
 }
