@@ -53,10 +53,16 @@ export async function POST(request: Request): Promise<Response> {
     );
     return Response.json({ analysis });
   } catch (err) {
-    console.error("[ai/analyze] failed:", err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[ai/analyze] failed:", msg);
+    const isRateLimit = msg.includes("429");
     return Response.json(
-      { error: "Analisi non riuscita. Riprova tra qualche istante." },
-      { status: 502 },
+      {
+        error: isRateLimit
+          ? "Il provider AI ha raggiunto il limite di richieste. Riprova tra qualche minuto."
+          : "Analisi non riuscita. Riprova tra qualche istante.",
+      },
+      { status: isRateLimit ? 429 : 502 },
     );
   }
 }
