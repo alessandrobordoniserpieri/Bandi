@@ -23,17 +23,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div>
-      <nav>
-        <strong>BANDI-SCANNER</strong>
+      <nav className="app-nav">
+        <strong className="app-brand">BANDI-SCANNER</strong>
         {isOnboarded && (
-          <>
+          <div className="app-tabs">
             <Link href="/">Dashboard</Link>
             <Link href="/nuovi-bandi">Nuovi bandi</Link>
             <Link href="/i-miei-bandi">I miei bandi</Link>
-            <Link href="/profilo">Il mio profilo</Link>
-          </>
+            <Link href="/profilo">Profilo</Link>
+          </div>
         )}
-        <form action={signOut}><button type="submit">Esci</button></form>
+        <form action={signOut} className="app-logout"><button type="submit">Esci</button></form>
       </nav>
       {children}
     </div>
