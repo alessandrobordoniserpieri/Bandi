@@ -10,6 +10,7 @@ import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
 import { VerdictBadge } from "@/components/grants/verdict-badge";
 import { AmountBadge } from "@/components/grants/amount-badge";
+import { HistoryBadge } from "@/components/grants/history-badge";
 import { ScoreBreakdown } from "@/components/grants/score-breakdown";
 import { DocumentChecklist } from "@/components/grants/document-checklist";
 
@@ -38,6 +39,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       <p>
         <strong>{match.score}</strong>/100{" "}
         <VerdictBadge verdict={match.verdict} />
+        {match.historyBadge && <> · <HistoryBadge badge={match.historyBadge} /></>}
       </p>
 
       <section>

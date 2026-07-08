@@ -27,7 +27,7 @@ function mg(over: {
         cofunding: { required: null, color: "grigio", label: "" },
         economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
       },
-      missingDocuments: [], actions: [],
+      historyBadge: null, missingDocuments: [], actions: [],
     },
   } as MatchedGrant;
 }

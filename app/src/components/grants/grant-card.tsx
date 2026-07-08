@@ -4,6 +4,7 @@ import type { MatchedGrant } from "@/lib/grants/match-list";
 import { DeadlineBadge } from "./deadline-badge";
 import { VerdictBadge } from "./verdict-badge";
 import { AmountBadge } from "./amount-badge";
+import { HistoryBadge } from "./history-badge";
 
 export function GrantCard({ matched }: { matched: MatchedGrant }) {
   const { grant, providerName, match } = matched;
@@ -15,9 +16,9 @@ export function GrantCard({ matched }: { matched: MatchedGrant }) {
         <DeadlineBadge indicator={match.indicators.deadline} />{" "}
         <strong>{match.score}</strong>/100{" "}
         <VerdictBadge verdict={match.verdict} />
+        {match.historyBadge && <> · <HistoryBadge badge={match.historyBadge} /></>}
       </p>
       <p><AmountBadge indicator={match.indicators.economic} /></p>
-      {/* slot: storico badge (branch 013) */}
     </article>
   );
 }

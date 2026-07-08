@@ -10,6 +10,7 @@ import { buildIndicators } from "./indicators";
 import { buildBreakdown } from "./breakdown";
 import { buildActions } from "./actions";
 import { deriveVerdict } from "./verdict";
+import { matchHistory } from "./storico-match";
 import { isClosedGrant } from "./helpers";
 
 export function calculateMatch(profile: EntityProfile, grant: Grant): MatchResult {
@@ -40,6 +41,7 @@ export function calculateMatch(profile: EntityProfile, grant: Grant): MatchResul
     breakdown,
     bonuses,
     indicators: buildIndicators(profile, grant),
+    historyBadge: matchHistory(profile.projectHistory, grant),
     missingDocuments: documents.missing,
     actions,
   };

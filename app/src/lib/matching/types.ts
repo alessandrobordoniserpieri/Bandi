@@ -129,6 +129,12 @@ export interface Indicators {
   economic: EconomicIndicator;
 }
 
+export type HistoryBadgeKind = "gia_finanziato" | "gia_candidato" | "conosce_erogatore";
+export interface HistoryBadge {
+  kind: HistoryBadgeKind;
+  label: string; // Italian
+}
+
 export interface MatchResult {
   score: number;               // final, 0..100
   baseScore: number;           // sum of the 6 dimensions, pre-bonus
@@ -136,6 +142,7 @@ export interface MatchResult {
   breakdown: BreakdownItem[];  // exactly 6
   bonuses: BonusItem[];
   indicators: Indicators;
+  historyBadge: HistoryBadge | null; // §2.8 — specific history, NOT scored
   missingDocuments: string[];
   actions: string[];           // Italian
 }
