@@ -84,6 +84,7 @@ export type Database = {
           eligible_types: string[]
           geo_scope: Database["public"]["Enums"]["geo_scope"] | null
           id: string
+          import_mode: string
           provider_id: string | null
           raw: Json | null
           required_documents: string[]
@@ -108,6 +109,7 @@ export type Database = {
           eligible_types?: string[]
           geo_scope?: Database["public"]["Enums"]["geo_scope"] | null
           id?: string
+          import_mode?: string
           provider_id?: string | null
           raw?: Json | null
           required_documents?: string[]
@@ -132,6 +134,7 @@ export type Database = {
           eligible_types?: string[]
           geo_scope?: Database["public"]["Enums"]["geo_scope"] | null
           id?: string
+          import_mode?: string
           provider_id?: string | null
           raw?: Json | null
           required_documents?: string[]
@@ -357,6 +360,8 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          ai_calls_count: number
+          ai_calls_window_start: string | null
           alert_frequency: Database["public"]["Enums"]["alert_frequency"]
           alert_threshold: number
           created_at: string
@@ -365,6 +370,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_calls_count?: number
+          ai_calls_window_start?: string | null
           alert_frequency?: Database["public"]["Enums"]["alert_frequency"]
           alert_threshold?: number
           created_at?: string
@@ -373,6 +380,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_calls_count?: number
+          ai_calls_window_start?: string | null
           alert_frequency?: Database["public"]["Enums"]["alert_frequency"]
           alert_threshold?: number
           created_at?: string
