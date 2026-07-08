@@ -111,9 +111,22 @@ export interface CofundingIndicator {
   color: "verde" | "giallo" | "rosso" | "grigio";
   label: string;
 }
+export type EconomicLevel = "da_verificare" | "alla_tua_portata" | "ambizioso" | "fuori_scala";
+// The pure reading (§2.7A). `ratio` is null when amount or budget is missing.
+export interface EconomicCoherence {
+  ratio: number | null;
+  level: EconomicLevel;
+  label: string; // Italian badge text
+}
+// The indicator carried in MatchResult: the reading plus the grant amount to render.
+export interface EconomicIndicator extends EconomicCoherence {
+  amount: number | null;
+  budgetKnown: boolean; // false → prompt the user to fill §4/§7
+}
 export interface Indicators {
   deadline: DeadlineIndicator;
   cofunding: CofundingIndicator;
+  economic: EconomicIndicator;
 }
 
 export interface MatchResult {

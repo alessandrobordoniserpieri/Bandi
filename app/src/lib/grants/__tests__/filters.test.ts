@@ -25,6 +25,7 @@ function mg(over: {
       indicators: {
         deadline: { days: over.days === undefined ? 10 : over.days, color: "verde", label: "" },
         cofunding: { required: null, color: "grigio", label: "" },
+        economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
       },
       missingDocuments: [], actions: [],
     },
