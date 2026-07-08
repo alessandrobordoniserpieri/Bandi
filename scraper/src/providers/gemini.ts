@@ -4,7 +4,7 @@ import { ProviderError } from "./types";
 import { defaultFetch, parseJsonText, postJson, record, type FetchLike, type ProviderConfig } from "./http";
 import { withRetry, type RetryOptions } from "./retry";
 
-const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-2.5-flash";
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 // Gemini REST generateContent with JSON output mode. The response schema is the array schema
