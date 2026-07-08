@@ -9,7 +9,7 @@ function row(overrides: Partial<GrantRowWithProvider> = {}): GrantRowWithProvide
     area: "Lombardia", geo_scope: "regionale", complexity: "media",
     required_documents: ["statuto", "bilancio"],
     summary: null, requirements: null, beneficiaries: null,
-    url: "https://example.it/bando", source_id: null, raw: null,
+    url: "https://example.it/bando", source_id: null, raw: null, import_mode: "scraper",
     discovered_at: "2026-07-01T00:00:00Z", created_at: "2026-07-01T00:00:00Z",
     updated_at: "2026-07-01T00:00:00Z",
     provider: { name: "Fondazione Test", kind: "privato" },

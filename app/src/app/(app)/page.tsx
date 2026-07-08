@@ -9,6 +9,7 @@ import { applyFilters, applySort, parseFilters, countByVerdict } from "@/lib/gra
 import { GrantCard } from "@/components/grants/grant-card";
 import { FilterBar } from "@/components/grants/filter-bar";
 import { EmptyState } from "@/components/grants/empty-state";
+import { SubmitUrlDialog } from "@/components/grants/submit-url-dialog";
 
 export default async function DashboardPage(
   { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> },
@@ -39,6 +40,7 @@ export default async function DashboardPage(
         <p>Profilo al {percent}%. <Link href="/profilo">Completa il profilo</Link> per risultati più precisi.</p>
       )}
       <p>Candidabili: {counts.candidabili} · Da preparare: {counts.daPreparare} · Totale: {counts.totale}</p>
+      <SubmitUrlDialog />
       <FilterBar filters={filters} sort={sort} />
       {shown.length === 0
         ? <EmptyState profileComplete={percent >= 100} />

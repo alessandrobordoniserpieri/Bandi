@@ -5,6 +5,7 @@ import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
 import { getGrant } from "@/lib/grants/queries";
 import { getSavedGrantByGrantId } from "@/lib/saved-grants/queries";
 import { SaveButton } from "@/components/saved-grants/save-button";
+import { AIAnalysisPanel } from "@/components/grants/ai-analysis-panel";
 import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
 import { VerdictBadge } from "@/components/grants/verdict-badge";
@@ -61,9 +62,10 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
 
       <section>
         <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />{" "}
-        <button type="button" disabled title="In arrivo">Analisi AI approfondita</button>{" "}
         <a href={grant.url} target="_blank" rel="noopener noreferrer">Apri bando originale</a>
       </section>
+
+      <AIAnalysisPanel grantId={grant.id} />
     </main>
   );
 }
