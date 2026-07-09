@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -44,6 +45,31 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
     return { message: "Ti abbiamo inviato un'email di conferma. Confermala e poi accedi." };
   }
   redirect("/onboarding");
+}
+
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email.includes("@")) return { error: "Inserisci un indirizzo email valido." };
+
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin") ?? "";
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/aggiorna-password`,
+  });
+  // Always return the same message regardless of whether the email exists,
+  // so the form can't be used to enumerate registered addresses.
+  if (error) return { error: italianAuthError(error.message) };
+  return { message: "Se l'indirizzo è registrato, ti abbiamo inviato un link per reimpostare la password." };
+}
+
+export async function updatePassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 6) return { error: "La password deve avere almeno 6 caratteri." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: italianAuthError(error.message) };
+  redirect("/");
 }
 
 export async function signOut(): Promise<void> {
