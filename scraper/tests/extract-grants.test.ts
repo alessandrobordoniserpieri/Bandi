@@ -1,8 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { extractGrants } from "../src/pipeline/extract-grants";
+import { extractGrants, GRANT_JSON_SCHEMA } from "../src/pipeline/extract-grants";
 import { FakeLLMProvider } from "../src/providers/fake";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import type { RawPage } from "../src/pipeline/types";
+
+// Gemini's response_schema (a restricted OpenAPI-3.0 subset) rejects `type` as an array —
+// {"type": ["string", "null"]} fails every single extraction call with HTTP 400 ("Proto field
+// is not repeating, cannot start list"), which extractGrants' catch-and-return-[] swallows
+// silently — indistinguishable from "this page genuinely has no grants". Confirmed live against
+// the real Gemini API: 0/12 production sources ever extracted a grant until this was fixed.
+// This is a structural guard against reintroducing that shape; it can't replace a real API call,
+// but it's free and would have caught the original bug.
+function walkSchemaTypes(node: unknown, path: string, onType: (path: string, type: unknown) => void): void {
+  if (typeof node !== "object" || node === null) return;
+  const obj = node as Record<string, unknown>;
+  if ("type" in obj) onType(path, obj.type);
+  if (obj.items) walkSchemaTypes(obj.items, `${path}.items`, onType);
+  if (obj.properties && typeof obj.properties === "object") {
+    for (const [key, value] of Object.entries(obj.properties as Record<string, unknown>)) {
+      walkSchemaTypes(value, `${path}.properties.${key}`, onType);
+    }
+  }
+}
 
 const page = (html: string): RawPage => ({ sourceId: "s1", url: "https://x/list", html });
 function llmReturning(value: unknown, html = "H") {
@@ -93,5 +112,13 @@ describe("extractGrants", () => {
     expect(out[0]!.amount).toBe(50000);
     expect(out[0]!.cofundingRequired).toBe(1000.5);
     expect(out[1]!.amount).toBeNull();
+  });
+
+  it("GRANT_JSON_SCHEMA never declares `type` as an array (Gemini's response_schema rejects it)", () => {
+    const offenders: string[] = [];
+    walkSchemaTypes(GRANT_JSON_SCHEMA, "$", (path, type) => {
+      if (Array.isArray(type)) offenders.push(path);
+    });
+    expect(offenders).toEqual([]);
   });
 });
