@@ -35,11 +35,17 @@ export default async function DashboardPage(
 
   return (
     <main>
-      <h1>Dashboard</h1>
-      {percent < 100 && (
-        <p>Profilo al {percent}%. <Link href="/profilo">Completa il profilo</Link> per risultati più precisi.</p>
-      )}
-      <p>Candidabili: {counts.candidabili} · Da preparare: {counts.daPreparare} · Totale: {counts.totale}</p>
+      <div className="page-header">
+        <h1>Dashboard</h1>
+        {percent < 100 && (
+          <p>Profilo al {percent}%. <Link href="/profilo">Completa il profilo</Link> per risultati più precisi.</p>
+        )}
+      </div>
+      <div className="stats-row">
+        <div className="stat-item"><strong>{counts.candidabili}</strong> Candidabili</div>
+        <div className="stat-item"><strong>{counts.daPreparare}</strong> Da preparare</div>
+        <div className="stat-item"><strong>{counts.totale}</strong> Totale</div>
+      </div>
       <SubmitUrlDialog />
       <FilterBar filters={filters} sort={sort} />
       {shown.length === 0

@@ -1,4 +1,3 @@
-// app/src/app/(app)/bandi/[id]/page.tsx
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
@@ -33,45 +32,76 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
 
   return (
     <main>
-      <h1>{grant.title}</h1>
-      {providerName && <p>{providerName}</p>}
+      <div className="page-header">
+        <h1>{grant.title}</h1>
+        {providerName && <p>{providerName}</p>}
+      </div>
 
-      <p>
-        <strong>{match.score}</strong>/100{" "}
-        <VerdictBadge verdict={match.verdict} />
-        {match.historyBadge && <> · <HistoryBadge badge={match.historyBadge} /></>}
-      </p>
+      <div className="stats-row">
+        <div className="stat-item">
+          <strong>{match.score}</strong>/100
+        </div>
+        <div className="stat-item">
+          <VerdictBadge verdict={match.verdict} />
+        </div>
+        {match.historyBadge && (
+          <div className="stat-item">
+            <HistoryBadge badge={match.historyBadge} />
+          </div>
+        )}
+      </div>
 
-      <section>
+      <section className="detail-section">
         <h2>Indicatori</h2>
         <p>Scadenza: <DeadlineBadge indicator={match.indicators.deadline} /></p>
         <p>Cofinanziamento: {match.indicators.cofunding.label}</p>
         <p>Importo: <AmountBadge indicator={match.indicators.economic} /></p>
         {!match.indicators.economic.budgetKnown && (
-          <p>
+          <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
             Aggiungi il budget annuale nel{" "}
             <a href="/profilo">tuo profilo (sezione capacità)</a> per valutare la coerenza economica.
           </p>
         )}
       </section>
 
-      <section>
+      <section className="detail-section">
         <h2>Punteggio per dimensione</h2>
         <ScoreBreakdown breakdown={match.breakdown} />
       </section>
 
-      <section>
+      <section className="detail-section">
         <h2>Documenti</h2>
         <DocumentChecklist missing={match.missingDocuments} />
       </section>
 
-      {grant.summary && (<section><h2>Sintesi</h2><p>{grant.summary}</p></section>)}
-      {grant.requirements && (<section><h2>Requisiti</h2><p>{grant.requirements}</p></section>)}
-      {grant.beneficiaries && (<section><h2>Destinatari</h2><p>{grant.beneficiaries}</p></section>)}
+      {grant.summary && (
+        <section className="detail-section">
+          <h2>Sintesi</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.summary}</p>
+        </section>
+      )}
+      {grant.requirements && (
+        <section className="detail-section">
+          <h2>Requisiti</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.requirements}</p>
+        </section>
+      )}
+      {grant.beneficiaries && (
+        <section className="detail-section">
+          <h2>Destinatari</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.beneficiaries}</p>
+        </section>
+      )}
 
-      <section>
-        <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />{" "}
-        <a href={grant.url} target="_blank" rel="noopener noreferrer">Apri bando originale</a>
+      <section className="detail-section" style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+        <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />
+        <a href={grant.url} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.375rem",
+          padding: "0.5rem 1rem", fontSize: "0.875rem", fontWeight: 500, borderRadius: "var(--radius)",
+          textDecoration: "none", color: "var(--text-on-primary)", background: "var(--primary)",
+        }}>
+          Apri bando originale
+        </a>
       </section>
 
       <AIAnalysisPanel grantId={grant.id} />

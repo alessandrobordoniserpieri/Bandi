@@ -1,16 +1,15 @@
-import { STATUS_META, statusLabel, type SavedGrantStatus } from "@/lib/saved-grants/status";
+import { statusLabel, type SavedGrantStatus } from "@/lib/saved-grants/status";
 import type { SavedGrantView } from "@/lib/saved-grants/queries";
 import { SavedGrantCard } from "./saved-grant-card";
 
-// One pipeline column: a colored heading + the cards currently in that status.
 export function KanbanColumn({ status, items }: { status: SavedGrantStatus; items: SavedGrantView[] }) {
   return (
-    <section aria-label={statusLabel(status)} style={{ minWidth: "220px", flex: "1 0 220px" }}>
-      <h2 style={{ color: STATUS_META[status].color }}>
-        {statusLabel(status)} <span>({items.length})</span>
-      </h2>
+    <section className="kanban-column" aria-label={statusLabel(status)}>
+      <div className="kanban-column-header">
+        {statusLabel(status)} <span className="kanban-column-count">({items.length})</span>
+      </div>
       {items.length === 0
-        ? <p>Nessun bando.</p>
+        ? <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", padding: "0.5rem 0.75rem" }}>Nessun bando.</p>
         : items.map((item) => <SavedGrantCard key={item.savedGrantId} item={item} />)}
     </section>
   );

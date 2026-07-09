@@ -1,4 +1,3 @@
-// app/src/components/grants/grant-card.tsx
 import Link from "next/link";
 import type { MatchedGrant } from "@/lib/grants/match-list";
 import { DeadlineBadge } from "./deadline-badge";
@@ -9,16 +8,16 @@ import { HistoryBadge } from "./history-badge";
 export function GrantCard({ matched }: { matched: MatchedGrant }) {
   const { grant, providerName, match } = matched;
   return (
-    <article>
+    <article className="grant-card">
       <h3><Link href={`/bandi/${grant.id}`}>{grant.title}</Link></h3>
-      {providerName && <p>{providerName}</p>}
-      <p>
-        <DeadlineBadge indicator={match.indicators.deadline} />{" "}
-        <strong>{match.score}</strong>/100{" "}
+      {providerName && <p className="grant-card-provider">{providerName}</p>}
+      <p className="grant-card-meta">
+        <DeadlineBadge indicator={match.indicators.deadline} />
+        <span className="grant-card-score">{match.score}</span><span>/100</span>
         <VerdictBadge verdict={match.verdict} />
-        {match.historyBadge && <> · <HistoryBadge badge={match.historyBadge} /></>}
+        {match.historyBadge && <HistoryBadge badge={match.historyBadge} />}
       </p>
-      <p><AmountBadge indicator={match.indicators.economic} /></p>
+      <p className="grant-card-meta"><AmountBadge indicator={match.indicators.economic} /></p>
     </article>
   );
 }

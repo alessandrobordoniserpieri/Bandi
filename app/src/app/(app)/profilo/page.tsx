@@ -1,4 +1,3 @@
-// app/src/app/(app)/profilo/page.tsx
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SECTION_META } from "@/lib/profile/constants";
@@ -37,10 +36,14 @@ export default async function ProfiloPage() {
 
   return (
     <main>
-      <h1>Il mio profilo</h1>
+      <div className="page-header">
+        <h1>Il mio profilo</h1>
+      </div>
       <CompletionBar percent={percent} />
       {suggestions.length > 0 && (
-        <ul>{suggestions.map((s) => <li key={s.section}>{s.message}</li>)}</ul>
+        <ul style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", margin: "0 0 1.5rem", paddingLeft: "1.25rem" }}>
+          {suggestions.map((s) => <li key={s.section}>{s.message}</li>)}
+        </ul>
       )}
 
       <details open>

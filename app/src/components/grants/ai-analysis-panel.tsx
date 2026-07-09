@@ -11,8 +11,6 @@ const SECTIONS: [keyof GrantAnalysis, string][] = [
   ["passiSuccessivi", "Passi successivi"],
 ];
 
-// "Analisi AI approfondita" on the grant detail: on demand, with loading state, Italian
-// errors, and the mandatory AI disclaimer (§8). Only zod-validated content is rendered.
 export function AIAnalysisPanel({ grantId }: { grantId: string }) {
   const [analysis, setAnalysis] = useState<GrantAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,23 +39,27 @@ export function AIAnalysisPanel({ grantId }: { grantId: string }) {
   }
 
   return (
-    <section>
-      <button type="button" onClick={run} disabled={loading}>
-        {loading ? "Analisi in corso…" : "Analisi AI approfondita"}
-      </button>
-      {error && <p role="alert">{error}</p>}
+    <section className="ai-panel">
+      <div className="ai-panel-header">
+        <button type="button" className="btn-primary" onClick={run} disabled={loading}>
+          {loading ? "Analisi in corso…" : "Analisi AI approfondita"}
+        </button>
+      </div>
+      {error && <p role="alert" className="form-feedback" data-type="error" style={{ padding: "0.5rem 1rem" }}>{error}</p>}
       {analysis && (
-        <div>
-          <p><em>{DISCLAIMER}</em></p>
-          {SECTIONS.map(([key, title]) =>
-            analysis[key].length > 0 ? (
-              <div key={key}>
-                <h3>{title}</h3>
-                <ul>{analysis[key].map((line, i) => <li key={i}>{line}</li>)}</ul>
-              </div>
-            ) : null,
-          )}
-        </div>
+        <>
+          <p className="ai-panel-disclaimer">{DISCLAIMER}</p>
+          <div className="ai-panel-sections">
+            {SECTIONS.map(([key, title]) =>
+              analysis[key].length > 0 ? (
+                <div key={key}>
+                  <h3>{title}</h3>
+                  <ul>{analysis[key].map((line, i) => <li key={i}>{line}</li>)}</ul>
+                </div>
+              ) : null,
+            )}
+          </div>
+        </>
       )}
     </section>
   );

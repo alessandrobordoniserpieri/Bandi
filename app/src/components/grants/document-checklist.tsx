@@ -1,4 +1,3 @@
-// app/src/components/grants/document-checklist.tsx
 export function DocumentChecklist({ missing }: { missing: string[] }) {
   if (missing.length === 0) return <p>Hai tutti i documenti richiesti.</p>;
   return (

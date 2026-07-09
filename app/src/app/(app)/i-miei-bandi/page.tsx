@@ -13,11 +13,13 @@ export default async function IMieiBandiPage() {
 
   return (
     <main>
-      <h1>I miei bandi</h1>
-      {items.length === 0 && (
-        <p>Non hai ancora salvato bandi. Apri un bando e premi «Salva».</p>
-      )}
-      <div style={{ display: "flex", gap: "1rem", overflowX: "auto" }}>
+      <div className="page-header">
+        <h1>I miei bandi</h1>
+        {items.length === 0 && (
+          <p>Non hai ancora salvato bandi. Apri un bando e premi «Salva».</p>
+        )}
+      </div>
+      <div className="kanban-board">
         {SAVED_STATUSES.map((status) => (
           <KanbanColumn
             key={status}

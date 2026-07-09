@@ -1,4 +1,3 @@
-// app/src/app/(app)/onboarding/page.tsx
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { deleteAccount } from "../../(auth)/actions";
@@ -15,12 +14,18 @@ export default async function OnboardingPage() {
 
   return (
     <main>
-      <h1>Completa il profilo</h1>
-      <p>Bastano 3 passi e pochi campi essenziali per iniziare a ricevere i tuoi bandi.</p>
+      <div className="page-header" style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h1>Completa il profilo</h1>
+        <p>Bastano 3 passi e pochi campi essenziali per iniziare a ricevere i tuoi bandi.</p>
+      </div>
       <OnboardingWizard />
-      <form action={deleteAccount}>
-        <button type="submit">Elimina account</button>
-      </form>
+      <div style={{ textAlign: "center", marginTop: "2rem" }}>
+        <form action={deleteAccount}>
+          <button type="submit" className="btn-ghost" style={{ color: "var(--error)", fontSize: "0.8125rem" }}>
+            Elimina account
+          </button>
+        </form>
+      </div>
     </main>
   );
 }
