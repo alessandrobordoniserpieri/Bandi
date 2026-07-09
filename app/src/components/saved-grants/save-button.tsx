@@ -3,7 +3,6 @@ import { useState, useTransition } from "react";
 import { saveGrant, removeSavedGrant } from "@/lib/saved-grants/actions";
 import { statusLabel, type SavedGrantStatus } from "@/lib/saved-grants/status";
 
-// Detail-page toggle: save the grant (→ "salvato") or remove it, reflecting the current status.
 export function SaveButton({
   grantId,
   initialStatus,

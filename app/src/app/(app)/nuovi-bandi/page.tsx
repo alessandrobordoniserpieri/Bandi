@@ -31,8 +31,10 @@ export default async function NuoviBandiPage(
 
   return (
     <main>
-      <h1>Nuovi bandi</h1>
-      <p>Bandi scoperti negli ultimi 7 giorni.</p>
+      <div className="page-header">
+        <h1>Nuovi bandi</h1>
+        <p>Bandi scoperti negli ultimi 7 giorni.</p>
+      </div>
       <FilterBar filters={filters} sort={sort} />
       {shown.length === 0
         ? <EmptyState profileComplete={percent >= 100} />

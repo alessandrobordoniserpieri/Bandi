@@ -1,9 +1,8 @@
-// app/src/components/grants/empty-state.tsx
 import Link from "next/link";
 
 export function EmptyState({ profileComplete }: { profileComplete: boolean }) {
   return (
-    <div>
+    <div className="empty-state">
       <p>Nessun bando corrisponde ai filtri attuali.</p>
       <p>Prova ad allargare i filtri.</p>
       {!profileComplete && (

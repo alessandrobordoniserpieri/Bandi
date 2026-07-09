@@ -1,4 +1,3 @@
-// app/src/app/(app)/onboarding/wizard.tsx
 "use client";
 import { useState } from "react";
 import { useActionState } from "react";
@@ -16,16 +15,23 @@ export function OnboardingWizard() {
   );
   return (
     <form action={action}>
-      <p>Passo {step + 1} di {STEPS.length}: <strong>{STEPS[step]}</strong></p>
+      <div className="wizard-progress">
+        {STEPS.map((_, i) => (
+          <div key={i} className={`wizard-step${i < step ? " done" : ""}${i === step ? " active" : ""}`} />
+        ))}
+      </div>
+      <p className="wizard-step-label">Passo {step + 1} di {STEPS.length}: <strong>{STEPS[step]}</strong></p>
       <div hidden={step !== 0}><SectionIdentity /></div>
       <div hidden={step !== 1}><SectionTerritory /></div>
       <div hidden={step !== 2}><SectionThemes /></div>
-      {state && "error" in state && <p role="alert">{state.error}</p>}
-      <div>
+      {state && "error" in state && <p role="alert" className="form-feedback" data-type="error">{state.error}</p>}
+      <div className="wizard-actions">
         {step > 0 && <button type="button" onClick={() => setStep(step - 1)}>Indietro</button>}
         {step < STEPS.length - 1
-          ? <button type="button" onClick={() => setStep(step + 1)}>Avanti</button>
-          : <button type="submit" disabled={pending}>Completa e vai alla Dashboard</button>}
+          ? <button type="button" className="btn-primary" onClick={() => setStep(step + 1)}>Avanti</button>
+          : <button type="submit" className="btn-primary" disabled={pending}>
+              {pending ? "Salvataggio…" : "Completa e vai alla Dashboard"}
+            </button>}
       </div>
     </form>
   );

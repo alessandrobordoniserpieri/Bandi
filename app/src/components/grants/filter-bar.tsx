@@ -1,4 +1,3 @@
-// app/src/components/grants/filter-bar.tsx
 "use client";
 import { useRouter } from "next/navigation";
 import { serializeFilters, type Filters, type SortKey } from "@/lib/grants/filters";
@@ -21,7 +20,7 @@ export function FilterBar({ filters, sort }: { filters: Filters; sort: SortKey }
   }
 
   return (
-    <div>
+    <div className="filter-bar">
       <label>Ordina per{" "}
         <select value={sort} onChange={(e) => go(filters, e.target.value as SortKey)}>
           <option value="score">Compatibilità</option>
@@ -29,7 +28,7 @@ export function FilterBar({ filters, sort }: { filters: Filters; sort: SortKey }
           <option value="amount">Importo</option>
         </select>
       </label>
-      <label>
+      <label className="filter-chip">
         <input type="checkbox" checked={!!filters.onlyCandidabili}
           onChange={(e) => go({ ...filters, onlyCandidabili: e.target.checked || undefined }, sort)} />
         Solo candidabili
@@ -37,7 +36,7 @@ export function FilterBar({ filters, sort }: { filters: Filters; sort: SortKey }
       <fieldset>
         <legend>Verdetto</legend>
         {VERDICTS.map((v) => (
-          <label key={v}>
+          <label key={v} className="filter-chip">
             <input type="checkbox" checked={filters.verdetti?.includes(v) ?? false}
               onChange={() => {
                 const verdetti = toggle(filters.verdetti, v);
@@ -50,7 +49,7 @@ export function FilterBar({ filters, sort }: { filters: Filters; sort: SortKey }
       <fieldset>
         <legend>Ambito</legend>
         {GEOS.map((g) => (
-          <label key={g}>
+          <label key={g} className="filter-chip">
             <input type="checkbox" checked={filters.geoScopes?.includes(g) ?? false}
               onChange={() => {
                 const geoScopes = toggle(filters.geoScopes, g);

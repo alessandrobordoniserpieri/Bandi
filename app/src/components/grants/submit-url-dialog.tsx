@@ -12,8 +12,6 @@ type Phase =
   | { step: "created"; grantId: string; title: string }
   | { step: "error"; message: string };
 
-// "Segnala un bando" (§4.4): paste a URL → the AI structures it into the 16 fields → the user
-// confirms the preview → the grant is inserted and becomes available to everyone.
 export function SubmitUrlDialog() {
   const [phase, setPhase] = useState<Phase>({ step: "closed" });
   const [url, setUrl] = useState("");
@@ -63,31 +61,35 @@ export function SubmitUrlDialog() {
 
   if (phase.step === "closed") {
     return (
-      <button type="button" onClick={() => setPhase({ step: "input" })}>Segnala un bando</button>
+      <button type="button" onClick={() => setPhase({ step: "input" })} style={{ marginBottom: "1rem" }}>
+        Segnala un bando
+      </button>
     );
   }
 
   return (
-    <section aria-label="Segnala un bando">
+    <section className="submit-dialog" aria-label="Segnala un bando">
       <h2>Segnala un bando</h2>
 
       {(phase.step === "input" || phase.step === "error") && (
         <div>
-          {phase.step === "error" && <p role="alert">{phase.message}</p>}
-          <input
-            type="url"
-            value={url}
-            placeholder="https://…"
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <button type="button" onClick={preview} disabled={!url}>Analizza</button>
+          {phase.step === "error" && <p role="alert" className="form-feedback" data-type="error">{phase.message}</p>}
+          <div className="submit-dialog-input">
+            <input
+              type="url"
+              value={url}
+              placeholder="https://…"
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <button type="button" className="btn-primary" onClick={preview} disabled={!url}>Analizza</button>
+          </div>
         </div>
       )}
 
-      {phase.step === "loading" && <p>Analisi della pagina in corso…</p>}
+      {phase.step === "loading" && <p style={{ color: "var(--text-secondary)" }}>Analisi della pagina in corso…</p>}
 
       {phase.step === "preview" && (
-        <div>
+        <div className="submit-dialog-preview">
           <p>Verifica i dati estratti prima di confermare:</p>
           <ul>
             <li><strong>{phase.grant.title}</strong></li>
@@ -96,8 +98,10 @@ export function SubmitUrlDialog() {
             <li>Temi: {phase.grant.tags.join(", ") || "n/d"}</li>
             <li>Forme ammesse: {phase.grant.eligibleTypes.join(", ") || "n/d"}</li>
           </ul>
-          <button type="button" onClick={() => confirm(phase.grant)}>Conferma e pubblica</button>{" "}
-          <button type="button" onClick={() => setPhase({ step: "input" })}>Annulla</button>
+          <div className="submit-dialog-actions">
+            <button type="button" className="btn-primary" onClick={() => confirm(phase.grant)}>Conferma e pubblica</button>
+            <button type="button" onClick={() => setPhase({ step: "input" })}>Annulla</button>
+          </div>
         </div>
       )}
 
@@ -109,12 +113,12 @@ export function SubmitUrlDialog() {
       )}
 
       {phase.step === "created" && (
-        <p>
+        <p className="form-feedback" data-type="success">
           Bando pubblicato! <Link href={`/bandi/${phase.grantId}`}>{phase.title}</Link>
         </p>
       )}
 
-      <button type="button" onClick={() => { setPhase({ step: "closed" }); setUrl(""); }}>Chiudi</button>
+      <button type="button" className="btn-ghost btn-sm" onClick={() => { setPhase({ step: "closed" }); setUrl(""); }}>Chiudi</button>
     </section>
   );
 }

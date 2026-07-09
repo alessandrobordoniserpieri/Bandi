@@ -2,7 +2,6 @@
 import { useState, useTransition } from "react";
 import { updateNotes } from "@/lib/saved-grants/actions";
 
-// Per-grant notes (owner-only via RLS). Saves on demand.
 export function NotesEditor({
   savedGrantId,
   initialNotes,
@@ -15,7 +14,7 @@ export function NotesEditor({
   const [pending, start] = useTransition();
 
   return (
-    <div>
+    <div style={{ marginTop: "0.5rem" }}>
       <textarea
         rows={2}
         value={notes}
@@ -27,6 +26,7 @@ export function NotesEditor({
       />
       <button
         type="button"
+        className="btn-sm"
         disabled={pending}
         onClick={() => start(async () => {
           const res = await updateNotes(savedGrantId, notes);
