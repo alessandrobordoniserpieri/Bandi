@@ -8,21 +8,31 @@ import { parseItalianAmount } from "./enrich";
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // The AI is asked for these keys; validation is lenient and never throws.
+//
+// Gemini's response_schema (a restricted OpenAPI-3.0 subset, not full JSON Schema) rejects
+// `type` as an array — "type": ["string", "null"] fails with HTTP 400
+// ("Proto field is not repeating, cannot start list") on every nullable field. Every extraction
+// call was failing this validation and extractGrants' catch-and-return-[] swallowed it silently,
+// which is indistinguishable from "the page genuinely has no grants" in the pipeline's output.
+// Nullable fields use `nullable: true` alongside a single `type` instead. amount/cofundingRequired
+// are declared as string (not the old number|string union) — numOrNull() already parses string
+// input via parseItalianAmount, so no downstream change is needed.
 export const GRANT_JSON_SCHEMA: JsonSchema = {
   type: "array",
   items: {
     type: "object",
     properties: {
-      title: { type: "string" }, url: { type: "string" }, providerName: { type: ["string", "null"] },
-      deadline: { type: ["string", "null"] }, status: { type: ["string", "null"] },
-      amount: { type: ["number", "string", "null"] }, cofundingRequired: { type: ["number", "string", "null"] },
+      title: { type: "string" }, url: { type: "string" },
+      providerName: { type: "string", nullable: true },
+      deadline: { type: "string", nullable: true }, status: { type: "string", nullable: true },
+      amount: { type: "string", nullable: true }, cofundingRequired: { type: "string", nullable: true },
       eligibleTypes: { type: "array", items: { type: "string" } },
       tags: { type: "array", items: { type: "string" } },
-      area: { type: ["string", "null"] }, geoScope: { type: ["string", "null"] },
-      complexity: { type: ["string", "null"] },
+      area: { type: "string", nullable: true }, geoScope: { type: "string", nullable: true },
+      complexity: { type: "string", nullable: true },
       requiredDocuments: { type: "array", items: { type: "string" } },
-      summary: { type: ["string", "null"] }, requirements: { type: ["string", "null"] },
-      beneficiaries: { type: ["string", "null"] },
+      summary: { type: "string", nullable: true }, requirements: { type: "string", nullable: true },
+      beneficiaries: { type: "string", nullable: true },
     },
     required: ["title", "url"],
   },
