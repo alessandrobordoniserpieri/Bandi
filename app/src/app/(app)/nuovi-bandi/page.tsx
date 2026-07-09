@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
 import { profileCompletion } from "@/lib/profile/completion";
 import { getGrants } from "@/lib/grants/queries";
 import { buildMatchedGrants } from "@/lib/grants/match-list";
 import { applyFilters, applySort, parseFilters } from "@/lib/grants/filters";
+import { DENSITY_COOKIE, parseDensityCookie } from "@/lib/grants/view-density";
 import { GrantCard } from "@/components/grants/grant-card";
 import { FilterBar } from "@/components/grants/filter-bar";
 import { EmptyState } from "@/components/grants/empty-state";
@@ -28,6 +30,7 @@ export default async function NuoviBandiPage(
   const { filters, sort } = parseFilters(await searchParams);
   const shown = applySort(applyFilters(open, filters), sort);
   const percent = profileCompletion(row).percent;
+  const density = parseDensityCookie((await cookies()).get(DENSITY_COOKIE)?.value);
 
   return (
     <main>
@@ -35,10 +38,10 @@ export default async function NuoviBandiPage(
         <h1>Nuovi bandi</h1>
         <p>Bandi scoperti negli ultimi 7 giorni.</p>
       </div>
-      <FilterBar filters={filters} sort={sort} />
+      <FilterBar filters={filters} sort={sort} density={density} />
       {shown.length === 0
         ? <EmptyState profileComplete={percent >= 100} />
-        : shown.map((m) => <GrantCard key={m.grant.id} matched={m} />)}
+        : shown.map((m) => <GrantCard key={m.grant.id} matched={m} density={density} />)}
     </main>
   );
 }

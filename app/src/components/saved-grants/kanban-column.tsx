@@ -5,7 +5,7 @@ import { SavedGrantCard } from "./saved-grant-card";
 export function KanbanColumn({ status, items }: { status: SavedGrantStatus; items: SavedGrantView[] }) {
   return (
     <section className="kanban-column" aria-label={statusLabel(status)}>
-      <div className="kanban-column-header">
+      <div className="kanban-column-header" data-status={status}>
         {statusLabel(status)} <span className="kanban-column-count">({items.length})</span>
       </div>
       {items.length === 0

@@ -47,39 +47,71 @@ export default async function ProfiloPage() {
       )}
 
       <details open>
-        <summary>{SECTION_META.identity.n}. {SECTION_META.identity.label} — {SECTION_META.identity.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.identity.n}</span>
+          <span className="section-label">{SECTION_META.identity.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.identity.priority}>{SECTION_META.identity.priority}</span>
+        </summary>
         <SectionForm section="identity"><SectionIdentity defaultValue={row} /></SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.territory.n}. {SECTION_META.territory.label} — {SECTION_META.territory.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.territory.n}</span>
+          <span className="section-label">{SECTION_META.territory.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.territory.priority}>{SECTION_META.territory.priority}</span>
+        </summary>
         <SectionForm section="territory"><SectionTerritory defaultValue={row} /></SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.themes.n}. {SECTION_META.themes.label} — {SECTION_META.themes.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.themes.n}</span>
+          <span className="section-label">{SECTION_META.themes.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.themes.priority}>{SECTION_META.themes.priority}</span>
+        </summary>
         <SectionForm section="themes"><SectionThemes defaultValue={row} /></SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.capacity.n}. {SECTION_META.capacity.label} — {SECTION_META.capacity.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.capacity.n}</span>
+          <span className="section-label">{SECTION_META.capacity.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.capacity.priority}>{SECTION_META.capacity.priority}</span>
+        </summary>
         <SectionForm section="capacity"><SectionCapacity defaultValue={row} /></SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.documents.n}. {SECTION_META.documents.label} — {SECTION_META.documents.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.documents.n}</span>
+          <span className="section-label">{SECTION_META.documents.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.documents.priority}>{SECTION_META.documents.priority}</span>
+        </summary>
         <SectionForm section="documents">
           <SectionDocuments defaultValue={row} legalType={row.legal_type ?? undefined} />
         </SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.partnerships.n}. {SECTION_META.partnerships.label} — {SECTION_META.partnerships.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.partnerships.n}</span>
+          <span className="section-label">{SECTION_META.partnerships.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.partnerships.priority}>{SECTION_META.partnerships.priority}</span>
+        </summary>
         <SectionForm section="partnerships"><SectionPartnerships defaultValue={row} /></SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.history.n}. {SECTION_META.history.label} — {SECTION_META.history.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.history.n}</span>
+          <span className="section-label">{SECTION_META.history.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.history.priority}>{SECTION_META.history.priority}</span>
+        </summary>
         <SectionForm section="history">
           <SectionHistory defaultValue={row} providers={providers ?? []} />
         </SectionForm>
       </details>
       <details>
-        <summary>{SECTION_META.contacts.n}. {SECTION_META.contacts.label} — {SECTION_META.contacts.priority}</summary>
+        <summary>
+          <span className="section-number">{SECTION_META.contacts.n}</span>
+          <span className="section-label">{SECTION_META.contacts.label}</span>
+          <span className="section-priority" data-priority={SECTION_META.contacts.priority}>{SECTION_META.contacts.priority}</span>
+        </summary>
         <SectionForm section="contacts"><SectionContacts defaultValue={row} /></SectionForm>
       </details>
 

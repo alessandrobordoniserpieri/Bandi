@@ -37,18 +37,20 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
         {providerName && <p>{providerName}</p>}
       </div>
 
-      <div className="stats-row">
-        <div className="stat-item">
-          <strong>{match.score}</strong>/100
-        </div>
-        <div className="stat-item">
-          <VerdictBadge verdict={match.verdict} />
-        </div>
-        {match.historyBadge && (
-          <div className="stat-item">
-            <HistoryBadge badge={match.historyBadge} />
+      <div className="detail-hero">
+        <div className="detail-score-block" aria-label={`Punteggio di compatibilità: ${match.score} su 100`}>
+          <div className="detail-score-number">
+            <strong>{match.score}</strong>
+            <span>/100</span>
           </div>
-        )}
+          <div className="score-bar">
+            <div className="score-bar-fill" data-verdict={match.verdict} style={{ width: `${match.score}%` }} />
+          </div>
+        </div>
+        <div className="detail-hero-badges">
+          <VerdictBadge verdict={match.verdict} />
+          {match.historyBadge && <HistoryBadge badge={match.historyBadge} />}
+        </div>
       </div>
 
       <section className="detail-section">
@@ -95,11 +97,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
 
       <section className="detail-section" style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
         <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />
-        <a href={grant.url} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.375rem",
-          padding: "0.5rem 1rem", fontSize: "0.875rem", fontWeight: 500, borderRadius: "var(--radius)",
-          textDecoration: "none", color: "var(--text-on-primary)", background: "var(--primary)",
-        }}>
+        <a href={grant.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
           Apri bando originale
         </a>
       </section>
