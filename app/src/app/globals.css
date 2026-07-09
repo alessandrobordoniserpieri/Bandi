@@ -1034,6 +1034,14 @@ main {
 /* ONBOARDING WIZARD                                                   */
 /* ------------------------------------------------------------------ */
 
+/* Narrower than the default main column — a 3-field wizard step
+   shouldn't stretch to the same width as a data-dense grant list
+   (single-focus cognitive-load principle). */
+.onboarding-shell {
+  max-width: 30rem;
+  margin: 2rem auto 0;
+}
+
 .wizard-progress {
   display: flex;
   gap: 0.5rem;

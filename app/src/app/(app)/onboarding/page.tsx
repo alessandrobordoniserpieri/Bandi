@@ -14,17 +14,19 @@ export default async function OnboardingPage() {
 
   return (
     <main>
-      <div className="page-header" style={{ textAlign: "center", marginBottom: "2rem" }}>
-        <h1>Completa il profilo</h1>
-        <p>Bastano 3 passi e pochi campi essenziali per iniziare a ricevere i tuoi bandi.</p>
-      </div>
-      <OnboardingWizard />
-      <div style={{ textAlign: "center", marginTop: "2rem" }}>
-        <form action={deleteAccount}>
-          <button type="submit" className="btn-ghost" style={{ color: "var(--error)", fontSize: "0.8125rem" }}>
-            Elimina account
-          </button>
-        </form>
+      <div className="onboarding-shell">
+        <div className="page-header" style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <h1>Completa il profilo</h1>
+          <p>Bastano 3 passi e pochi campi essenziali per iniziare a ricevere i tuoi bandi.</p>
+        </div>
+        <OnboardingWizard />
+        <div style={{ textAlign: "center", marginTop: "2rem" }}>
+          <form action={deleteAccount}>
+            <button type="submit" className="btn-ghost" style={{ color: "var(--error)", fontSize: "0.8125rem" }}>
+              Elimina account
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );
