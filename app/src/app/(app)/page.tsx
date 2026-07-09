@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
@@ -6,6 +7,7 @@ import { profileCompletion } from "@/lib/profile/completion";
 import { getGrants } from "@/lib/grants/queries";
 import { buildMatchedGrants } from "@/lib/grants/match-list";
 import { applyFilters, applySort, parseFilters, countByVerdict } from "@/lib/grants/filters";
+import { DENSITY_COOKIE, parseDensityCookie } from "@/lib/grants/view-density";
 import { GrantCard } from "@/components/grants/grant-card";
 import { FilterBar } from "@/components/grants/filter-bar";
 import { EmptyState } from "@/components/grants/empty-state";
@@ -32,6 +34,7 @@ export default async function DashboardPage(
   const shown = applySort(applyFilters(open, filters), sort);
 
   const percent = profileCompletion(row).percent;
+  const density = parseDensityCookie((await cookies()).get(DENSITY_COOKIE)?.value);
 
   return (
     <main>
@@ -47,10 +50,10 @@ export default async function DashboardPage(
         <div className="stat-item"><strong>{counts.totale}</strong> Totale</div>
       </div>
       <SubmitUrlDialog />
-      <FilterBar filters={filters} sort={sort} />
+      <FilterBar filters={filters} sort={sort} density={density} />
       {shown.length === 0
         ? <EmptyState profileComplete={percent >= 100} />
-        : shown.map((m) => <GrantCard key={m.grant.id} matched={m} />)}
+        : shown.map((m) => <GrantCard key={m.grant.id} matched={m} density={density} />)}
     </main>
   );
 }

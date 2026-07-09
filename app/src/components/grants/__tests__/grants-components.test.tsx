@@ -87,4 +87,42 @@ describe("GrantCard", () => {
     expect(html).toContain('data-verdict="Candidabile"');
     expect(html).toContain('href="/bandi/g1"');
   });
+
+  it("renders the score-bar colored by verdict via data-attribute, not hardcoded style", () => {
+    const matched = {
+      grant: { id: "g2", title: "Bando Cultura", providerId: "p", eligibleTypes: [], tags: [], requiredDocuments: [] },
+      providerName: null,
+      match: {
+        score: 40, baseScore: 40, verdict: "Da preparare", breakdown: [], bonuses: [],
+        indicators: {
+          deadline: { days: 10, color: "giallo", label: "scade tra 10 giorni" },
+          cofunding: { required: null, color: "grigio", label: "n/d" },
+          economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
+        },
+        historyBadge: null, missingDocuments: [], actions: [],
+      },
+    } as unknown as MatchedGrant;
+    const html = renderToStaticMarkup(<GrantCard matched={matched} />);
+    expect(html).toContain("score-bar-fill");
+    expect(html).toContain('data-verdict="Da preparare"');
+    expect(html).toContain('width:40%');
+  });
+
+  it("passes the density mode through as a data-density attribute", () => {
+    const matched = {
+      grant: { id: "g3", title: "Bando Ambiente", providerId: "p", eligibleTypes: [], tags: [], requiredDocuments: [] },
+      providerName: null,
+      match: {
+        score: 55, baseScore: 55, verdict: "Da valutare", breakdown: [], bonuses: [],
+        indicators: {
+          deadline: { days: 30, color: "verde", label: "scade tra 30 giorni" },
+          cofunding: { required: null, color: "grigio", label: "n/d" },
+          economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
+        },
+        historyBadge: null, missingDocuments: [], actions: [],
+      },
+    } as unknown as MatchedGrant;
+    const html = renderToStaticMarkup(<GrantCard matched={matched} density="compact" />);
+    expect(html).toContain('data-density="compact"');
+  });
 });
