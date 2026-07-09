@@ -29,6 +29,15 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // API routes handle their own auth (cron routes check CRON_SECRET; the rest
+  // call supabase.auth.getUser() themselves) and must return JSON, not an
+  // HTML redirect — a fetch() client can't follow a 307 to /login the way a
+  // browser navigation can, and Vercel Cron never carries a session cookie at
+  // all, so this branch previously made every cron invocation an unconditional
+  // 401-via-redirect regardless of CRON_SECRET.
+  if (path.startsWith("/api/")) return response;
+
   // Public, and redirected to "/" once already signed in — same as login/signup.
   const isPublicOnlyRoute = path === "/login" || path === "/signup" || path === "/recupera-password";
   // Reached via the emailed recovery link, which itself establishes a session:

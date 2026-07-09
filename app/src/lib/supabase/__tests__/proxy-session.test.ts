@@ -75,4 +75,16 @@ describe("updateSession routing", () => {
     const res = (await updateSession(fakeRequest("/login"))) as unknown as { redirected?: string };
     expect(res.redirected).toBe("/");
   });
+
+  it("unauthenticated on an /api/* route → NOT redirected (routes handle their own auth and must return JSON)", async () => {
+    getUser.mockResolvedValue({ data: { user: null } });
+    const res = (await updateSession(fakeRequest("/api/cron/scrape"))) as unknown as { redirected?: string };
+    expect(res.redirected).toBeUndefined();
+  });
+
+  it("unauthenticated on /api/ai/analyze → NOT redirected", async () => {
+    getUser.mockResolvedValue({ data: { user: null } });
+    const res = (await updateSession(fakeRequest("/api/ai/analyze"))) as unknown as { redirected?: string };
+    expect(res.redirected).toBeUndefined();
+  });
 });
