@@ -29,17 +29,22 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isAuthRoute = path === "/login" || path === "/signup";
+  // Public, and redirected to "/" once already signed in — same as login/signup.
+  const isPublicOnlyRoute = path === "/login" || path === "/signup" || path === "/recupera-password";
+  // Reached via the emailed recovery link, which itself establishes a session:
+  // must stay reachable both signed-out and signed-in, so it's excluded from
+  // both redirect branches below.
+  const isAlwaysAccessibleRoute = path === "/aggiorna-password";
 
   // Unauthenticated user on a protected route → /login
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublicOnlyRoute && !isAlwaysAccessibleRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Authenticated user on an auth route → home
-  if (user && isAuthRoute) {
+  // Authenticated user on a public-only route → home
+  if (user && isPublicOnlyRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

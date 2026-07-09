@@ -5,17 +5,31 @@ const signUp = vi.fn();
 const signOut = vi.fn();
 const getUser = vi.fn();
 const deleteUser = vi.fn();
+const resetPasswordForEmail = vi.fn();
+const updateUser = vi.fn();
 const redirect = vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); });
 
 vi.mock("next/navigation", () => ({ redirect: (u: string) => redirect(u) }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Map([["origin", "https://bandi.example"]]),
+}));
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { signInWithPassword, signUp, signOut, getUser } }),
+  createClient: async () => ({
+    auth: { signInWithPassword, signUp, signOut, getUser, resetPasswordForEmail, updateUser },
+  }),
 }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({ auth: { admin: { deleteUser } } }),
 }));
 
-import { signIn, signUp as signUpAction, signOut as signOutAction, deleteAccount } from "../actions";
+import {
+  signIn,
+  signUp as signUpAction,
+  signOut as signOutAction,
+  deleteAccount,
+  requestPasswordReset,
+  updatePassword,
+} from "../actions";
 
 const fd = (o: Record<string, string>) => {
   const f = new FormData();
@@ -74,6 +88,36 @@ describe("signOut", () => {
     signOut.mockResolvedValue({ error: null });
     await expect(signOutAction()).rejects.toThrow(/^REDIRECT:\/login$/);
     expect(signOut).toHaveBeenCalled();
+  });
+});
+
+describe("requestPasswordReset", () => {
+  it("invalid email → Italian error, no Supabase call", async () => {
+    const res = await requestPasswordReset(undefined, fd({ email: "noat" }));
+    expect(res).toEqual({ error: "Inserisci un indirizzo email valido." });
+    expect(resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+  it("valid email → same confirmation message regardless of account existence", async () => {
+    resetPasswordForEmail.mockResolvedValue({ error: null });
+    const res = await requestPasswordReset(undefined, fd({ email: "a@b.it" }));
+    expect(res).toEqual({
+      message: "Se l'indirizzo è registrato, ti abbiamo inviato un link per reimpostare la password.",
+    });
+    expect(resetPasswordForEmail).toHaveBeenCalledWith("a@b.it", {
+      redirectTo: "https://bandi.example/aggiorna-password",
+    });
+  });
+});
+
+describe("updatePassword", () => {
+  it("short password → Italian error", async () => {
+    const res = await updatePassword(undefined, fd({ password: "123" }));
+    expect(res).toEqual({ error: "La password deve avere almeno 6 caratteri." });
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+  it("success → redirect to /", async () => {
+    updateUser.mockResolvedValue({ error: null });
+    await expect(updatePassword(undefined, fd({ password: "secret1" }))).rejects.toThrow(/^REDIRECT:\/$/);
   });
 });
 
