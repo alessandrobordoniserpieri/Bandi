@@ -124,13 +124,31 @@ describe("extractGrants", () => {
     expect(out[0]!.url).toBe("https://example.it/bando-per-inclusione-attiva");
   });
 
-  it("keeps the extracted URL when no close href match exists", async () => {
+  it("keeps the extracted URL when no hrefs exist in the page", async () => {
     const html = "<p>No links here</p>";
     const sanitized = "<p>No links here</p>";
     const llm = llmReturning([{ title: "B", url: "https://other.it/bando" }], sanitized);
     const out = await extractGrants(page(html), { llm, db: new InMemoryGrantsDb() });
     expect(out).toHaveLength(1);
     expect(out[0]!.url).toBe("https://other.it/bando");
+  });
+
+  it("snaps to the closest same-domain href even with 1 char difference", async () => {
+    const html = '<p><a href="https://example.it/bando-per-x">Bando</a></p>';
+    const sanitized = '<p><a href="https://example.it/bando-per-x">Bando</a></p>';
+    const llm = llmReturning([{ title: "B", url: "https://example.it/bando-for-x" }], sanitized);
+    const out = await extractGrants(page(html), { llm, db: new InMemoryGrantsDb() });
+    expect(out).toHaveLength(1);
+    expect(out[0]!.url).toBe("https://example.it/bando-per-x");
+  });
+
+  it("does not snap to an href on a different domain", async () => {
+    const html = '<p><a href="https://different.it/bando-per-x">Bando</a></p>';
+    const sanitized = '<p><a href="https://different.it/bando-per-x">Bando</a></p>';
+    const llm = llmReturning([{ title: "B", url: "https://example.it/bando-per-x" }], sanitized);
+    const out = await extractGrants(page(html), { llm, db: new InMemoryGrantsDb() });
+    expect(out).toHaveLength(1);
+    expect(out[0]!.url).toBe("https://example.it/bando-per-x");
   });
 
   it("GRANT_JSON_SCHEMA never declares `type` as an array (Gemini's response_schema rejects it)", () => {

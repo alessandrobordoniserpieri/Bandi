@@ -86,24 +86,28 @@ function collectHrefs(html: string): Set<string> {
   return set;
 }
 
+function charDist(a: string, b: string): number {
+  const len = Math.max(a.length, b.length);
+  let diff = 0;
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) diff++;
+  }
+  return diff;
+}
+
 function snapToHref(url: string, hrefs: Set<string>): string | null {
   if (hrefs.has(url)) return url;
-  let best: string | null = null;
+  if (hrefs.size === 0) return null;
+  let bestHref: string | null = null;
   let bestDist = Infinity;
+  let urlHost: string;
+  try { urlHost = new URL(url).hostname; } catch { return null; }
   for (const href of hrefs) {
-    if (Math.abs(href.length - url.length) > 5) continue;
-    let diff = 0;
-    const len = Math.max(href.length, url.length);
-    for (let i = 0; i < len; i++) {
-      if (href[i] !== url[i]) diff++;
-      if (diff > 5) break;
-    }
-    if (diff > 0 && diff <= 5 && diff < bestDist) {
-      bestDist = diff;
-      best = href;
-    }
+    try { if (new URL(href).hostname !== urlHost) continue; } catch { continue; }
+    const d = charDist(url, href);
+    if (d < bestDist) { bestDist = d; bestHref = href; }
   }
-  return best;
+  return bestHref;
 }
 
 function coerce(raw: unknown, sourceId: string): Omit<ExtractedGrant, "providerId"> | null {
