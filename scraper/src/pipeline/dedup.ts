@@ -18,9 +18,11 @@ export function normalizeUrl(url: string): string {
 }
 
 const KEYS: (keyof ExtractedGrant)[] = [
-  "title", "url", "providerId", "deadline", "status", "amount", "cofundingRequired",
+  "title", "url", "providerId", "sourceId", "deadline", "status", "amount", "cofundingRequired",
   "eligibleTypes", "tags", "area", "geoScope", "complexity", "requiredDocuments",
   "summary", "requirements", "beneficiaries",
+  "openingDate", "fundingType", "minAmount", "maxAmount", "cofundingPercentage",
+  "eligibleExpenses", "applicationMethod", "contactInfo",
 ];
 
 function equal(a: unknown, b: unknown): boolean {
@@ -48,6 +50,13 @@ export type Decision =
 
 export function decide(incoming: ExtractedGrant, existing: ExtractedGrant | null): Decision {
   if (existing == null) return { action: "insert" };
+
+  const expired = existing.status === "scaduto" || existing.status === "chiuso";
+  if (expired) {
+    const newEdition = incoming.deadline != null && incoming.deadline !== existing.deadline;
+    return newEdition ? { action: "insert" } : { action: "skip" };
+  }
+
   const patch = diffGrant(incoming, existing);
   return Object.keys(patch).length === 0 ? { action: "skip" } : { action: "update", patch };
 }

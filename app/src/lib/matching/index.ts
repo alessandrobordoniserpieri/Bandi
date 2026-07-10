@@ -19,7 +19,7 @@ export {
   regionForProvince, groupForLegalType,
 } from "./constants";
 export type {
-  GeoScope, ComplexityLevel, CapacityLevel, ProviderKind, GrantStatus, ProjectOutcome,
+  GeoScope, ComplexityLevel, CapacityLevel, ProviderKind, GrantStatus, FundingType, ProjectOutcome,
   Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant,
   DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult,
   EconomicLevel, EconomicCoherence, EconomicIndicator,

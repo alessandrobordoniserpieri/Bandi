@@ -66,8 +66,11 @@ describe("GrantCard", () => {
       grant: {
         id: "g1", title: "Bando Sport 2026", providerId: "p", providerKind: "privato",
         deadline: "2026-12-31", status: "aperto", amount: 50000, cofundingRequired: null,
+        cofundingPercentage: null,
         eligibleTypes: [], tags: [], area: null, geoScope: null, complexity: null,
         requiredDocuments: [], summary: "", requirements: "", url: "https://x", beneficiaries: "",
+        openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+        eligibleExpenses: null, applicationMethod: null, contactInfo: null,
       },
       providerName: "Fondazione Test",
       match: {

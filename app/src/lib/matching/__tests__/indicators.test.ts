@@ -34,9 +34,9 @@ describe("cofunding indicator", () => {
     expect(buildIndicators(p(), grantInDays(40)).cofunding.color).toBe("grigio");
   });
   it("capacity covers requirement → verde", () => {
-    expect(buildIndicators(p({ cofundingCapacity: 30 }), grantInDays(40, { cofundingRequired: 20 })).cofunding.color).toBe("verde");
+    expect(buildIndicators(p({ cofundingCapacity: 30 }), grantInDays(40, { cofundingPercentage: 20 })).cofunding.color).toBe("verde");
   });
   it("requirement above capacity and > 20 → rosso", () => {
-    expect(buildIndicators(p({ cofundingCapacity: 5 }), grantInDays(40, { cofundingRequired: 30 })).cofunding.color).toBe("rosso");
+    expect(buildIndicators(p({ cofundingCapacity: 5 }), grantInDays(40, { cofundingPercentage: 30 })).cofunding.color).toBe("rosso");
   });
 });

@@ -17,7 +17,7 @@ function deadlineIndicator(grant: Grant): DeadlineIndicator {
 }
 
 function cofundingIndicator(profile: EntityProfile, grant: Grant): CofundingIndicator {
-  const required = grant.cofundingRequired;
+  const required = grant.cofundingPercentage;
   if (required == null) return { required: null, color: "grigio", label: "cofinanziamento non specificato" };
   const capacity = profile.cofundingCapacity;
   let color: CofundingIndicator["color"] = "giallo";

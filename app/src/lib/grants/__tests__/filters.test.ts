@@ -14,9 +14,12 @@ function mg(over: {
     grant: {
       id: over.id, title: over.id, providerId: null, providerKind: null,
       deadline: null, status: "aperto", amount: over.amount ?? null, cofundingRequired: null,
+      cofundingPercentage: null,
       eligibleTypes: [], tags: over.tags ?? [], area: null,
       geoScope: over.geoScope ?? null, complexity: null, requiredDocuments: [],
       summary: "", requirements: "", url: `https://x/${over.id}`, beneficiaries: "",
+      openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+      eligibleExpenses: null, applicationMethod: null, contactInfo: null,
     },
     providerName: null,
     match: {

@@ -36,6 +36,10 @@ class QueryStub implements PromiseLike<StubResult> {
     this.rec.eq.push([col, val]);
     return this;
   }
+  neq(_col: string, _val: unknown): this { return this; }
+  or(_filter: string): this { return this; }
+  limit(_n: number): this { return this; }
+  order(_col: string, _opts?: Record<string, unknown>): this { return this; }
   maybeSingle(): Promise<StubResult> {
     this.rec.maybeSingle = true;
     return this.settle();

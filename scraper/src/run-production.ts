@@ -1,6 +1,6 @@
 // scraper/src/run-production.ts
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { ExtractedGrant, GrantsDb, PipelineResult, StoredGrant } from "./pipeline/types";
+import type { ExtractedGrant, GrantsDb, PipelineResult, ScrapeLogEntry, StoredGrant } from "./pipeline/types";
 import { getProvider } from "./providers";
 import { BrowserlessFetcher } from "./pipeline/browserless-fetcher";
 import { SupabaseGrantsDb } from "./db/supabase-grants-db";
@@ -21,8 +21,6 @@ export function parseScrapeArgs(argv: string[]): ScrapeOptions {
   return options;
 }
 
-// Reads through to Supabase (for dedup + provider resolution) but logs writes instead of
-// performing them, so `--dry-run` can validate extraction without touching the DB.
 class DryRunGrantsDb implements GrantsDb {
   private readonly real: SupabaseGrantsDb;
   constructor(client: SupabaseClient) {
@@ -30,6 +28,9 @@ class DryRunGrantsDb implements GrantsDb {
   }
   findByUrl(url: string): Promise<StoredGrant | null> {
     return this.real.findByUrl(url);
+  }
+  findActiveByUrl(url: string): Promise<StoredGrant | null> {
+    return this.real.findActiveByUrl(url);
   }
   async insert(grant: ExtractedGrant): Promise<void> {
     console.log(`[dry-run] insert "${grant.title}" <${grant.url}> tags=${grant.tags.join(",")}`);
@@ -40,8 +41,15 @@ class DryRunGrantsDb implements GrantsDb {
   findProviderIdByName(name: string): Promise<string | null> {
     return this.real.findProviderIdByName(name);
   }
-  async updateSource(): Promise<void> {
-    /* no-op in dry-run */
+  async updateSource(): Promise<void> { /* no-op */ }
+  async logScrapeRun(entry: ScrapeLogEntry): Promise<void> {
+    console.log(`[dry-run] log ${entry.phase}: +${entry.inserted} ~${entry.updated} =${entry.skipped} (${entry.durationMs}ms)`);
+  }
+  async markDetailFetched(id: string, patch: Partial<ExtractedGrant>): Promise<void> {
+    console.log(`[dry-run] markDetailFetched ${id}`, Object.keys(patch));
+  }
+  findGrantsNeedingDetail(sourceId: string, staleDays: number): Promise<StoredGrant[]> {
+    return this.real.findGrantsNeedingDetail(sourceId, staleDays);
   }
 }
 
@@ -50,8 +58,6 @@ function required(env: Record<string, string | undefined>, keys: string[]): void
   if (missing.length) throw new Error(`Variabili d'ambiente mancanti: ${missing.join(", ")}`);
 }
 
-// Wires the production deps (real provider, Browserless fetcher, Supabase DB) and runs the
-// pipeline over the enabled sources. Shared by the CLI and the Vercel cron route.
 export async function runProductionScrape(
   env: Record<string, string | undefined> = process.env,
   options: ScrapeOptions = {},

@@ -18,9 +18,12 @@ function grant(id: string, over: Partial<Grant> = {}): Grant {
   return {
     id, title: id, providerId: null, providerKind: null,
     deadline: "2026-12-31", status: "aperto", amount: null, cofundingRequired: null,
+    cofundingPercentage: null,
     eligibleTypes: ["APS - Associazione di Promozione Sociale"], tags: ["sport"],
     area: null, geoScope: null, complexity: null, requiredDocuments: [],
-    summary: "", requirements: "", url: `https://x/${id}`, beneficiaries: "", ...over,
+    summary: "", requirements: "", url: `https://x/${id}`, beneficiaries: "",
+    openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+    eligibleExpenses: null, applicationMethod: null, contactInfo: null, ...over,
   };
 }
 function view(g: Grant): GrantView { return { grant: g, providerName: null }; }

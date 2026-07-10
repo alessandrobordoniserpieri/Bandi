@@ -22,10 +22,13 @@ const input: AnalysisProfileInput = {
 const grant: Grant = {
   id: "g1", title: "Bando Sport Giovani", providerId: "p1", providerKind: "privato",
   deadline: "2026-12-31", status: "aperto", amount: 50000, cofundingRequired: 20,
+  cofundingPercentage: 20,
   eligibleTypes: ["APS - Associazione di Promozione Sociale"], tags: ["sport"],
   area: "Emilia-Romagna", geoScope: "regionale", complexity: "media",
   requiredDocuments: ["statuto"], summary: "Sostegno allo sport giovanile",
   requirements: "Sede in regione", url: "https://x/bando", beneficiaries: "Giovani 14-18",
+  openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+  eligibleExpenses: null, applicationMethod: null, contactInfo: null,
 };
 
 const validOutput = {

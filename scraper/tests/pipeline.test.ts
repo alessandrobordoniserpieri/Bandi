@@ -12,6 +12,8 @@ const sources: SourceConfig[] = [
 const pageS1: RawPage = { sourceId: "s1", url: "https://a/list", html: "HTML_S1" };
 const pageS2: RawPage = { sourceId: "s2", url: "https://b/list", html: "HTML_S2" };
 
+const noSleep = async () => {};
+
 function makeDeps(failIds = new Set<string>()) {
   const llm = new FakeLLMProvider(new Map<string, unknown>([
     ["HTML_S1", [
@@ -22,15 +24,15 @@ function makeDeps(failIds = new Set<string>()) {
   ]));
   const fetcher = new FixtureFetcher({ s1: [pageS1], s2: [pageS2] }, failIds);
   const db = new InMemoryGrantsDb();
-  return { llm, fetcher, db };
+  return { llm, fetcher, db, detailThrottleMs: 0, sleep: noSleep };
 }
 
 describe("runPipeline", () => {
   it("extracts, enriches, and inserts grants per source", async () => {
     const deps = makeDeps();
     const [r1, r2] = await runPipeline(sources, deps);
-    expect(r1).toMatchObject({ sourceId: "s1", inserted: 2, updated: 0, skipped: 0, errors: [] });
-    expect(r2).toMatchObject({ sourceId: "s2", inserted: 1, errors: [] });
+    expect(r1).toMatchObject({ sourceId: "s1", inserted: 2, updated: 0, skipped: 0, errors: [], detailErrors: [] });
+    expect(r2).toMatchObject({ sourceId: "s2", inserted: 1, errors: [], detailErrors: [] });
     expect(deps.db.grants.length).toBe(3);
     expect(deps.db.sources["s1"]!.lastError).toBeNull();
   });

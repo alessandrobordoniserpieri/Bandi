@@ -29,10 +29,13 @@ function makeGrant(o: Partial<Grant> = {}): Grant {
   return {
     id: "g", title: "Sport inclusivo", providerId: null, providerKind: "pubblico",
     deadline: d.toISOString().split("T")[0], status: "aperto", amount: 20000, cofundingRequired: 10,
+    cofundingPercentage: 10,
     eligibleTypes: ["ASD - Associazione Sportiva Dilettantistica"],
     tags: ["sport", "giovani", "inclusione"], area: "Emilia-Romagna", geoScope: "regionale",
     complexity: "media", requiredDocuments: ["statuto", "bilancio"],
     summary: "", requirements: "", url: "https://x", beneficiaries: "",
+    openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+    eligibleExpenses: null, applicationMethod: null, contactInfo: null,
     ...o,
   };
 }

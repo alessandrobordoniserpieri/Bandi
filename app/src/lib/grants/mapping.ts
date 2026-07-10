@@ -14,9 +14,10 @@ export function mapGrantRow(row: GrantRowWithProvider): GrantView {
     providerId: row.provider_id,
     providerKind: row.provider?.kind ?? null,
     deadline: row.deadline,
-    status: row.status,
+    status: row.status as Grant["status"],
     amount: row.amount,
     cofundingRequired: row.cofunding_required,
+    cofundingPercentage: (row as Record<string, unknown>).cofunding_percentage as number | null ?? null,
     eligibleTypes: row.eligible_types,
     tags: row.tags,
     area: row.area,
@@ -27,6 +28,13 @@ export function mapGrantRow(row: GrantRowWithProvider): GrantView {
     requirements: row.requirements ?? "",
     url: row.url,
     beneficiaries: row.beneficiaries ?? "",
+    openingDate: (row as Record<string, unknown>).opening_date as string | null ?? null,
+    fundingType: (row as Record<string, unknown>).funding_type as Grant["fundingType"] ?? null,
+    minAmount: (row as Record<string, unknown>).min_amount as number | null ?? null,
+    maxAmount: (row as Record<string, unknown>).max_amount as number | null ?? null,
+    eligibleExpenses: (row as Record<string, unknown>).eligible_expenses as string | null ?? null,
+    applicationMethod: (row as Record<string, unknown>).application_method as string | null ?? null,
+    contactInfo: (row as Record<string, unknown>).contact_info as string | null ?? null,
   };
   return { grant, providerName: row.provider?.name ?? null };
 }
