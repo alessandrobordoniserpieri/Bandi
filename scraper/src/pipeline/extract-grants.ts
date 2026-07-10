@@ -175,16 +175,25 @@ export async function extractGrants(
   let raw: unknown;
   try {
     raw = await deps.llm.extract({ html: cleaned, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
-  } catch {
+  } catch (err) {
+    console.error(`[extractGrants] LLM error for ${page.url}:`, err instanceof Error ? err.message : err);
     return [];
   }
   if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { return []; } }
-  if (!isUnknownArray(raw)) return [];
+  if (!isUnknownArray(raw)) {
+    console.warn(`[extractGrants] LLM returned non-array for ${page.url}:`, typeof raw);
+    return [];
+  }
 
+  console.log(`[extractGrants] ${page.url}: LLM returned ${raw.length} items, ${hrefs.size} hrefs in page`);
   const out: ExtractedGrant[] = [];
   for (const item of raw) {
     const coerced = coerce(item, page.sourceId);
-    if (!coerced) continue;
+    if (!coerced) {
+      const o = item as Record<string, unknown>;
+      console.warn(`[extractGrants] coerce rejected: title=${o?.title} url=${o?.url}`);
+      continue;
+    }
     const snapped = snapToHref(coerced.url, hrefs);
     if (snapped) coerced.url = snapped;
     const providerId = await resolveProviderId(item, deps.db);
