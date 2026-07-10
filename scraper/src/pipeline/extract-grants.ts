@@ -4,6 +4,7 @@ import type { ExtractedGrant, GrantsDb, RawPage } from "./types";
 import { TAG_SET, LEGAL_TYPE_SET, DOCUMENT_KEY_SET, GEO_SCOPES, COMPLEXITY, GRANT_STATUS } from "./vocab";
 import type { GeoScope, Complexity, GrantStatus } from "./vocab";
 import { parseItalianAmount } from "./enrich";
+import { sanitizeHtml } from "./sanitize-html";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -133,7 +134,7 @@ export async function extractGrants(
 ): Promise<ExtractedGrant[]> {
   let raw: unknown;
   try {
-    raw = await deps.llm.extract({ html: page.html, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
+    raw = await deps.llm.extract({ html: sanitizeHtml(page.html), schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
   } catch {
     return [];
   }

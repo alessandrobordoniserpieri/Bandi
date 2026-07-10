@@ -4,6 +4,7 @@ import type { DetailGrant } from "./types";
 import type { FundingType } from "./vocab";
 import { TAG_SET, LEGAL_TYPE_SET, FUNDING_TYPES } from "./vocab";
 import { parseItalianAmount } from "./enrich";
+import { sanitizeHtml } from "./sanitize-html";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -76,7 +77,7 @@ export async function extractDetail(
 ): Promise<DetailGrant | null> {
   let raw: unknown;
   try {
-    raw = await llm.extract({ html, schema: DETAIL_JSON_SCHEMA, instructions: DETAIL_INSTRUCTIONS });
+    raw = await llm.extract({ html: sanitizeHtml(html), schema: DETAIL_JSON_SCHEMA, instructions: DETAIL_INSTRUCTIONS });
   } catch {
     return null;
   }

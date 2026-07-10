@@ -25,7 +25,7 @@ const extractedItem = {
 function deps(db: SubmitUrlDb, extraction: unknown = [extractedItem]): SubmitUrlDeps {
   return {
     fetchHtml: async () => "<html>pagina</html>",
-    llm: new FakeLLMProvider(new Map([["<html>pagina</html>", extraction]])),
+    llm: new FakeLLMProvider(new Map([["pagina", extraction]])),
     db,
   };
 }
