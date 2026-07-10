@@ -4,8 +4,8 @@ import { isAuthorized } from "../auth";
 // Node runtime: the scraper uses fetch + the Supabase service-role client, not the edge.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Scraping 12 sources through an LLM exceeds the default 60s; raise the cap (Vercel Pro/Fluid).
-export const maxDuration = 600;
+// Scraping sources through an LLM exceeds the default 60s; Hobby plan caps at 300s.
+export const maxDuration = 300;
 
 // Triggered by Vercel Cron (see vercel.json). Protected by CRON_SECRET so only the scheduler
 // (or an authorized manual call) can start a run.
