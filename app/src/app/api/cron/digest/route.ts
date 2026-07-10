@@ -14,7 +14,15 @@ const WEEK_MS = 7 * 86_400_000;
 
 // Weekly digest (Monday 07:00 via vercel.json). CRON_SECRET-protected. Iterates the users who
 // opted into weekly alerts; per-user failures are recorded inside runDigestBatch, not fatal.
+export async function GET(request: Request): Promise<Response> {
+  return handleDigest(request);
+}
+
 export async function POST(request: Request): Promise<Response> {
+  return handleDigest(request);
+}
+
+async function handleDigest(request: Request): Promise<Response> {
   if (!isAuthorized(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }

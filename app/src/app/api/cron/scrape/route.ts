@@ -9,7 +9,15 @@ export const maxDuration = 300;
 
 // Triggered by Vercel Cron (see vercel.json). Protected by CRON_SECRET so only the scheduler
 // (or an authorized manual call) can start a run.
+export async function GET(request: Request): Promise<Response> {
+  return handleScrape(request);
+}
+
 export async function POST(request: Request): Promise<Response> {
+  return handleScrape(request);
+}
+
+async function handleScrape(request: Request): Promise<Response> {
   if (!isAuthorized(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
