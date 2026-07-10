@@ -56,6 +56,8 @@ export async function runPipeline(
 
     // Phase 2: detail enrichment
     const detailStart = Date.now();
+    let detailEnriched = 0;
+    let detailSkipped = 0;
     try {
       const needDetail = await deps.db.findGrantsNeedingDetail(source.id, DETAIL_STALE_DAYS);
       if (needDetail.length > 0) {
@@ -69,10 +71,10 @@ export async function runPipeline(
               id: source.id, name: source.name, url: grant.url,
             });
             const page = pages[0];
-            if (!page?.html) return;
+            if (!page?.html) { detailSkipped++; return; }
 
             const detail = await extractDetail(page.html, deps.llm);
-            if (!detail) return;
+            if (!detail) { detailSkipped++; return; }
 
             const patch: Partial<StoredGrant> = {};
             if (detail.summary) patch.summary = detail.summary;
@@ -92,6 +94,7 @@ export async function runPipeline(
             if (detail.tags.length) patch.tags = detail.tags;
 
             await deps.db.markDetailFetched(grant.id, patch);
+            detailEnriched++;
           },
           { delayMs: deps.detailThrottleMs ?? DETAIL_THROTTLE_MS, sleep: deps.sleep },
         );
@@ -103,13 +106,13 @@ export async function runPipeline(
     }
 
     const detailDuration = Date.now() - detailStart;
-    if (result.detailErrors.length > 0 || detailDuration > 100) {
+    if (detailEnriched > 0 || detailSkipped > 0 || result.detailErrors.length > 0 || detailDuration > 100) {
       await deps.db.logScrapeRun({
         sourceId: source.id,
         phase: "detail",
         inserted: 0,
-        updated: 0,
-        skipped: 0,
+        updated: detailEnriched,
+        skipped: detailSkipped,
         errors: [],
         detailErrors: result.detailErrors,
         durationMs: detailDuration,

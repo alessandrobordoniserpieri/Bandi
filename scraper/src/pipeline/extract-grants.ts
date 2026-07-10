@@ -44,6 +44,7 @@ export const EXTRACT_INSTRUCTIONS = [
   "Restituisci un array JSON di bandi. Per ogni bando estrai i 16 campi dello schema.",
   "Usa null quando un campo non è presente. Le date devono essere in formato ISO (YYYY-MM-DD).",
   "Non inventare valori: se non sei sicuro, usa null o ometti l'elemento dell'array.",
+  "IMPORTANTE: copia gli URL esattamente come appaiono negli href della pagina, senza tradurre o modificare nessuna parola.",
 ].join(" ");
 
 function stringOrNull(v: unknown): string | null {
@@ -71,6 +72,42 @@ function isValidHttpUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+const HREF_RE = /href\s*=\s*"([^"]+)"/gi;
+
+function collectHrefs(html: string): Set<string> {
+  const set = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = HREF_RE.exec(html)) !== null) {
+    const href = m[1];
+    if (isValidHttpUrl(href)) set.add(href);
+  }
+  return set;
+}
+
+function charDist(a: string, b: string): number {
+  const len = Math.max(a.length, b.length);
+  let diff = 0;
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) diff++;
+  }
+  return diff;
+}
+
+function snapToHref(url: string, hrefs: Set<string>): string | null {
+  if (hrefs.has(url)) return url;
+  if (hrefs.size === 0) return null;
+  let bestHref: string | null = null;
+  let bestDist = Infinity;
+  let urlHost: string;
+  try { urlHost = new URL(url).hostname; } catch { return null; }
+  for (const href of hrefs) {
+    try { if (new URL(href).hostname !== urlHost) continue; } catch { continue; }
+    const d = charDist(url, href);
+    if (d < bestDist) { bestDist = d; bestHref = href; }
+  }
+  return bestHref;
 }
 
 function coerce(raw: unknown, sourceId: string): Omit<ExtractedGrant, "providerId"> | null {
@@ -132,9 +169,12 @@ async function resolveProviderId(item: unknown, db: GrantsDb): Promise<string | 
 export async function extractGrants(
   page: RawPage, deps: { llm: LLMProvider; db: GrantsDb },
 ): Promise<ExtractedGrant[]> {
+  const cleaned = sanitizeHtml(page.html);
+  const hrefs = collectHrefs(cleaned);
+
   let raw: unknown;
   try {
-    raw = await deps.llm.extract({ html: sanitizeHtml(page.html), schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
+    raw = await deps.llm.extract({ html: cleaned, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
   } catch {
     return [];
   }
@@ -145,6 +185,8 @@ export async function extractGrants(
   for (const item of raw) {
     const coerced = coerce(item, page.sourceId);
     if (!coerced) continue;
+    const snapped = snapToHref(coerced.url, hrefs);
+    if (snapped) coerced.url = snapped;
     const providerId = await resolveProviderId(item, deps.db);
     out.push({ ...coerced, providerId });
   }
