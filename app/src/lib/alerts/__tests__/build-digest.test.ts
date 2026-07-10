@@ -18,8 +18,11 @@ function view(id: string, tags: string[], eligibleTypes: string[]): GrantView {
   const grant: Grant = {
     id, title: `Bando ${id}`, providerId: null, providerKind: null,
     deadline: "2026-12-31", status: "aperto", amount: 50000, cofundingRequired: null,
+    cofundingPercentage: null,
     eligibleTypes, tags, area: "Emilia-Romagna", geoScope: "regionale", complexity: "bassa",
     requiredDocuments: [], summary: "", requirements: "", url: `https://x/${id}`, beneficiaries: "",
+    openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+    eligibleExpenses: null, applicationMethod: null, contactInfo: null,
   };
   return { grant, providerName: "Fondazione Test" };
 }

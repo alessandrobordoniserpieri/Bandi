@@ -5,7 +5,7 @@ import { isAuthorized } from "../auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 // Scraping 12 sources through an LLM exceeds the default 60s; raise the cap (Vercel Pro/Fluid).
-export const maxDuration = 300;
+export const maxDuration = 600;
 
 // Triggered by Vercel Cron (see vercel.json). Protected by CRON_SECRET so only the scheduler
 // (or an authorized manual call) can start a run.
@@ -20,7 +20,7 @@ export async function POST(request: Request): Promise<Response> {
         inserted: acc.inserted + r.inserted,
         updated: acc.updated + r.updated,
         skipped: acc.skipped + r.skipped,
-        errors: acc.errors + r.errors.length,
+        errors: acc.errors + r.errors.length + r.detailErrors.length,
       }),
       { inserted: 0, updated: 0, skipped: 0, errors: 0 },
     );

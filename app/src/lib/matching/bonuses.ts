@@ -10,7 +10,7 @@ export function computeBonuses(profile: EntityProfile, grant: Grant): BonusItem[
   }
 
   // Cofunding: manageable (+3) vs unsustainable (-5).
-  const required = grant.cofundingRequired;
+  const required = grant.cofundingPercentage;
   const capacity = profile.cofundingCapacity;
   if (required != null && capacity != null) {
     if (capacity >= required) {

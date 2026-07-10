@@ -3,7 +3,8 @@ export type GeoScope = "comunale" | "provinciale" | "regionale" | "nazionale" | 
 export type ComplexityLevel = "bassa" | "media" | "alta";
 export type CapacityLevel = "Bassa" | "Media" | "Alta";
 export type ProviderKind = "pubblico" | "privato" | "eu";
-export type GrantStatus = "aperto" | "chiuso";
+export type GrantStatus = "aperto" | "chiuso" | "scaduto";
+export type FundingType = "fondo_perduto" | "prestito_agevolato" | "contributo_misto" | "garanzia" | "premio";
 export type ProjectOutcome = "finanziato" | "non_ammesso" | "in_valutazione" | "altro";
 
 export type Verdict =
@@ -68,7 +69,8 @@ export interface Grant {
   deadline: string | null;         // ISO date
   status: GrantStatus;
   amount: number | null;           // €
-  cofundingRequired: number | null;// %
+  cofundingRequired: number | null;// € (raw from scraper)
+  cofundingPercentage: number | null; // %
   eligibleTypes: string[];         // subset of LEGAL_TYPES
   tags: string[];                  // subset of TAGS
   area: string | null;
@@ -79,6 +81,13 @@ export interface Grant {
   requirements: string;
   url: string;
   beneficiaries: string;
+  openingDate: string | null;
+  fundingType: FundingType | null;
+  minAmount: number | null;
+  maxAmount: number | null;
+  eligibleExpenses: string | null;
+  applicationMethod: string | null;
+  contactInfo: string | null;
 }
 
 export interface DimensionScore {

@@ -8,6 +8,8 @@ export type {
   ScrapeConfig,
   ExtractedGrant,
   StoredGrant,
+  DetailGrant,
+  ScrapeLogEntry,
   RawPage,
   GrantsDb,
   PageFetcher,
@@ -22,5 +24,8 @@ export { FakeLLMProvider } from "./providers/fake";
 export { BrowserlessFetcher } from "./pipeline/browserless-fetcher";
 export { SupabaseGrantsDb } from "./db/supabase-grants-db";
 export { extractGrants } from "./pipeline/extract-grants";
+export { extractDetail } from "./pipeline/extract-detail";
 export { enrich } from "./pipeline/enrich";
 export { normalizeUrl } from "./pipeline/dedup";
+export { throttledLoop } from "./pipeline/throttle";
+export type { FundingType } from "./pipeline/vocab";

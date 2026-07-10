@@ -120,7 +120,12 @@ export const LEGAL_TYPES = [
 export const DOCUMENT_KEYS = ["statuto", "bilancio", "runts", "rasd", "durc", "certificazioni"] as const;
 export const GEO_SCOPES = ["comunale", "provinciale", "regionale", "nazionale", "europeo"] as const;
 export const COMPLEXITY = ["bassa", "media", "alta"] as const;
-export const GRANT_STATUS = ["aperto", "chiuso"] as const;
+export const GRANT_STATUS = ["aperto", "chiuso", "scaduto"] as const;
+
+export const FUNDING_TYPES = [
+  "fondo_perduto", "prestito_agevolato", "contributo_misto", "garanzia", "premio",
+] as const;
+export type FundingType = (typeof FUNDING_TYPES)[number];
 
 export const TAG_SET = new Set<string>(TAGS);
 export const LEGAL_TYPE_SET = new Set<string>(LEGAL_TYPES);

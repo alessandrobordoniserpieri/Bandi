@@ -75,7 +75,11 @@ export function buildAnalysisDocument(
     `Titolo: ${grant.title}`,
     `Erogatore: ${providerName ?? "n/d"} (${grant.providerKind ?? "n/d"})`,
     `Scadenza: ${grant.deadline ?? "n/d"} — Stato: ${grant.status}`,
-    `Importo: ${grant.amount != null ? `€ ${grant.amount}` : "n/d"} — Cofinanziamento richiesto: ${grant.cofundingRequired != null ? `${grant.cofundingRequired}%` : "n/d"}`,
+    `Importo: ${grant.amount != null ? `€ ${grant.amount}` : "n/d"}` +
+      (grant.minAmount != null || grant.maxAmount != null ? ` (min: ${grant.minAmount != null ? `€ ${grant.minAmount}` : "n/d"}, max: ${grant.maxAmount != null ? `€ ${grant.maxAmount}` : "n/d"})` : "") +
+      ` — Cofinanziamento: ${grant.cofundingPercentage != null ? `${grant.cofundingPercentage}%` : "n/d"}` +
+      (grant.cofundingRequired != null ? ` (€ ${grant.cofundingRequired})` : ""),
+    `Tipo finanziamento: ${grant.fundingType ?? "n/d"}`,
     `Forme giuridiche ammesse: ${grant.eligibleTypes.join(", ") || "n/d"}`,
     `Temi del bando: ${grant.tags.join(", ") || "n/d"}`,
     `Territorio: ${grant.area ?? "n/d"} (${grant.geoScope ?? "n/d"}) — Complessità: ${grant.complexity ?? "n/d"}`,

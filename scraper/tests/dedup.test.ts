@@ -4,10 +4,13 @@ import type { ExtractedGrant } from "../src/pipeline/types";
 
 function g(over: Partial<ExtractedGrant>): ExtractedGrant {
   return {
-    title: "T", url: "https://x/1", providerId: null, deadline: null, status: "aperto",
+    title: "T", url: "https://x/1", providerId: null, sourceId: null, deadline: null, status: "aperto",
     amount: null, cofundingRequired: null, eligibleTypes: [], tags: [], area: null,
     geoScope: null, complexity: null, requiredDocuments: [], summary: null,
-    requirements: null, beneficiaries: null, ...over,
+    requirements: null, beneficiaries: null,
+    openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+    cofundingPercentage: null, eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+    ...over,
   };
 }
 
@@ -44,5 +47,35 @@ describe("diffGrant / decide", () => {
     const existing = g({ tags: ["giovani", "sport"] });
     expect(diffGrant(incoming, existing)).toEqual({});
     expect(decide(incoming, existing)).toEqual({ action: "skip" });
+  });
+
+  it("inserts a new edition when existing is scaduto and incoming has a different deadline", () => {
+    const incoming = g({ deadline: "2027-06-30" });
+    const existing = g({ status: "scaduto", deadline: "2026-12-31" });
+    expect(decide(incoming, existing)).toEqual({ action: "insert" });
+  });
+
+  it("skips when existing is scaduto and incoming has same deadline", () => {
+    const incoming = g({ deadline: "2026-12-31" });
+    const existing = g({ status: "scaduto", deadline: "2026-12-31" });
+    expect(decide(incoming, existing)).toEqual({ action: "skip" });
+  });
+
+  it("skips when existing is scaduto and incoming has no deadline", () => {
+    const incoming = g({ deadline: null });
+    const existing = g({ status: "scaduto", deadline: "2026-12-31" });
+    expect(decide(incoming, existing)).toEqual({ action: "skip" });
+  });
+
+  it("skips when existing is chiuso and incoming has same deadline", () => {
+    const incoming = g({ deadline: "2026-12-31" });
+    const existing = g({ status: "chiuso", deadline: "2026-12-31" });
+    expect(decide(incoming, existing)).toEqual({ action: "skip" });
+  });
+
+  it("inserts a new edition when existing is chiuso and incoming has a new deadline", () => {
+    const incoming = g({ deadline: "2027-01-15" });
+    const existing = g({ status: "chiuso", deadline: "2026-12-31" });
+    expect(decide(incoming, existing)).toEqual({ action: "insert" });
   });
 });

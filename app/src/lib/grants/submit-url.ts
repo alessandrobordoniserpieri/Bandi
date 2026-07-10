@@ -80,7 +80,9 @@ function extractionDb(db: SubmitUrlDb): GrantsDb {
   };
   return {
     findProviderIdByName: (name) => db.findProviderIdByName(name),
-    findByUrl: never, insert: never, update: never, updateSource: never,
+    findByUrl: never, findActiveByUrl: never, insert: never, update: never,
+    updateSource: never, logScrapeRun: never, markDetailFetched: never,
+    findGrantsNeedingDetail: never,
   } as GrantsDb;
 }
 

@@ -6,8 +6,11 @@ import type { EntityProfile, Grant, ProjectHistoryRow } from "../types";
 const grant = (over: Partial<Grant> = {}): Grant => ({
   id: "g1", title: "Bando Sport", providerId: "prov-1", providerKind: "privato",
   deadline: "2026-12-31", status: "aperto", amount: 50000, cofundingRequired: null,
+  cofundingPercentage: null,
   eligibleTypes: [], tags: [], area: null, geoScope: null, complexity: null,
-  requiredDocuments: [], summary: "", requirements: "", url: "https://x", beneficiaries: "", ...over,
+  requiredDocuments: [], summary: "", requirements: "", url: "https://x", beneficiaries: "",
+  openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+  eligibleExpenses: null, applicationMethod: null, contactInfo: null, ...over,
 });
 
 const row = (over: Partial<ProjectHistoryRow> = {}): ProjectHistoryRow => ({

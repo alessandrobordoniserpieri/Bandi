@@ -11,10 +11,12 @@ import { StubSupabaseClient } from "./helpers/supabase-stub";
 import type { ExtractedGrant } from "../src/pipeline/types";
 
 const grant: ExtractedGrant = {
-  title: "Bando A", url: "https://x/1", providerId: "p1", deadline: "2026-12-31",
+  title: "Bando A", url: "https://x/1", providerId: "p1", sourceId: "s1", deadline: "2026-12-31",
   status: null, amount: 5000, cofundingRequired: null,
   eligibleTypes: ["ONLUS"], tags: ["sport"], area: "Roma", geoScope: "nazionale",
   complexity: null, requiredDocuments: ["statuto"], summary: null, requirements: "req", beneficiaries: null,
+  openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+  cofundingPercentage: null, eligibleExpenses: null, applicationMethod: null, contactInfo: null,
 };
 
 const asClient = (s: StubSupabaseClient) => s as unknown as SupabaseClient;
@@ -50,10 +52,12 @@ describe("patchToUpdateRow", () => {
 describe("rowToStoredGrant", () => {
   it("maps a row back to a StoredGrant, defaulting null arrays to []", () => {
     const stored = rowToStoredGrant({
-      id: "g1", title: "T", url: "https://x/1", provider_id: null, deadline: null,
+      id: "g1", title: "T", url: "https://x/1", provider_id: null, source_id: null, deadline: null,
       status: "aperto", amount: null, cofunding_required: null, eligible_types: null,
       tags: ["sport"], area: null, geo_scope: null, complexity: null, required_documents: null,
       summary: null, requirements: null, beneficiaries: null,
+      opening_date: null, funding_type: null, min_amount: null, max_amount: null,
+      cofunding_percentage: null, eligible_expenses: null, application_method: null, contact_info: null,
     });
     expect(stored.id).toBe("g1");
     expect(stored.eligibleTypes).toEqual([]);

@@ -5,7 +5,7 @@ import type { EntityProfile, Grant } from "../types";
 const p = (o: Partial<EntityProfile> = {}) =>
   ({ publicPartners: false, privatePartners: false, cofundingCapacity: null, ...o } as EntityProfile);
 const g = (o: Partial<Grant> = {}) =>
-  ({ complexity: "media", cofundingRequired: null, ...o } as Grant);
+  ({ complexity: "media", cofundingPercentage: null, ...o } as Grant);
 
 describe("computeBonuses", () => {
   it("partner +5 when entity has partners and grant complexity is alta", () => {
@@ -17,14 +17,14 @@ describe("computeBonuses", () => {
     expect(b.find((x) => x.key === "partner")).toBeUndefined();
   });
   it("cofunding manageable +3", () => {
-    const b = computeBonuses(p({ cofundingCapacity: 30 }), g({ cofundingRequired: 20 }));
+    const b = computeBonuses(p({ cofundingCapacity: 30 }), g({ cofundingPercentage: 20 }));
     expect(b.find((x) => x.key === "cofunding")?.value).toBe(3);
   });
   it("cofunding unsustainable -5 when required > 20 and above capacity", () => {
-    const b = computeBonuses(p({ cofundingCapacity: 10 }), g({ cofundingRequired: 30 }));
+    const b = computeBonuses(p({ cofundingCapacity: 10 }), g({ cofundingPercentage: 30 }));
     expect(b.find((x) => x.key === "cofunding")?.value).toBe(-5);
   });
   it("no cofunding item when grant has no cofunding requirement", () => {
-    expect(computeBonuses(p(), g({ cofundingRequired: null })).find((x) => x.key === "cofunding")).toBeUndefined();
+    expect(computeBonuses(p(), g({ cofundingPercentage: null })).find((x) => x.key === "cofunding")).toBeUndefined();
   });
 });

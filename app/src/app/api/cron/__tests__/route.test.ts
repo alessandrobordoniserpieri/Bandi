@@ -33,7 +33,7 @@ describe("POST /api/cron/scrape", () => {
 
   it("runs the pipeline and returns totals with the correct secret", async () => {
     vi.mocked(runProductionScrape).mockResolvedValueOnce([
-      { sourceId: "s1", inserted: 2, updated: 1, skipped: 0, errors: [] },
+      { sourceId: "s1", inserted: 2, updated: 1, skipped: 0, errors: [], detailErrors: [] },
     ]);
     const res = await POST(post("Bearer s3cret"));
     expect(res.status).toBe(200);

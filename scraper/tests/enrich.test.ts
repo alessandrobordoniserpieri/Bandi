@@ -4,10 +4,13 @@ import type { ExtractedGrant } from "../src/pipeline/types";
 
 function g(over: Partial<ExtractedGrant>): ExtractedGrant {
   return {
-    title: "T", url: "https://x/1", providerId: null, deadline: null, status: null,
+    title: "T", url: "https://x/1", providerId: null, sourceId: null, deadline: null, status: null,
     amount: null, cofundingRequired: null, eligibleTypes: [], tags: [], area: null,
     geoScope: null, complexity: null, requiredDocuments: [], summary: null,
-    requirements: null, beneficiaries: null, ...over,
+    requirements: null, beneficiaries: null,
+    openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
+    cofundingPercentage: null, eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+    ...over,
   };
 }
 

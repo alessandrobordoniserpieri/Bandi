@@ -72,9 +72,7 @@ function isValidHttpUrl(url: string): boolean {
   }
 }
 
-// Coerces without a provider: title/url validated up front so callers can skip
-// the (async, potentially throwing) provider lookup for items that will be dropped anyway.
-function coerce(raw: unknown): Omit<ExtractedGrant, "providerId"> | null {
+function coerce(raw: unknown, sourceId: string): Omit<ExtractedGrant, "providerId"> | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const title = stringOrNull(o.title);
@@ -94,7 +92,7 @@ function coerce(raw: unknown): Omit<ExtractedGrant, "providerId"> | null {
     ? (complexityRaw as Complexity) : null;
 
   return {
-    title, url, deadline, status,
+    title, url, sourceId, deadline, status,
     amount: numOrNull(o.amount),
     cofundingRequired: numOrNull(o.cofundingRequired),
     eligibleTypes: stringArray(o.eligibleTypes).filter((t) => LEGAL_TYPE_SET.has(t)),
@@ -105,6 +103,14 @@ function coerce(raw: unknown): Omit<ExtractedGrant, "providerId"> | null {
     summary: stringOrNull(o.summary),
     requirements: stringOrNull(o.requirements),
     beneficiaries: stringOrNull(o.beneficiaries),
+    openingDate: null,
+    fundingType: null,
+    minAmount: null,
+    maxAmount: null,
+    cofundingPercentage: null,
+    eligibleExpenses: null,
+    applicationMethod: null,
+    contactInfo: null,
   };
 }
 
@@ -129,15 +135,15 @@ export async function extractGrants(
   try {
     raw = await deps.llm.extract({ html: page.html, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
   } catch {
-    return []; // provider error → no grants from this page, pipeline continues
+    return [];
   }
   if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { return []; } }
   if (!isUnknownArray(raw)) return [];
 
   const out: ExtractedGrant[] = [];
   for (const item of raw) {
-    const coerced = coerce(item);
-    if (!coerced) continue; // invalid item: skip before the (async) provider lookup
+    const coerced = coerce(item, page.sourceId);
+    if (!coerced) continue;
     const providerId = await resolveProviderId(item, deps.db);
     out.push({ ...coerced, providerId });
   }

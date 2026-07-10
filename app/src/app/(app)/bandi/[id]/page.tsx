@@ -13,6 +13,17 @@ import { HistoryBadge } from "@/components/grants/history-badge";
 import { ScoreBreakdown } from "@/components/grants/score-breakdown";
 import { DocumentChecklist } from "@/components/grants/document-checklist";
 
+const FUNDING_TYPE_LABELS: Record<string, string> = {
+  fondo_perduto: "Fondo perduto",
+  prestito_agevolato: "Prestito agevolato",
+  contributo_misto: "Contributo misto",
+  garanzia: "Garanzia",
+  premio: "Premio",
+};
+function fundingTypeLabel(type: string): string {
+  return FUNDING_TYPE_LABELS[type] ?? type;
+}
+
 export default async function BandoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -82,6 +93,19 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.summary}</p>
         </section>
       )}
+
+      {(grant.fundingType || grant.minAmount != null || grant.maxAmount != null || grant.cofundingPercentage != null) && (
+        <section className="detail-section">
+          <h2>Dettagli economici</h2>
+          <dl className="detail-fields">
+            {grant.fundingType && <><dt>Tipo di finanziamento</dt><dd>{fundingTypeLabel(grant.fundingType)}</dd></>}
+            {grant.minAmount != null && <><dt>Importo minimo</dt><dd>€ {grant.minAmount.toLocaleString("it-IT")}</dd></>}
+            {grant.maxAmount != null && <><dt>Importo massimo</dt><dd>€ {grant.maxAmount.toLocaleString("it-IT")}</dd></>}
+            {grant.cofundingPercentage != null && <><dt>Cofinanziamento richiesto</dt><dd>{grant.cofundingPercentage}%</dd></>}
+          </dl>
+        </section>
+      )}
+
       {grant.requirements && (
         <section className="detail-section">
           <h2>Requisiti</h2>
@@ -92,6 +116,30 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
         <section className="detail-section">
           <h2>Destinatari</h2>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.beneficiaries}</p>
+        </section>
+      )}
+      {grant.eligibleExpenses && (
+        <section className="detail-section">
+          <h2>Spese ammissibili</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.eligibleExpenses}</p>
+        </section>
+      )}
+      {grant.applicationMethod && (
+        <section className="detail-section">
+          <h2>Modalità di presentazione</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.applicationMethod}</p>
+        </section>
+      )}
+      {grant.contactInfo && (
+        <section className="detail-section">
+          <h2>Contatti</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.contactInfo}</p>
+        </section>
+      )}
+      {grant.openingDate && (
+        <section className="detail-section">
+          <h2>Data di apertura</h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{grant.openingDate}</p>
         </section>
       )}
 
