@@ -6,6 +6,7 @@ import { extractDetail } from "./extract-detail";
 import { enrich } from "./enrich";
 import { saveGrant } from "./save";
 import { throttledLoop } from "./throttle";
+import { sanitizeHtml } from "./sanitize-html";
 
 const DETAIL_STALE_DAYS = 7;
 const DETAIL_THROTTLE_MS = 7_000;
@@ -32,6 +33,10 @@ export async function runPipeline(
     try {
       const pages = await deps.fetcher.fetchPages(source);
       for (const page of pages) {
+        const cleaned = sanitizeHtml(page.html);
+        if (deps.db.logDebugHtml) {
+          await deps.db.logDebugHtml(source.id, page.url, page.html, cleaned).catch(() => {});
+        }
         const grants = await extractGrants(page, { llm: deps.llm, db: deps.db });
         for (const raw of grants) {
           const outcome = await saveGrant(enrich(raw), deps.db);

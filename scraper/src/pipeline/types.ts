@@ -97,4 +97,5 @@ export interface GrantsDb {
   logScrapeRun(entry: ScrapeLogEntry): Promise<void>;
   markDetailFetched(id: string, patch: Partial<ExtractedGrant>): Promise<void>;
   findGrantsNeedingDetail(sourceId: string, staleDays: number): Promise<StoredGrant[]>;
+  logDebugHtml?(sourceId: string, url: string, rawHtml: string, cleanHtml: string): Promise<void>;
 }
