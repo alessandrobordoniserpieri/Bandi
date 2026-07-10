@@ -74,17 +74,27 @@ export type Database = {
       grants: {
         Row: {
           amount: number | null
+          application_method: string | null
           area: string | null
           beneficiaries: string | null
+          cofunding_percentage: number | null
           cofunding_required: number | null
           complexity: Database["public"]["Enums"]["complexity_level"] | null
+          contact_info: string | null
           created_at: string
           deadline: string | null
+          detail_fetch_attempts: number
+          detail_fetched_at: string | null
           discovered_at: string
+          eligible_expenses: string | null
           eligible_types: string[]
+          funding_type: Database["public"]["Enums"]["funding_type"] | null
           geo_scope: Database["public"]["Enums"]["geo_scope"] | null
           id: string
           import_mode: string
+          max_amount: number | null
+          min_amount: number | null
+          opening_date: string | null
           provider_id: string | null
           raw: Json | null
           required_documents: string[]
@@ -99,17 +109,27 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          application_method?: string | null
           area?: string | null
           beneficiaries?: string | null
+          cofunding_percentage?: number | null
           cofunding_required?: number | null
           complexity?: Database["public"]["Enums"]["complexity_level"] | null
+          contact_info?: string | null
           created_at?: string
           deadline?: string | null
+          detail_fetch_attempts?: number
+          detail_fetched_at?: string | null
           discovered_at?: string
+          eligible_expenses?: string | null
           eligible_types?: string[]
+          funding_type?: Database["public"]["Enums"]["funding_type"] | null
           geo_scope?: Database["public"]["Enums"]["geo_scope"] | null
           id?: string
           import_mode?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          opening_date?: string | null
           provider_id?: string | null
           raw?: Json | null
           required_documents?: string[]
@@ -124,17 +144,27 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          application_method?: string | null
           area?: string | null
           beneficiaries?: string | null
+          cofunding_percentage?: number | null
           cofunding_required?: number | null
           complexity?: Database["public"]["Enums"]["complexity_level"] | null
+          contact_info?: string | null
           created_at?: string
           deadline?: string | null
+          detail_fetch_attempts?: number
+          detail_fetched_at?: string | null
           discovered_at?: string
+          eligible_expenses?: string | null
           eligible_types?: string[]
+          funding_type?: Database["public"]["Enums"]["funding_type"] | null
           geo_scope?: Database["public"]["Enums"]["geo_scope"] | null
           id?: string
           import_mode?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          opening_date?: string | null
           provider_id?: string | null
           raw?: Json | null
           required_documents?: string[]
@@ -358,6 +388,53 @@ export type Database = {
           },
         ]
       }
+      scrape_logs: {
+        Row: {
+          detail_errors: string[]
+          duration_ms: number | null
+          errors: string[]
+          id: string
+          inserted: number
+          phase: string
+          ran_at: string
+          skipped: number
+          source_id: string
+          updated: number
+        }
+        Insert: {
+          detail_errors?: string[]
+          duration_ms?: number | null
+          errors?: string[]
+          id?: string
+          inserted?: number
+          phase?: string
+          ran_at?: string
+          skipped?: number
+          source_id: string
+          updated?: number
+        }
+        Update: {
+          detail_errors?: string[]
+          duration_ms?: number | null
+          errors?: string[]
+          id?: string
+          inserted?: number
+          phase?: string
+          ran_at?: string
+          skipped?: number
+          source_id?: string
+          updated?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scrape_logs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "grant_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: {
           ai_calls_count: number
@@ -396,6 +473,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_grants: { Args: never; Returns: undefined }
       set_saved_grant_status: {
         Args: {
           p_saved_grant_id: string
@@ -408,13 +486,19 @@ export type Database = {
       alert_frequency: "weekly" | "off"
       capacity_level: "bassa" | "media" | "alta"
       complexity_level: "bassa" | "media" | "alta"
+      funding_type:
+        | "fondo_perduto"
+        | "prestito_agevolato"
+        | "contributo_misto"
+        | "garanzia"
+        | "premio"
       geo_scope:
         | "comunale"
         | "provinciale"
         | "regionale"
         | "nazionale"
         | "europeo"
-      grant_status: "aperto" | "chiuso"
+      grant_status: "aperto" | "chiuso" | "scaduto"
       provider_kind: "pubblico" | "privato" | "eu"
       saved_grant_status:
         | "salvato"
@@ -552,6 +636,13 @@ export const Constants = {
       alert_frequency: ["weekly", "off"],
       capacity_level: ["bassa", "media", "alta"],
       complexity_level: ["bassa", "media", "alta"],
+      funding_type: [
+        "fondo_perduto",
+        "prestito_agevolato",
+        "contributo_misto",
+        "garanzia",
+        "premio",
+      ],
       geo_scope: [
         "comunale",
         "provinciale",
@@ -559,7 +650,7 @@ export const Constants = {
         "nazionale",
         "europeo",
       ],
-      grant_status: ["aperto", "chiuso"],
+      grant_status: ["aperto", "chiuso", "scaduto"],
       provider_kind: ["pubblico", "privato", "eu"],
       saved_grant_status: [
         "salvato",

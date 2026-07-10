@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock the scraper package so the route test never touches the network or a real DB.
 vi.mock("bandi-scraper", () => ({ runProductionScrape: vi.fn(async () => []) }));
 
-import { POST } from "../scrape/route";
+import { GET, POST } from "../scrape/route";
 import { runProductionScrape } from "bandi-scraper";
 
 function post(auth?: string): Request {
@@ -50,5 +50,15 @@ describe("POST /api/cron/scrape", () => {
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/browserless down/);
+  });
+
+  it("GET handler works the same as POST (Vercel Cron sends GET)", async () => {
+    vi.mocked(runProductionScrape).mockResolvedValueOnce([]);
+    const req = new Request("http://localhost/api/cron/scrape", {
+      headers: { authorization: "Bearer s3cret" },
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(runProductionScrape).toHaveBeenCalledTimes(1);
   });
 });
