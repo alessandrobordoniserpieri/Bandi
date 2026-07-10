@@ -20,7 +20,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const admin = createAdminClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bandi-scanner.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bandi-app.vercel.app";
 
   try {
     const result = await runDigestBatch({
