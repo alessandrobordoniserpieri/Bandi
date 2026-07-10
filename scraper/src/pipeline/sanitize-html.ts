@@ -1,10 +1,9 @@
-const REMOVE_TAGS = /(<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<svg[\s\S]*?<\/svg>|<noscript[\s\S]*?<\/noscript>|<iframe[\s\S]*?<\/iframe>|<link[^>]*>|<meta[^>]*>)/gi;
+const REMOVE_TAGS = /(<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<svg[\s\S]*?<\/svg>|<noscript[\s\S]*?<\/noscript>|<iframe[\s\S]*?<\/iframe>|<select[\s\S]*?<\/select>|<link[^>]*>|<meta[^>]*>)/gi;
 const HTML_COMMENTS = /<!--[\s\S]*?-->/g;
 const NAV_SECTIONS = /<(nav|header|footer)[\s\S]*?<\/\1>/gi;
 const ALL_ATTRS_EXCEPT_HREF = /(<a\s)(?:[^>]*?)(href="[^"]*")(?:[^>]*?)(>)/gi;
 const NON_ANCHOR_ATTRS = /(<(?!a[\s>])(\w+))\s[^>]*?(\/?>)/gi;
-const CONSECUTIVE_WHITESPACE = /[ \t]+/g;
-const CONSECUTIVE_NEWLINES = /\n{3,}/g;
+const CONSECUTIVE_WHITESPACE = /\s+/g;
 const HTML_TAGS_NOISE = /<\/?(?:div|span|section|article|main|aside|figure|figcaption|picture|source|br|hr|img|input|button|form|label|select|option|textarea|fieldset|legend|details|summary|dialog|template|slot|canvas|video|audio|embed|object|param|map|area)[^>]*>/gi;
 
 const MAX_CHARS = 80_000;
@@ -33,7 +32,6 @@ export function sanitizeHtml(raw: string): string {
   html = html.replace(/&lt;/gi, "<");
   html = html.replace(/&gt;/gi, ">");
   html = html.replace(CONSECUTIVE_WHITESPACE, " ");
-  html = html.replace(CONSECUTIVE_NEWLINES, "\n\n");
   html = html.trim();
 
   if (html.length > MAX_CHARS) {
