@@ -172,6 +172,12 @@ export class SupabaseGrantsDb implements GrantsDb {
     fail("markDetailFetched", error);
   }
 
+  async logDebugHtml(sourceId: string, url: string, rawHtml: string, cleanHtml: string): Promise<void> {
+    await this.client.from("scrape_debug").insert({
+      source_id: sourceId, url, raw_html: rawHtml, clean_html: cleanHtml,
+    });
+  }
+
   async findGrantsNeedingDetail(sourceId: string, staleDays: number): Promise<StoredGrant[]> {
     const staleDate = new Date();
     staleDate.setDate(staleDate.getDate() - staleDays);
