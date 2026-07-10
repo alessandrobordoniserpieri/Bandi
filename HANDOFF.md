@@ -1,108 +1,137 @@
-# BANDI-SCANNER v2 — Handoff Document
+# BANDI-SCANNER — Handoff Document (2026-07-10)
 
-## What happened in this session
+## Cos'è il progetto
 
-Alessandro ha ripensato da zero l'intera app BANDI-SCANNER usando la skill `/grilling` (intervista a 30 domande, una alla volta). Ogni decisione di design e architettura è stata discussa e approvata esplicitamente.
+Piattaforma web italiana per il matching tra bandi pubblici/privati e profili di enti (associazioni, cooperative, fondazioni, ETS). Un utente registra il proprio ente con ~40 campi, e il sistema calcola automaticamente la compatibilità (0-100) con ogni bando disponibile.
 
-**Nessun codice è stato scritto o riscritto.** L'utente ha esplicitamente proibito di scrivere codice senza il suo permesso ("non iniziare a scrivere o riscrivere codice, prima devi chiedermi il permesso").
+## Stack attuale (in produzione)
 
-## Deliverables produced
+| Componente | Tecnologia |
+|---|---|
+| Frontend | Next.js 16 (React 19, Turbopack) |
+| Hosting | Vercel (piano Hobby, root dir = `app/`) |
+| Database | Supabase (Postgres + Auth + RLS), regione EU |
+| Scraper | Pacchetto npm locale `bandi-scraper` (workspace monorepo) |
+| LLM scraping | Gemini 2.5 Flash (default), con adapter per Anthropic/OpenAI |
+| Page rendering | Browserless.io (headless Chrome) |
+| Email | Resend (digest settimanale) |
 
-### 1. Design Document Definitivo
-- **Path:** `bandi-scanner-v2-definitive.html` (763 righe, 46KB)
-- **Artifact:** https://claude.ai/code/artifact/ddb572b9-f668-40d2-b153-dcc81e32dfb7
-- **Content:** Tutte le 30 decisioni di design emerse dal grilling, organizzate in 10 sezioni
+## Struttura del monorepo
 
-### 2. Specifica Funzionale & Roadmap
-- **Path:** `bandi-scanner-v2-roadmap.html` (945 righe, 85KB)
-- **Artifact:** https://claude.ai/code/artifact/ddb572b9-f668-40d2-b153-dcc81e32dfb7
-- **Content:** Domain model, 7 ADR, 15 branch specs in 5 fasi, gate di accettazione, proiezione costi
+```
+Bandi/
+├── app/                    # Next.js web app
+│   ├── src/app/            # App Router pages + API routes
+│   ├── src/lib/            # Core libraries (matching, grants, ai, alerts)
+│   ├── src/components/     # React components
+│   ├── supabase/migrations/ # DB migrations (0001-0009)
+│   └── vercel.json         # Cron jobs config
+├── scraper/                # bandi-scraper package
+│   ├── src/pipeline/       # extract → detail → dedup → save
+│   ├── src/db/             # Supabase adapter
+│   └── tests/
+├── .claude/                # Claude Code config + skills
+├── .agents/                # Superpowers plugin (skills, hooks)
+└── docs/                   # ADR, plans, stato progetto
+```
 
-### 3. Matching Engine v1 (esistente, da riscrivere)
-- **Path:** `app/src/lib/matching/` (10 file TypeScript, ~1274 righe)
-- **Status:** Funzionante con 28 test che passano, ma usa il vecchio modello (8 dimensioni, 142pt overflow). Va riscritto secondo il Design Doc v2.
+## Feature implementate (PRs mergiati su main)
 
-## Key design decisions (summary)
+| # | Branch | Cosa fa |
+|---|---|---|
+| #5 | matching-v2 | Matching engine 6 dimensioni, 100pt, 5 verdetti |
+| #6-#8 | supabase-schema, auth, profile | DB 6 tabelle + RLS, auth, profilo ~40 campi |
+| #9-#12 | scraper, dashboard, cron | Scraper pipeline, grant display, cron scheduling |
+| #13-#16 | saved-grants, PWA, email | Kanban 4 stati, PWA, digest settimanale |
+| #17-#20 | AI analysis, monorepo | Analisi AI on-demand, fix Vercel monorepo |
+| #21-#24 | PR fixes | 429 handling, impeccable skill install |
+| #25-#28 | UX redesign | OKLCH design system, a11y, score-bar, density toggle |
+| #29 | vercel.json fix | Cron jobs registrati correttamente |
+| #30 | API middleware fix | `/api/*` bypassa session redirect |
+| #31 | Gemini schema fix | `nullable: true` al posto di `type: ["string","null"]` |
+| #32 | **Scraper V2** | Detail enrichment, edition-aware dedup, 10 nuovi campi |
+| direct push | maxDuration fix | `maxDuration: 600 → 300` per piano Hobby Vercel |
 
-| Decision | Choice |
-|----------|--------|
-| Target | Enti singoli (non consulenti). Un account = un ente. No multi-tenant. |
-| Matching | 6 dimensioni scored (100pt totali): Temi 28, Forma giuridica 22, Territorio 18, Capacità×Complessità 14, Documenti 12, Track record 6. + 3 indicatori visivi + 3 bonus/malus. |
-| Legal type matching | 8 gruppi di compatibilità (sostituisce il vecchio substring match su legalTypeKey che aveva bug) |
-| Territory matching | Strutturato su codici provincia/regione (sostituisce textOverlap fragile) |
-| Capacity | Calcolata da 6 domande concrete (non dropdown autodichiarato) |
-| Documents | Checklist strutturata array vs array (non regex su testo concatenato) |
-| Track record | 6pt generici + badge storico specifico (Già finanziato / Già candidato / Conosce erogatore) via lista predefinita ~70 enti erogatori |
-| Verdetti | Candidabile (≥75+docs), Da preparare (≥75), Da valutare (≥50), Bassa priorità (≥30), Non compatibile (<30), Storico (chiuso) |
-| Scraping | Vercel Cron → Browserless.io (free) → AI provider-agnostic (Gemini free default) → Supabase. 12 fonti MVP, ogni 48h. |
-| AI architecture | LLMProvider interface con adapter: Gemini (default free), Anthropic, Groq, OpenAI. Cambio provider = cambio env var. |
-| Scraper folder | `scraper/` top-level, separato da `app/` |
-| Profile | ~40 campi in 8 sezioni, onboarding progressivo (12 essenziali subito) |
-| Saved grants pipeline | 4 stati: Salvato → In preparazione → Candidato → Esito. Esito "Finanziato" auto-popola track record. |
-| DB | Supabase Postgres + Auth, regione EU Frankfurt. 6 tabelle con RLS. |
-| Stack | Next.js su Vercel + Supabase + Browserless.io + Gemini free |
-| UI | Desktop-first responsive, web app (no native), 4 pagine |
-| Pricing | Piano unico €30-50/mese, tutto incluso |
-| Privacy | Dati EU, no analytics terze parti, no cookie banner, disclaimer AI |
+## Ultimo lavoro: Scraper V2 (PR #32, questa sessione)
 
-## Development roadmap (5 phases, 15 branches)
+### Cosa è cambiato
 
-### Fase 1 — Fondamenta
-1. `feat/project-scaffold` — Next.js + Tailwind + vitest
-2. `feat/supabase-schema` — 6 tabelle + RLS + seed dati
-3. `feat/auth-flow` — Signup/login/logout + layout con sidebar
+- **Pipeline a due fasi**: listing extraction → detail page enrichment con 7s tra chiamate Gemini
+- **Dedup edition-aware**: bandi scaduti con nuova deadline = nuovo record; stessa deadline = skip
+- **10 nuovi campi grant**: `opening_date`, `funding_type`, `min_amount`, `max_amount`, `cofunding_percentage`, `eligible_expenses`, `application_method`, `contact_info`, `detail_fetched_at`, `detail_fetch_attempts`
+- **Tabella `scrape_logs`** per observability
+- **Funzione `expire_grants()`** per pg_cron auto-expiration
+- **Bug fix cofunding**: separati `cofundingRequired` (€) e `cofundingPercentage` (%) in indicatori e bonus
+- **Pagina dettaglio bando**: nuove sezioni (dettagli economici, spese ammissibili, modalità presentazione, contatti, data apertura)
+- **Cron**: schedule giornaliero, `maxDuration: 300` (limite Hobby Vercel)
 
-### Fase 2 — Core Engine
-4. `feat/matching-types-constants` — Nuove interfacce + LEGAL_TYPE_GROUPS + PROVINCE_TO_REGION
-5. `feat/matching-dimensions` — 6 dimensioni + indicatori + bonus + verdetti
-6. `feat/matching-cleanup` — Rimozione codice v1 obsoleto + nuovi test
+### Migrazioni DB applicate
 
-### Fase 3 — Scraping (parallelizzabile con Fase 4)
-7. `feat/scraper-scaffold` — LLMProvider interface + adapter Gemini
-8. `feat/scraper-pipeline` — fetch → extract → enrich → dedup → save
-9. `feat/scraper-cron` — Vercel Cron + crowdsourcing URL
+- `0008_scraper_v2_enum.sql` — aggiunge `'scaduto'` a `grant_status` enum
+- `0009_scraper_v2_schema.sql` — 10 colonne + partial unique index + `scrape_logs` + `expire_grants()` + disabilita tutte le source tranne Fondazione Cariplo
 
-### Fase 4 — UI (parallelizzabile con Fase 3)
-10. `feat/profile-form` — 8 sezioni, ~40 campi, tag/legal-type/province picker
-11. `feat/dashboard-matching` — Bandi ordinati per score, card, dettaglio con breakdown
-12. `feat/my-grants` — Pipeline 4 stati, auto-popola track record
-13. `feat/new-grants-page` — Bandi recenti, filtri, form crowdsourcing
+### File principali toccati (42 file, +2185 righe)
 
-### Fase 5 — Prodotto completo
-14. `feat/email-alerts` — Alert settimanali, soglia configurabile
-15. `feat/ai-analysis` — Analisi AI on-demand nel dettaglio bando
-16. `feat/deploy-production` — Privacy policy, error boundaries, deploy Vercel
+**Scraper (nuovi):** `extract-detail.ts`, `throttle.ts`
+**Scraper (modificati):** `vocab.ts`, `types.ts`, `extract-grants.ts`, `dedup.ts`, `save.ts`, `run.ts`, `supabase-grants-db.ts`, `run-production.ts`, `index.ts`
+**App (modificati):** `matching/types.ts`, `matching/helpers.ts`, `matching/indicators.ts`, `matching/bonuses.ts`, `grants/mapping.ts`, `ai/analyze-grant.ts`, `cron/scrape/route.ts`, `bandi/[id]/page.tsx`, `vercel.json`
 
-## Existing code state
+### Problemi risolti in questa sessione
 
-- **Branch:** `claude/enterprise-solution-context-skx691`
-- **app/src/lib/matching/** — Engine v1 funzionante (va riscritto per v2)
-- **app/vitest.config.ts** — Vitest configurato
-- **app/package.json** — Next.js scaffold esistente
-- Both HTML design documents committed and pushed
+1. **Vercel preview deploy failed** — il vecchio branch (`378be7f`) aveva solo un commit di setup su codice antico. Fix: codice V2 completato e mergiato.
+2. **`maxDuration: 600` invalido** — piano Hobby Vercel accetta max 300s. Fix: abbassato a 300.
+3. **Enum PostgreSQL in stessa transazione** — `ALTER TYPE ADD VALUE` e `CREATE INDEX ... WHERE status != 'scaduto'` non possono stare nella stessa migration. Fix: split in due file (0008 + 0009).
 
-## Known issues in v1 matching (to fix in v2)
+## Stato dei test (fresco, 2026-07-10)
 
-1. `legalTypeKey` substring match: "ASD" prefix remains after "associazione sportiva dilettantistica" → "asd" replacement, producing "asdasd". "ETS" matches almost everything.
-2. `textOverlap` fragile for Italian place names
-3. Weights sum to ~142 not 100 (overflow, then clamped)
-4. Document detection via regex on concatenated text strings
-5. Capacity is a subjective dropdown
+- Scraper: **88/88 test passano** (14 file)
+- App: **256/256 test passano** (43 file)
+- Build produzione: **pulito** (exit 0)
 
-## User preferences
+## Stato Vercel
 
-- Works ONLY from Claude web on Windows (no local terminal)
-- Wants to download HTML files from GitHub, not via artifacts
-- Lingua UI: italiano. Lingua codice: inglese.
-- Gets frustrated if skills other than the one requested are used
-- Explicit permission required before writing/rewriting any code
-- Prefers Fable 5 model for document generation
+Il commit `d1f89f3` (fix maxDuration) è l'ultimo su `origin/main`. Vercel dovrebbe effettuare il deploy automatico. Se non lo vedi nel dashboard, forza un redeploy manuale.
 
-## Suggested skills for next session
+## Cosa manca / prossimi passi
 
-- `/grilling` — if any new design decisions need to be made
-- `/implement` — when starting actual development (with user permission)
-- `/tdd` — for test-driven development of matching engine v2
-- `/supabase` — when setting up the database schema and RLS
-- `/domain-modeling` — if refining the data model further
-- `/code-review` — when reviewing implemented branches before merge
+1. **Verificare il deploy Vercel** — confermare che il build passa con `maxDuration: 300`
+2. **Abilitare source gradualmente** — al momento solo Fondazione Cariplo è attiva nel DB. Abilitare le altre fonte una alla volta dopo aver verificato che la prima funziona.
+3. **pg_cron per auto-expiration** — la funzione `expire_grants()` esiste, ma il job pg_cron va schedulato manualmente in Supabase (`SELECT cron.schedule('expire-grants', '0 2 * * *', 'SELECT expire_grants()')`)
+4. **Rigenerare i tipi Supabase** — `mapping.ts` usa `as Record<string, unknown>` cast perché i generated types non includono ancora le colonne V2
+5. **Considerare upgrade a Vercel Pro** — 300s potrebbe non bastare per 12+ fonti con detail enrichment; con Pro si arriva a 900s
+
+## Design documents (ancora validi)
+
+- `bandi-scanner-v2-definitive.html` — tutte le 30 decisioni di design
+- `bandi-scanner-v2-roadmap.html` — specifica funzionale, 15 branch, criteri di accettazione
+
+## Supabase project
+
+- **Project ID:** `gptsklxbkuhdfkksmqhz`
+- **Regione:** EU
+- **Migrazioni applicate:** 0001-0009
+
+## Skill Superpowers da usare
+
+Workflow per ogni branch:
+```
+1. /writing-plans                  → piano dettagliato
+2. /subagent-driven-development    → esecuzione con sub-agent
+   ↳ /test-driven-development     → test first
+   ↳ /systematic-debugging        → se qualcosa fallisce
+   ↳ /verification-before-completion → prima di chiudere
+3. /requesting-code-review         → review
+4. /finishing-a-development-branch → commit, push, PR, merge
+```
+
+## File rinominati in questa sessione
+
+| Vecchio nome | Nuovo nome | Motivo |
+|---|---|---|
+| `CHANGELOG.txt` | `old-CHANGELOG-beta.txt` | Changelog della beta monolitica, obsoleto |
+| `README-beta.txt` | `old-README-beta-node.txt` | README della beta con Node.js, obsoleto |
+| `LEGGIMI - BANDI-SCANNER Beta.txt` | `old-launcher-script-macos.txt` | Era uno script shell macOS, non un readme |
+| `README-node.xml` | `old-Info-plist-macos.xml` | Era un Info.plist Apple, non un README |
+| `grant-radar-matching.html` | `old-grant-radar-monolith.html` | App monolitica 225KB, sostituita dall'app Next.js |
+| `bandi-scanner-design-doc.html` | `old-design-doc-v1.html` | Design doc v1, sostituito da v2-definitive |
+| `PROMPT-NUOVA-SESSIONE.md` | `old-PROMPT-NUOVA-SESSIONE.md` | Prompt iniziale vecchio, sostituito da questo HANDOFF |
