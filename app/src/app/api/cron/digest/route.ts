@@ -54,10 +54,15 @@ async function handleDigest(request: Request): Promise<Response> {
       },
     });
     console.log("[cron/digest]", JSON.stringify(result));
-    return Response.json({ ok: true, ...result });
+    return Response.json({ ok: true, ...result }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[cron/digest] failed:", message);
-    return Response.json({ ok: false, error: message }, { status: 500 });
+    return Response.json({ ok: false, error: message }, {
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 }

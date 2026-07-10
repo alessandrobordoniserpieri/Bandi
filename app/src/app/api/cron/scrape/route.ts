@@ -33,10 +33,15 @@ async function handleScrape(request: Request): Promise<Response> {
       { inserted: 0, updated: 0, skipped: 0, errors: 0 },
     );
     console.log("[cron/scrape]", JSON.stringify({ totals, results }));
-    return Response.json({ ok: true, totals, results });
+    return Response.json({ ok: true, totals, results }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[cron/scrape] failed:", message);
-    return Response.json({ ok: false, error: message }, { status: 500 });
+    return Response.json({ ok: false, error: message }, {
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 }
