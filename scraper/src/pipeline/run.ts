@@ -38,10 +38,6 @@ export async function runPipeline(
           await deps.db.logDebugHtml(source.id, page.url, page.html, cleaned).catch(() => {});
         }
         const grants = await extractGrants(page, { llm: deps.llm, db: deps.db });
-        if (grants.length === 0 && page.html.length > 0) {
-          const cleanedLen = sanitizeHtml(page.html).length;
-          result.errors.push(`0 bandi estratti (html_raw=${page.html.length}, html_clean=${cleanedLen})`);
-        }
         for (const raw of grants) {
           const outcome = await saveGrant(enrich(raw), deps.db);
           result[outcome] += 1;
