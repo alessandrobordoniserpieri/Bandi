@@ -78,4 +78,23 @@ describe("diffGrant / decide", () => {
     const existing = g({ status: "chiuso", deadline: "2026-12-31" });
     expect(decide(incoming, existing)).toEqual({ action: "insert" });
   });
+
+  it("never blanks an existing value with null (missed re-extraction must not delete data)", () => {
+    const incoming = g({ amount: null, deadline: null, tags: [], summary: null });
+    const existing = g({ amount: 50000, deadline: "2026-12-31", tags: ["sport"], summary: "old" });
+    expect(diffGrant(incoming, existing)).toEqual({});
+    expect(decide(incoming, existing)).toEqual({ action: "skip" });
+  });
+
+  it("fills a previously-null field when re-scrape finds a value", () => {
+    const incoming = g({ amount: 50000 });
+    const existing = g({ amount: null });
+    expect(diffGrant(incoming, existing)).toEqual({ amount: 50000 });
+  });
+
+  it("empty string / empty array in incoming does not overwrite a real existing value", () => {
+    const incoming = g({ summary: "", tags: [] });
+    const existing = g({ summary: "text", tags: ["sport"] });
+    expect(diffGrant(incoming, existing)).toEqual({});
+  });
 });

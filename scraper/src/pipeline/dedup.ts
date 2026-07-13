@@ -35,12 +35,22 @@ function equal(a: unknown, b: unknown): boolean {
   return a === b;
 }
 
+function isEmpty(v: unknown): boolean {
+  if (v == null) return true;
+  if (typeof v === "string") return v.trim() === "";
+  if (Array.isArray(v)) return v.length === 0;
+  return false;
+}
+
+// Never blank out an existing field with null/""/[]. A missed extraction on a re-scrape
+// must not delete data we successfully captured before. Only fill nulls or replace one
+// concrete value with another.
 export function diffGrant(incoming: ExtractedGrant, existing: ExtractedGrant): Partial<ExtractedGrant> {
   const patch: Partial<ExtractedGrant> = {};
   for (const k of KEYS) {
-    if (!equal(incoming[k], existing[k])) {
-      (patch as Record<string, unknown>)[k] = incoming[k];
-    }
+    if (equal(incoming[k], existing[k])) continue;
+    if (isEmpty(incoming[k]) && !isEmpty(existing[k])) continue;
+    (patch as Record<string, unknown>)[k] = incoming[k];
   }
   return patch;
 }

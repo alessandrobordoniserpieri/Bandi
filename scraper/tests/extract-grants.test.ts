@@ -189,4 +189,47 @@ describe("extractGrants", () => {
     expect(out).toHaveLength(1);
     expect(out[0]!.url).toBe("https://x/same");
   });
+
+  it("merges duplicate grants across chunks, filling null fields from later occurrences", async () => {
+    const bigHtml = "a".repeat(50_000);
+    let call = 0;
+    const llm: LLMProvider = {
+      async extract() {
+        call++;
+        return call === 1
+          ? [{ title: "Bando X", url: "https://x/bando" }]
+          : [{ title: "Bando X", url: "https://x/bando", amount: "€ 50.000,00", deadline: "2026-12-31" }];
+      },
+    };
+    const out = await extractGrants(
+      { sourceId: "s1", url: "https://x/list", html: bigHtml },
+      { llm, db: new InMemoryGrantsDb() },
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]!.amount).toBe(50000);
+    expect(out[0]!.deadline).toBe("2026-12-31");
+  });
+
+  it("splits at semantic boundaries (never mid-<li>) so a grant is not cut in half", async () => {
+    // Build a big HTML with many <li> elements. The chunker should never end mid-<li>.
+    const item = "<li><h3>Bando</h3><p>Descrizione lunga</p><a href=\"https://x/1\">link</a></li>";
+    const bigHtml = item.repeat(600);
+    const seen: string[] = [];
+    const llm: LLMProvider = {
+      async extract({ html }) {
+        seen.push(html);
+        return [];
+      },
+    };
+    await extractGrants(
+      { sourceId: "s1", url: "https://x/list", html: bigHtml },
+      { llm, db: new InMemoryGrantsDb() },
+    );
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    // Every non-final chunk must end on a semantic boundary tag, never mid-record.
+    const nonFinal = seen.slice(0, -1);
+    for (const chunk of nonFinal) {
+      expect(chunk).toMatch(/<\/(h2|h3|table|tr|li|p)>$/);
+    }
+  });
 });
