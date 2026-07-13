@@ -174,8 +174,9 @@ async function resolveProviderId(item: unknown, db: GrantsDb): Promise<string | 
 }
 
 const CHUNK_SIZE = 35_000;
+const OVERLAP = 5_000;
 
-function splitIntoChunks(text: string, maxLen: number): string[] {
+function splitIntoChunks(text: string, maxLen: number, overlap: number = OVERLAP): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];
   let start = 0;
@@ -186,7 +187,8 @@ function splitIntoChunks(text: string, maxLen: number): string[] {
       if (space > start) end = space;
     }
     chunks.push(text.slice(start, end));
-    start = end;
+    const step = end - overlap;
+    start = step > start ? step : end;
   }
   return chunks;
 }
@@ -225,6 +227,7 @@ export async function extractGrants(
 
   console.log(`[extractGrants] ${page.url}: LLM returned ${rawItems.length} items total`);
   const out: ExtractedGrant[] = [];
+  const seenUrls = new Set<string>();
   for (const item of rawItems) {
     const coerced = coerce(item, page.sourceId, page.url);
     if (!coerced) {
@@ -234,6 +237,8 @@ export async function extractGrants(
     }
     const snapped = snapToHref(coerced.url, hrefs);
     if (snapped) coerced.url = snapped;
+    if (seenUrls.has(coerced.url)) continue;
+    seenUrls.add(coerced.url);
     const providerId = await resolveProviderId(item, deps.db);
     out.push({ ...coerced, providerId });
   }

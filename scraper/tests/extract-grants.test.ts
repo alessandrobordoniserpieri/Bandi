@@ -3,6 +3,7 @@ import { extractGrants, GRANT_JSON_SCHEMA } from "../src/pipeline/extract-grants
 import { FakeLLMProvider } from "../src/providers/fake";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import type { RawPage } from "../src/pipeline/types";
+import type { LLMProvider } from "../src/providers/types";
 
 // Gemini's response_schema (a restricted OpenAPI-3.0 subset) rejects `type` as an array —
 // {"type": ["string", "null"]} fails every single extraction call with HTTP 400 ("Proto field
@@ -158,22 +159,34 @@ describe("extractGrants", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("extracts grants from large HTML by chunking (no truncation)", async () => {
-    const chunk1Grants = [{ title: "Bando A", url: "https://x/a" }];
-    const chunk2Grants = [{ title: "Bando B", url: "https://x/b" }];
-    const part1 = "a".repeat(35_000);
-    const part2 = " " + "b".repeat(10_000);
-    const bigHtml = part1 + part2;
-    const responses = new Map<string, unknown>([
-      [part1, chunk1Grants],
-      [part2, chunk2Grants],
-    ]);
-    const llm = new FakeLLMProvider(responses);
+  it("extracts grants from large HTML by chunking with overlap", async () => {
+    const bigHtml = "a".repeat(50_000);
+    const calls: string[] = [];
+    const llm: LLMProvider = {
+      async extract({ html }) {
+        calls.push(`len=${html.length}`);
+        return [{ title: `Bando ${calls.length}`, url: `https://x/${calls.length}` }];
+      },
+    };
     const out = await extractGrants(
       { sourceId: "s1", url: "https://x/list", html: bigHtml },
       { llm, db: new InMemoryGrantsDb() },
     );
-    expect(out).toHaveLength(2);
-    expect(out.map((g) => g.title)).toEqual(["Bando A", "Bando B"]);
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    expect(out).toHaveLength(calls.length);
+  });
+
+  it("deduplicates grants with the same URL across overlapping chunks", async () => {
+    const bigHtml = "a".repeat(50_000);
+    const duplicate = { title: "Same Bando", url: "https://x/same" };
+    const llm: LLMProvider = {
+      async extract() { return [duplicate]; },
+    };
+    const out = await extractGrants(
+      { sourceId: "s1", url: "https://x/list", html: bigHtml },
+      { llm, db: new InMemoryGrantsDb() },
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]!.url).toBe("https://x/same");
   });
 });
