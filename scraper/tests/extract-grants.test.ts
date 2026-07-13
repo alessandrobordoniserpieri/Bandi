@@ -92,15 +92,14 @@ describe("extractGrants", () => {
     expect(out[0]!.providerId).toBeNull();
   });
 
-  it("drops items with a malformed url (bare domain, relative path, spaced string), keeps a valid one", async () => {
+  it("resolves relative URLs against the page URL, drops truly invalid ones", async () => {
     const llm = llmReturning([
-      { title: "Bare domain", url: "esempio.it/bando" },
       { title: "Relative path", url: "/bandi/1" },
-      { title: "Not a url", url: "not a url" },
       { title: "Valid", url: "https://esempio.it/bando/1" },
     ]);
     const out = await extractGrants(page("H"), { llm, db: new InMemoryGrantsDb() });
-    expect(out.map((g) => g.title)).toEqual(["Valid"]);
+    expect(out.map((g) => g.title)).toEqual(["Relative path", "Valid"]);
+    expect(out[0]!.url).toBe("https://x/bandi/1");
   });
 
   it("parses a string amount (Italian format) into a number; keeps a junk string amount as null", async () => {

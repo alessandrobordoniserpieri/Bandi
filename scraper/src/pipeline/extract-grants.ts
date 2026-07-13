@@ -110,12 +110,19 @@ function snapToHref(url: string, hrefs: Set<string>): string | null {
   return bestHref;
 }
 
-function coerce(raw: unknown, sourceId: string): Omit<ExtractedGrant, "providerId"> | null {
+function resolveUrl(raw: string, pageUrl: string): string | null {
+  if (isValidHttpUrl(raw)) return raw;
+  try { return new URL(raw, pageUrl).href; } catch { return null; }
+}
+
+function coerce(raw: unknown, sourceId: string, pageUrl: string): Omit<ExtractedGrant, "providerId"> | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const title = stringOrNull(o.title);
-  const url = stringOrNull(o.url);
-  if (!title || !url || !isValidHttpUrl(url)) return null;
+  const rawUrl = stringOrNull(o.url);
+  if (!title || !rawUrl) return null;
+  const url = resolveUrl(rawUrl, pageUrl);
+  if (!url) return null;
 
   const deadlineRaw = stringOrNull(o.deadline);
   const deadline = deadlineRaw && ISO_DATE.test(deadlineRaw) ? deadlineRaw : null;
@@ -188,7 +195,7 @@ export async function extractGrants(
   console.log(`[extractGrants] ${page.url}: LLM returned ${raw.length} items, ${hrefs.size} hrefs in page`);
   const out: ExtractedGrant[] = [];
   for (const item of raw) {
-    const coerced = coerce(item, page.sourceId);
+    const coerced = coerce(item, page.sourceId, page.url);
     if (!coerced) {
       const o = item as Record<string, unknown>;
       console.warn(`[extractGrants] coerce rejected: title=${o?.title} url=${o?.url}`);
