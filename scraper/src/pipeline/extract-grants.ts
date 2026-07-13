@@ -173,28 +173,59 @@ async function resolveProviderId(item: unknown, db: GrantsDb): Promise<string | 
   }
 }
 
+const CHUNK_SIZE = 35_000;
+
+function splitIntoChunks(text: string, maxLen: number): string[] {
+  if (text.length <= maxLen) return [text];
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = start + maxLen;
+    if (end < text.length) {
+      const space = text.lastIndexOf(" ", end);
+      if (space > start) end = space;
+    }
+    chunks.push(text.slice(start, end));
+    start = end;
+  }
+  return chunks;
+}
+
+async function extractFromChunks(
+  chunks: string[],
+  llm: LLMProvider,
+  pageUrl: string,
+): Promise<unknown[]> {
+  const allItems: unknown[] = [];
+  for (const chunk of chunks) {
+    try {
+      let raw: unknown = await llm.extract({
+        html: chunk, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS,
+      });
+      if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { continue; } }
+      if (isUnknownArray(raw)) allItems.push(...raw);
+    } catch (err) {
+      console.error(`[extractGrants] LLM error for ${pageUrl} (chunk):`, err instanceof Error ? err.message : err);
+    }
+  }
+  return allItems;
+}
+
 export async function extractGrants(
   page: RawPage, deps: { llm: LLMProvider; db: GrantsDb },
 ): Promise<ExtractedGrant[]> {
   const cleaned = sanitizeHtml(page.html);
   const hrefs = collectHrefs(cleaned);
+  const chunks = splitIntoChunks(cleaned, CHUNK_SIZE);
 
-  let raw: unknown;
-  try {
-    raw = await deps.llm.extract({ html: cleaned, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS });
-  } catch (err) {
-    console.error(`[extractGrants] LLM error for ${page.url}:`, err instanceof Error ? err.message : err);
-    return [];
-  }
-  if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { return []; } }
-  if (!isUnknownArray(raw)) {
-    console.warn(`[extractGrants] LLM returned non-array for ${page.url}:`, typeof raw);
-    return [];
-  }
+  console.log(`[extractGrants] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
 
-  console.log(`[extractGrants] ${page.url}: LLM returned ${raw.length} items, ${hrefs.size} hrefs in page`);
+  const rawItems = await extractFromChunks(chunks, deps.llm, page.url);
+  if (rawItems.length === 0) return [];
+
+  console.log(`[extractGrants] ${page.url}: LLM returned ${rawItems.length} items total`);
   const out: ExtractedGrant[] = [];
-  for (const item of raw) {
+  for (const item of rawItems) {
     const coerced = coerce(item, page.sourceId, page.url);
     if (!coerced) {
       const o = item as Record<string, unknown>;
