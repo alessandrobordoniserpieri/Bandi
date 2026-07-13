@@ -61,9 +61,9 @@ describe("sanitizeHtml", () => {
     expect(sanitizeHtml(html)).toContain("Bando con spazi");
   });
 
-  it("truncates to 80K characters", () => {
+  it("preserves full content without truncation (chunking handles large inputs)", () => {
     const html = "<p>" + "x".repeat(100_000) + "</p>";
-    expect(sanitizeHtml(html).length).toBeLessThanOrEqual(80_000);
+    expect(sanitizeHtml(html)).toContain("x".repeat(100_000));
   });
 
   it("removes HTML comments", () => {

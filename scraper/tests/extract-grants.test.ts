@@ -157,4 +157,23 @@ describe("extractGrants", () => {
     });
     expect(offenders).toEqual([]);
   });
+
+  it("extracts grants from large HTML by chunking (no truncation)", async () => {
+    const chunk1Grants = [{ title: "Bando A", url: "https://x/a" }];
+    const chunk2Grants = [{ title: "Bando B", url: "https://x/b" }];
+    const part1 = "a".repeat(35_000);
+    const part2 = " " + "b".repeat(10_000);
+    const bigHtml = part1 + part2;
+    const responses = new Map<string, unknown>([
+      [part1, chunk1Grants],
+      [part2, chunk2Grants],
+    ]);
+    const llm = new FakeLLMProvider(responses);
+    const out = await extractGrants(
+      { sourceId: "s1", url: "https://x/list", html: bigHtml },
+      { llm, db: new InMemoryGrantsDb() },
+    );
+    expect(out).toHaveLength(2);
+    expect(out.map((g) => g.title)).toEqual(["Bando A", "Bando B"]);
+  });
 });
