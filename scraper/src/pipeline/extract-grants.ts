@@ -45,6 +45,8 @@ export const EXTRACT_INSTRUCTIONS = [
   "Usa null quando un campo non è presente. Le date devono essere in formato ISO (YYYY-MM-DD).",
   "Non inventare valori: se non sei sicuro, usa null o ometti l'elemento dell'array.",
   "IMPORTANTE: copia gli URL esattamente come appaiono negli href della pagina, senza tradurre o modificare nessuna parola.",
+  "Se un bando appare troncato o incompleto (senza titolo chiaro all'inizio, o senza link href),",
+  "NON estrarlo: meglio ometterlo che indovinare campi mancanti o attribuirli al bando adiacente.",
 ].join(" ");
 
 function stringOrNull(v: unknown): string | null {
@@ -176,17 +178,28 @@ async function resolveProviderId(item: unknown, db: GrantsDb): Promise<string | 
 const CHUNK_SIZE = 35_000;
 const OVERLAP = 5_000;
 
+// Prefer semantic boundaries (</h2>, </li>, </tr>, </p>, </table>) so a grant is never split
+// mid-record. Fallback to the last space, then a hard cut, so we always make progress.
+const BOUNDARY_TAGS = ["</h2>", "</h3>", "</table>", "</tr>", "</li>", "</p>"];
+
+function findBoundary(text: string, from: number, to: number): number {
+  for (const tag of BOUNDARY_TAGS) {
+    const idx = text.lastIndexOf(tag, to);
+    if (idx > from) return idx + tag.length;
+  }
+  const space = text.lastIndexOf(" ", to);
+  return space > from ? space : to;
+}
+
 function splitIntoChunks(text: string, maxLen: number, overlap: number = OVERLAP): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];
   let start = 0;
   while (start < text.length) {
-    let end = start + maxLen;
-    if (end < text.length) {
-      const space = text.lastIndexOf(" ", end);
-      if (space > start) end = space;
-    }
+    const hardEnd = start + maxLen;
+    const end = hardEnd >= text.length ? text.length : findBoundary(text, start, hardEnd);
     chunks.push(text.slice(start, end));
+    if (end >= text.length) break;
     const step = end - overlap;
     start = step > start ? step : end;
   }
@@ -226,8 +239,7 @@ export async function extractGrants(
   if (rawItems.length === 0) return [];
 
   console.log(`[extractGrants] ${page.url}: LLM returned ${rawItems.length} items total`);
-  const out: ExtractedGrant[] = [];
-  const seenUrls = new Set<string>();
+  const byUrl = new Map<string, { grant: ExtractedGrant; item: unknown }>();
   for (const item of rawItems) {
     const coerced = coerce(item, page.sourceId, page.url);
     if (!coerced) {
@@ -237,10 +249,31 @@ export async function extractGrants(
     }
     const snapped = snapToHref(coerced.url, hrefs);
     if (snapped) coerced.url = snapped;
-    if (seenUrls.has(coerced.url)) continue;
-    seenUrls.add(coerced.url);
     const providerId = await resolveProviderId(item, deps.db);
-    out.push({ ...coerced, providerId });
+    const next: ExtractedGrant = { ...coerced, providerId };
+    const prev = byUrl.get(next.url);
+    byUrl.set(next.url, { grant: prev ? mergeGrants(prev.grant, next) : next, item });
+  }
+  return [...byUrl.values()].map((v) => v.grant);
+}
+
+// Overlapping chunks can produce the same grant twice with different fields populated
+// (chunk1 has title+url, chunk2 has amount+deadline). Merge takes each non-empty field
+// from either side, preferring the existing one when both are populated — first-seen wins,
+// so the version with more complete surrounding context is kept.
+function mergeGrants(a: ExtractedGrant, b: ExtractedGrant): ExtractedGrant {
+  const out = { ...a };
+  for (const k of Object.keys(b) as (keyof ExtractedGrant)[]) {
+    if (isEmpty(out[k]) && !isEmpty(b[k])) {
+      (out as Record<string, unknown>)[k] = b[k];
+    }
   }
   return out;
+}
+
+function isEmpty(v: unknown): boolean {
+  if (v == null) return true;
+  if (typeof v === "string") return v.trim() === "";
+  if (Array.isArray(v)) return v.length === 0;
+  return false;
 }
