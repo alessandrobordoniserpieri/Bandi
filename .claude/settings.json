@@ -5,9 +5,16 @@
         "source": "github",
         "repo": "obra/superpowers"
       }
+    },
+    "ruflo": {
+      "source": {
+        "source": "github",
+        "repo": "ruvnet/ruflo"
+      }
     }
   },
   "enabledPlugins": {
-    "superpowers@superpowers-dev": true
+    "superpowers@superpowers-dev": true,
+    "ruflo-core@ruflo": true
   }
 }
