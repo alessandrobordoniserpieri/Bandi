@@ -6,7 +6,7 @@ const NON_ANCHOR_ATTRS = /(<(?!a[\s>])(\w+))\s[^>]*?(\/?>)/gi;
 const CONSECUTIVE_WHITESPACE = /\s+/g;
 const HTML_TAGS_NOISE = /<\/?(?:div|span|section|article|main|aside|figure|figcaption|picture|source|br|hr|img|input|button|form|label|select|option|textarea|fieldset|legend|details|summary|dialog|template|slot|canvas|video|audio|embed|object|param|map|area)[^>]*>/gi;
 
-const MAX_CHARS = 80_000;
+const MAX_CHARS = 40_000;
 
 export function sanitizeHtml(raw: string): string {
   let html = raw;
