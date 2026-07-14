@@ -8,46 +8,45 @@ import { sanitizeHtml } from "./sanitize-html";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// The AI is asked for these keys; validation is lenient and never throws.
+// DISCOVERY schema. Phase 1 only finds grants (name + link + deadline); the ~16 rich fields
+// are extracted later, per-grant, by the detail phase (extract-detail.ts). Keeping this lean
+// slashes output tokens (a listing page can hold 200+ grants) and removes any need to chunk a
+// page just to fit the response under the model's output cap.
 //
 // Gemini's response_schema (a restricted OpenAPI-3.0 subset, not full JSON Schema) rejects
-// `type` as an array — "type": ["string", "null"] fails with HTTP 400
-// ("Proto field is not repeating, cannot start list") on every nullable field. Every extraction
-// call was failing this validation and extractGrants' catch-and-return-[] swallowed it silently,
-// which is indistinguishable from "the page genuinely has no grants" in the pipeline's output.
-// Nullable fields use `nullable: true` alongside a single `type` instead. amount/cofundingRequired
-// are declared as string (not the old number|string union) — numOrNull() already parses string
-// input via parseItalianAmount, so no downstream change is needed.
+// `type` as an array — "type": ["string", "null"] fails with HTTP 400 on every nullable field,
+// swallowed as "no grants". Nullable fields use `nullable: true` alongside a single `type`.
 export const GRANT_JSON_SCHEMA: JsonSchema = {
   type: "array",
   items: {
     type: "object",
     properties: {
-      title: { type: "string" }, url: { type: "string" },
-      providerName: { type: "string", nullable: true },
-      deadline: { type: "string", nullable: true }, status: { type: "string", nullable: true },
-      amount: { type: "string", nullable: true }, cofundingRequired: { type: "string", nullable: true },
-      eligibleTypes: { type: "array", items: { type: "string" } },
-      tags: { type: "array", items: { type: "string" } },
-      area: { type: "string", nullable: true }, geoScope: { type: "string", nullable: true },
-      complexity: { type: "string", nullable: true },
-      requiredDocuments: { type: "array", items: { type: "string" } },
-      summary: { type: "string", nullable: true }, requirements: { type: "string", nullable: true },
-      beneficiaries: { type: "string", nullable: true },
+      title: { type: "string" },
+      url: { type: "string" },
+      deadline: { type: "string", nullable: true },
     },
     required: ["title", "url"],
   },
 };
 
-export const EXTRACT_INSTRUCTIONS = [
-  "Sei un assistente che estrae bandi di finanziamento da una pagina web italiana.",
-  "Restituisci un array JSON di bandi. Per ogni bando estrai i 16 campi dello schema.",
-  "Usa null quando un campo non è presente. Le date devono essere in formato ISO (YYYY-MM-DD).",
-  "Non inventare valori: se non sei sicuro, usa null o ometti l'elemento dell'array.",
-  "IMPORTANTE: copia gli URL esattamente come appaiono negli href della pagina, senza tradurre o modificare nessuna parola.",
-  "Se un bando appare troncato o incompleto (senza titolo chiaro all'inizio, o senza link href),",
-  "NON estrarlo: meglio ometterlo che indovinare campi mancanti o attribuirli al bando adiacente.",
-].join(" ");
+// Instructions carry the current date so the model can drop grants whose deadline has passed —
+// on real pages most closures are date-based, not a "chiuso/scaduto" word. Both signals are
+// handled: sanitizeHtml preserves the status words, and `today` lets the model compare deadlines.
+export function buildExtractInstructions(today: string): string {
+  return [
+    "Sei un assistente che TROVA i bandi di finanziamento elencati in una pagina web italiana.",
+    "Questa è la FASE DI SCOPERTA. Per ogni bando restituisci SOLO tre campi:",
+    "title (il nome del bando), url (il link alla sua pagina di dettaglio), deadline (scadenza in formato ISO YYYY-MM-DD, oppure null).",
+    "NON estrarre altri campi: importi, requisiti, destinatari e simili verranno raccolti in una fase successiva.",
+    `OGGI è ${today}.`,
+    "Escludi COMPLETAMENTE dall'array i bandi non più aperti: se un bando è marcato \"chiuso\", \"scaduto\", \"terminato\", \"concluso\" o \"archiviato\", oppure ha una scadenza precedente a OGGI, NON includerlo. Nel dubbio sullo stato, includilo.",
+    "Non inventare valori. Copia gli URL esattamente come appaiono negli href della pagina, senza tradurre o modificare nessuna parola.",
+    "Se una voce è troncata o incompleta (senza nome chiaro o senza link), NON includerla.",
+  ].join(" ");
+}
+
+// Backward-compatible default (date resolved at module load); extractGrants rebuilds it per run.
+export const EXTRACT_INSTRUCTIONS = buildExtractInstructions(new Date().toISOString().slice(0, 10));
 
 function stringOrNull(v: unknown): string | null {
   return typeof v === "string" && v.trim() !== "" ? v : null;
@@ -83,7 +82,7 @@ function collectHrefs(html: string): Set<string> {
   let m: RegExpExecArray | null;
   while ((m = HREF_RE.exec(html)) !== null) {
     const href = m[1];
-    if (isValidHttpUrl(href)) set.add(href);
+    if (href && isValidHttpUrl(href)) set.add(href);
   }
   return set;
 }
@@ -210,12 +209,13 @@ async function extractFromChunks(
   chunks: string[],
   llm: LLMProvider,
   pageUrl: string,
+  instructions: string,
 ): Promise<unknown[]> {
   const allItems: unknown[] = [];
   for (const chunk of chunks) {
     try {
       let raw: unknown = await llm.extract({
-        html: chunk, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS,
+        html: chunk, schema: GRANT_JSON_SCHEMA, instructions,
       });
       if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { continue; } }
       if (isUnknownArray(raw)) allItems.push(...raw);
@@ -232,10 +232,11 @@ export async function extractGrants(
   const cleaned = sanitizeHtml(page.html);
   const hrefs = collectHrefs(cleaned);
   const chunks = splitIntoChunks(cleaned, CHUNK_SIZE);
+  const instructions = buildExtractInstructions(new Date().toISOString().slice(0, 10));
 
   console.log(`[extractGrants] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
 
-  const rawItems = await extractFromChunks(chunks, deps.llm, page.url);
+  const rawItems = await extractFromChunks(chunks, deps.llm, page.url, instructions);
   if (rawItems.length === 0) return [];
 
   console.log(`[extractGrants] ${page.url}: LLM returned ${rawItems.length} items total`);
