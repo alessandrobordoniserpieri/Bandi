@@ -1,163 +1,154 @@
-# BANDI-SCANNER — Handoff Document (2026-07-13)
+# BANDI-SCANNER — Handoff scraping (sessione 2026-07-14)
 
-## Cos'è il progetto
+Documento di consegna sullo **scraping**. Raccoglie vincoli, problemi/fix,
+assunzioni sulla pipeline, decisioni architetturali e lavoro aperto, come
+capiti e decisi in questa sessione (grilling incluso).
 
-Piattaforma web italiana per il matching tra bandi pubblici/privati e profili di enti del terzo settore (associazioni, cooperative, fondazioni, ETS). Un utente registra il proprio ente con ~40 campi, e il sistema calcola automaticamente la compatibilità (0-100) con ogni bando disponibile.
+> **Stato del codice al momento della scrittura**
+> - Su **main**: PR #44 (chunking), #45 (overlap+dedup), #48 (chunking robusto +
+>   guardia update DB). L'estrattore su main è **ancora a 16 campi**.
+> - Sul branch `claude/scraper-v2-deploy-verify-55uegc` (NON ancora mergiato):
+>   commit `44410f3` — **prompt di discovery leggero** (solo `title/url/deadline`),
+>   skip scaduti con data odierna, fix typecheck.
+> - Le idee di **distillazione a lista-link** e **runner GitHub Actions** sono
+>   **decise ma NON ancora implementate**: il codice manda tuttora l'HTML
+>   sanitizzato intero (in chunk), non un elenco distillato.
 
-## Stack in produzione
+---
 
-| Componente | Tecnologia |
-|---|---|
-| Frontend | Next.js 16 (React 19, Turbopack) |
-| Hosting | Vercel (piano Hobby, maxDuration 300s, root dir = `app/`) |
-| Database | Supabase Postgres + Auth + RLS (progetto `gptsklxbkuhdfkksmqhz`, EU) |
-| Scraper | Pacchetto npm locale `bandi-scraper` (workspace monorepo) |
-| LLM scraping | Gemini 2.5 Flash (default), adapter per Anthropic/OpenAI/Groq |
-| Page rendering | Browserless.io (headless Chrome) |
-| Email | Resend (digest settimanale) |
+## 1. Vincoli tecnici (numeri reali)
 
-## Struttura del monorepo
-
-```
-Bandi/
-├── app/                        # Next.js web app
-│   ├── src/app/(app)/          # Pagine autenticate (lista bandi, dettaglio, profilo, kanban)
-│   ├── src/app/(auth)/         # Login, signup, recupera password
-│   ├── src/app/api/cron/       # Cron routes (scrape giornaliero, digest settimanale)
-│   ├── src/lib/matching/       # Matching engine 6 dimensioni (themes, legal-form, territory, capacity, documents, track-record)
-│   ├── src/lib/grants/         # Query, filtri, mapping bandi
-│   ├── src/lib/ai/             # Analisi AI on-demand per singolo bando
-│   ├── src/lib/alerts/         # Digest email settimanale
-│   ├── src/lib/profile/        # Schema profilo ente (~40 campi)
-│   ├── src/lib/saved-grants/   # Kanban 4 stati (interessante → candidatura → presentato → esito)
-│   ├── supabase/migrations/    # Migrazioni DB (0001-0009)
-│   └── vercel.json             # Cron jobs
-├── scraper/                    # bandi-scraper package
-│   ├── src/pipeline/           # sanitize → extract → detail → dedup → save
-│   ├── src/providers/          # LLM adapters (gemini, anthropic, openai, groq)
-│   ├── src/db/                 # Supabase adapter
-│   └── tests/                  # 104 test
-├── docs/                       # ADR, design docs, piani
-│   ├── adr/                    # 8 decisioni architetturali
-│   ├── bandi-scanner-v2-definitive.html  # Design doc definitivo
-│   └── bandi-scanner-v2-roadmap.html     # Roadmap funzionale 15 branch
-└── .claude/CLAUDE.md           # Istruzioni per Claude Code
-```
-
-## Feature implementate (su main)
-
-| PR | Cosa fa |
-|---|---|
-| #5 | Matching engine 6 dimensioni, 100pt, 5 verdetti |
-| #6-#8 | DB 6 tabelle + RLS, auth Supabase, profilo ~40 campi |
-| #9-#12 | Scraper pipeline, dashboard bandi, cron scheduling |
-| #13-#16 | Kanban 4 stati, PWA, digest email settimanale |
-| #17-#20 | Analisi AI on-demand, fix monorepo Vercel |
-| #25-#28 | UX redesign OKLCH, score-bar, density toggle |
-| #29-#31 | Fix vercel.json, API middleware, schema Gemini nullable |
-| #32 | **Scraper V2**: detail enrichment, edition-aware dedup, 10 nuovi campi |
-| #33-#36 | Fix cron GET, types V2, sanitizer HTML, URL snapping |
-| #37 | Sanitizer: strip `<select>`, collassa whitespace |
-| #39 | Cache-Control no-store su cron routes |
-| #40 | Logging diagnostico in extractGrants |
-| #41 | Risoluzione URL relativi da LLM |
-
-## Stato test (2026-07-13)
-
-- Scraper: **104/104 test passano**
-- App: ~256 test (non ri-verificati in questa sessione)
-
-## Stato scraper e fonti
-
-### Fonti attive nel DB (grant_sources, enabled=true)
-
-| Nome | URL | Stato |
+| Vincolo | Valore | Dove / note |
 |---|---|---|
-| Regione Emilia-Romagna | `sociale.regione.emilia-romagna.it/leggi-atti-bandi` | Funzionante — 4 bandi estratti, detail OK. Ultimo problema: Gemini restituiva URL relativi → fix PR #41 |
-| "Fondazione Cariplo" (ora sportesalute.eu) | `sportesalute.eu/bandi-e-avvisi/bandi-altri-enti.html` | Problematica — pagina 1MB, sanitizzata a 80K, ma Gemini dà errore di rete (probabile timeout su input grande) |
+| Timeout funzione Vercel | **300s** hard cap (Hobby) | `app/src/app/api/cron/scrape/route.ts` (`maxDuration = 300`) |
+| Cron Vercel | **1 volta/giorno** su Hobby (no sub-giornaliero) | `app/vercel.json` (`0 3 * * *`) |
+| Timeout per chiamata LLM | **60s** + 3 retry backoff | `scraper/src/providers/http.ts` (`DEFAULT_TIMEOUT_MS`), `retry.ts` |
+| Throttle fase detail | **7s** tra un bando e l'altro | `scraper/src/pipeline/run.ts` (`DETAIL_THROTTLE_MS`) |
+| Gemini free tier | **10 RPM · 250 RPD · 250K TPM** | collo di bottiglia = RPM/RPD, non i token |
+| Gemini paid Tier 1 | 1.000 RPM · 10.000 RPD · 1M TPM | ~0,30$/1M token input |
+| Context window (input) | Gemini **1M** · DeepSeek 64–128K · GLM 128K | **l'input non è mai stato il limite vero** |
+| Cap output | ~8K (DeepSeek/GLM) · configurabile (Gemini) | **è questo il vincolo reale** per estrazioni ricche |
+| `MAX_CHARS` | **RIMOSSO** | era un troncamento a 80K in `sanitize-html.ts`; sostituito dal chunking (PR #44) |
+| Chunk | dimensione **35K**, overlap **5K**, tagli su confini semantici | `CHUNK_SIZE`, `OVERLAP`, `BOUNDARY_TAGS` in `extract-grants.ts` |
+| Fetch pagine | Browserless (headless Chrome) | `browserless-fetcher.ts` |
+| Supabase | **non è un collo di bottiglia** | scritture piccole; `scrape_debug` (HTML grande) ripulito da pg_cron ogni 3 giorni |
 
-### Fonti disabilitate nel DB (enabled=false)
+### Nota chiave sui vincoli
+La context window in ingresso **non è mai stata il problema** (Gemini ha 1M
+token; una pagina pulita ≈ 43K). I muri veri sono:
+1. **Vercel 300s** (tempo di risposta) + cron giornaliero su Hobby.
+2. **Timeout 60s per chiamata** su input grande e rumoroso.
+3. **Gemini free tier**: 10 RPM (→ min 6s tra chiamate) e 250 RPD (quota giornaliera).
+4. **Cap di output** (~8K su modelli economici) su pagine con molti bandi.
 
-10 fonti disabilitate. Include: Fondazione CON IL SUD, Compagnia di San Paolo, CONI, Erasmus+, CSVnet, Fondazione CRT, Info-cooperazione, Europa Funding, Terzo Settore, Sport e Salute (URL diverso).
+---
 
-**Nota**: la source "Fondazione Cariplo" ha l'URL cambiato a sportesalute.eu per testing. L'URL originale di Cariplo (`fondazionecariplo.it/contributi/bandi/`) è bloccato da Cloudflare anti-bot.
+## 2. Problemi trovati e fix applicati
 
-### Lista completa 35 fonti originali (dalla beta)
+| Problema | Causa | Fix | Rif |
+|---|---|---|---|
+| Cron restituiva risposta cachata (0 bandi, 14s, nessuna API esterna) | Vercel cachava la GET | `Cache-Control: no-store` sulle route cron | PR #39 |
+| Ogni estrazione falliva con HTTP 400 | Gemini `response_schema` rifiuta `type: ["string","null"]` | campi nullable con `nullable: true` | — |
+| URL relativi scartati (Emilia-Romagna) | `coerce()` accettava solo URL assoluti | `resolveUrl()` con `new URL(raw, pageUrl)` | PR #41 |
+| Logging cieco su 0 risultati | catch-and-return-`[]` silenzioso | log diagnostici in `extractGrants` | PR #40 |
+| **sportesalute "gemini: errore di rete"** | **non** limite token: **timeout 60s** su HTML grande+rumoroso + muro 300s | chunking (#44), overlap+dedup (#45), tagli semantici + merge (#48) | #44/#45/#48 |
+| Update DB che sbiancava campi | `diffGrant` patchava anche `null`/`""`/`[]` in ingresso | guardia: mai sovrascrivere un valore esistente con vuoto | PR #48 (`dedup.ts`) |
+| Prompt estraeva anche gli scaduti | il prompt non diceva di scartarli; l'LLM non sapeva la data odierna | prompt inietta **OGGI** + esclude chiuso/scaduto/terminato/concluso/archiviato o scadenza passata | `44410f3` (branch) |
+| Typecheck rosso (preesistente) | `m[1]` possibly-undefined; fake LLM nei test senza `name` | guardia in `collectHrefs` + `name` nei fake | `44410f3` (branch) |
 
-Queste erano le fonti nella versione beta (`grant-radar-server.mjs`, ora rimosso). Molte non sono ancora nel DB:
+### La lezione più importante
+Il chunking **curava il sintomo sbagliato**: spezzavamo la pagina per battere il
+**timeout**, non per farla stare nel modello. Fuori da Vercel (timeout nostro) e
+con discovery leggera, il chunking dell'input **serve raramente**; resta utile
+solo per **limitare l'output** su pagine con centinaia di bandi, tagliando su
+righe/blocchi atomici così da non spezzare mai un bando.
 
-1. Dipartimento per lo Sport — `sport.governo.it/it/bandi-e-avvisi/`
-2. Piattaforma Avvisi e Bandi Sport — `avvisibandi.sport.governo.it/`
-3. Sport e Salute — `bandi.sportesalute.eu/`
-4. Ministero del Lavoro - Terzo Settore — `lavoro.gov.it/temi-e-priorita/terzo-settore...`
-5. Ministero del Lavoro - Notizie — `lavoro.gov.it/notizie`
-6. Italia Domani - PNRR — `italiadomani.gov.it/.../bandi-avvisi.html`
-7. Regione Emilia-Romagna - Tutti i bandi — `bandi.regione.emilia-romagna.it/`
-8. Regione Emilia-Romagna - Sport — `regione.emilia-romagna.it/sport/bandi`
-9. Regione Emilia-Romagna - Sociale — `sociale.regione.emilia-romagna.it/leggi-atti-bandi/bandi`
-10. Regione Emilia-Romagna - Terzo Settore — `sociale.regione.emilia-romagna.it/terzo-settore/...`
-11. Infobandi CSVnet — `infobandi.csvnet.it/`
-12. Obiettivo Europa - Sport — `obiettivoeuropa.com/bandi/aperti/settore/sport/...`
-13. Obiettivo Europa - Inclusione — `obiettivoeuropa.com/bandi/aperti/settore/inclusione.../`
-14. Con i Bambini — `conibambini.org/bandi-e-iniziative/`
-15. Fondazione con il Sud — `fondazioneconilsud.it/bandi/`
-16. Fondazione Cariplo — `fondazionecariplo.it/it/bandi.html` (bloccato da Cloudflare)
-17. Compagnia di San Paolo — `compagniadisanpaolo.it/it/contributi/`
-18. Open Fundraising — `openfundraising.it/`
-19. Granter — `granter.it/`
-20. AssoBandi — `assobandi.com/`
-21. ConfiniOnline — `confinionline.it/it/Principale/bandi.aspx`
-22. AgevolaPro — `agevolapro.net/`
-23. Bandi e Agevolazioni No Profit — `bandieagevolazioni.it/bandi-noprofit`
-24. Incentivi.gov.it — `incentivi.gov.it/`
-25. Invitalia — `invitalia.it/cosa-facciamo/creiamo-nuove-aziende`
-26. EACEA — `eacea.ec.europa.eu/grants_en`
-27. Creative Europe — `culture.ec.europa.eu/creative-europe/calls`
-28. CERV Programme — `commission.europa.eu/.../citizens-equality-rights-and-values-programme_en`
-29. Fondazione TIM — `fondazionetim.it/`
-30. Enel Cuore — `enelcuore.it/`
-31. Fondazione Vodafone Italia — `fondazionevodafone.it/`
-32. UniCredit Foundation — `unicreditfoundation.org/`
+---
 
-### Problemi noti dello scraper
+## 3. Assunzioni sulla pipeline (listing vs detail)
 
-1. **Gemini errore di rete su pagine grandi**: sportesalute.eu ha 1MB di HTML raw, sanitizzato a 80K. Gemini va in timeout o errore rete. Possibile fix: ridurre MAX_CHARS o chunking.
-2. **Cloudflare anti-bot**: Fondazione Cariplo blocca Browserless. Nessun workaround disponibile.
-3. **URL hallucination**: Gemini traduce parole italiane negli URL (es. "per" → "for"). Mitigato con URL snapping (PR #36) che aggancia sempre all'href reale più vicino nello stesso dominio.
-4. **URL relativi**: Gemini restituisce path relativi invece di URL assoluti. Fix: risoluzione con `new URL(raw, pageUrl)` (PR #41).
-5. **Rate limit Gemini**: piano free ha ~15 req/min. Troppe chiamate ravvicinate danno 429.
+Pipeline a **due fasi** (`run.ts`):
 
-## Migrazioni DB applicate (Supabase)
+- **Fase 1 — Listing / Discovery**: fetch → `sanitizeHtml` → `extractGrants`.
+  - **Assunzione (nuova, decisa)**: la discovery deve solo **scoprire i bandi**
+    (nome + link + scadenza), non arricchirli. Prompt e schema resi **leggeri**
+    (`44410f3`, branch). L'LLM **filtra** cosa è un bando e **scarta gli scaduti**.
+- **Fase 2 — Detail / Enrichment**: per i bandi che ne hanno bisogno, fetch della
+  pagina del singolo bando → `extractDetail` (16 campi ricchi) → `markDetailFetched`.
+  - `findGrantsNeedingDetail` **già esclude** `status = "scaduto"`
+    (`supabase-grants-db.ts`) → nessun bando scaduto riceve mai una chiamata detail.
+  - Throttle 7s tra i bandi.
 
-- `0001_enums.sql` → enum types (grant_status, geo_scope, complexity, funding_type)
-- `0002_tables.sql` → grants, grant_sources, grant_providers, profiles, user_settings, saved_grants
-- `0003_rls.sql` → Row Level Security
-- `0004_seed.sql` → seed data (12 fonti, provider)
-- `0005_enable_sources.sql` → abilita fonti
-- `0006_saved_grant_status_fn.sql` → funzione cambio stato kanban
-- `0007_ai_analysis.sql` → tabella analisi AI
-- `0008_scraper_v2_enum.sql` → aggiunge 'scaduto' a grant_status
-- `0009_scraper_v2_schema.sql` → 10 colonne V2, scrape_logs, expire_grants(), partial unique index
+### Scoperte empiriche (misurate sulla pagina reale sportesalute, 1MB)
+- Sanitizzato: **191K char (~48K token)**; distillato ad **ancore+href: ~7.9K token**;
+  distillato con **contesto-card: ~18.7K token** → **una sola chiamata**, niente chunk input.
+- **L'ancora è sempre "Scopri di più"** → distillare la sola ancora è inutile:
+  serve il **contesto della card** (titolo + un pezzo di descrizione).
+- La card **contiene già** scadenza, ente, destinatari, importo, regione, tema.
+- **214 card** reali (`Ente promotore` ×214), **206/214** con chiusura **a data**
+  (→ serve passare OGGI), 1 con parola-stato; le parole-stato **sopravvivono** al sanitizer.
+- **È un aggregatore**: i 214 link puntano a **214 domini esterni diversi** → una
+  fase detail "classica" richiederebbe 214 fetch su 214 layout: costosa e in parte inutile.
+- **Firehose misto**: molti item NON sono bandi da terzo settore (es. contributi
+  amianto per privati, gare d'appalto, concessioni). 189/214 avevano destinatari
+  "associazioni/sportive", ma non tutti sono rilevanti → **serve un filtro di rilevanza**.
 
-Tabelle aggiuntive create via SQL diretto (non in migration):
-- `scrape_debug` — log HTML raw/clean per debug, cleanup automatico pg_cron ogni 3 giorni
+### Distinzione emersa tra fonti
+- **"Listing-completo"** (aggregatori tipo sportesalute): il bando è già tutto in
+  lista → conviene estrarre lì e **saltare/limitare il detail**.
+- **"Listing-magro"** (es. Emilia-Romagna): la lista ha solo titolo+link → discovery
+  leggera + detail sulla pagina del bando.
 
-## pg_cron jobs attivi
+---
 
-- `expire-grants` — `0 2 * * *` — marca come 'scaduto' i bandi con deadline passata
-- `cleanup-scrape-debug` — `0 4 * * *` — elimina debug HTML più vecchi di 3 giorni
+## 4. Decisioni architetturali prese
 
-## Prossimi passi
+1. **Runtime FUORI da Vercel → GitHub Actions** (budget 6h). Elimina sia i 300s sia
+   il cron-giornaliero-Hobby; il codice gira `npm run scrape` con throttle rispettato.
+   *(Deciso, non ancora implementato.)*
+2. **Gemini free tier come budget rigido** (250 RPD). In test bastano **3-4 fonti**;
+   se serve si **riducono le fonti**, non si paga. Paid = upgrade da un clic più avanti.
+3. **Discovery leggera + detail ricco**: fase 1 estrae solo `title/url/deadline`;
+   i 16 campi restano al detail. *(Implementato su branch `44410f3`.)*
+4. **Skip scaduti in discovery**: l'LLM esclude dall'output i bandi chiusi/scaduti
+   (parola-stato **o** scadenza < OGGI). Data odierna iniettata nel prompt.
+   Micro-decisione: bandi **già scaduti** → **non inserirli** (opzione a). *(Implementato.)*
+5. **Ruolo del chunking cambiato**: non più per input/timeout, ma solo per **limitare
+   l'output** su pagine con tanti bandi; si taglia su **righe/blocchi atomici** (confini
+   semantici) → **non spezza mai un bando**.
+6. **Guardia update DB**: mai sbiancare un campo esistente con `null`/`""`/`[]`
+   (una ri-estrazione fallita non deve cancellare dati). *(Implementato, PR #48.)*
+7. **Scelta del provider secondaria**: DeepSeek / GLM / Gemini-paid sono tutti
+   economici e integrabili via `openai-compat.ts`. La cosa che conta è **uscire dal
+   free tier** quando serve, non quale provider.
 
-1. **Verificare fix URL relativi** — dopo deploy PR #41, lanciare il cron e controllare che Emilia-Romagna estragga di nuovo i 4 bandi
-2. **Risolvere sportesalute.eu** — ridurre MAX_CHARS o implementare chunking per evitare timeout Gemini
-3. **Ripristinare Fondazione Cariplo** — ripristinare l'URL originale nella source o trovare fonte alternativa
-4. **Abilitare altre fonti** — una alla volta, verificando che funzionino
-5. **Upgrade Vercel Pro** — 300s potrebbe non bastare per 12+ fonti con detail enrichment
-6. **Rigenerare tipi Supabase** — `mapping.ts` usa `as Record<string, unknown>` cast
+---
 
-## Design documents
+## 5. Cosa resta da fare / problemi aperti
 
-- `docs/bandi-scanner-v2-definitive.html` — tutte le 30 decisioni di design
-- `docs/bandi-scanner-v2-roadmap.html` — specifica funzionale, 15 branch, criteri di accettazione
-- `docs/adr/` — 8 ADR (one-account-one-entity, AI provider agnostic, rule-based matching, ecc.)
+### Da implementare (deciso ma non fatto)
+- [ ] **Runner GitHub Actions**: workflow schedulato che lancia lo scrape fuori da Vercel.
+- [ ] **Distillazione a lista-card**: oggi il codice manda ancora l'HTML sanitizzato
+      intero in chunk. Va introdotta la distillazione (card + href) come input della discovery.
+- [ ] **Mergiare il branch** `claude/scraper-v2-deploy-verify-55uegc` (`44410f3`,
+      discovery leggera) su main.
+
+### Decisioni di design ancora aperte (grilling da riprendere)
+- [ ] **Fonti aggregatore / listing-completo**: saltare il detail o catturare qualche
+      campo extra già in lista? (sportesalute = 214 domini esterni → detail classico infeasible).
+- [ ] **Filtro di rilevanza**: istruire l'LLM a tenere solo i bandi rilevanti per il
+      terzo settore, scartando gare/concessioni/contributi per privati.
+- [ ] **Cap detail per-run (cold start)**: il primo giro trova tutto nuovo → ~1 chiamata
+      per bando può sforare i 250 RPD. Serve un tetto per-run + ripresa multi-giorno.
+- [ ] **Identità dei bandi inline** (senza URL proprio): rompe il dedup per URL. Chiave
+      sintetica (`hash(source_id + titolo + scadenza)`)? Rimandato finché non entra una fonte inline (opzione c).
+
+### Problemi noti non risolti
+- [ ] **Fondazione Cariplo**: bloccata da Cloudflare anti-bot su Browserless. La sua
+      source nel DB è temporaneamente puntata a **sportesalute.eu** per test → **da ripristinare**.
+- [ ] **Rate limit Gemini free**: chiamate troppo ravvicinate → 429. Va gestito col throttle.
+- [ ] **Rigenerare i tipi Supabase** (`mapping.ts` usa cast `as Record<string, unknown>`).
+
+### Prossimo passo consigliato
+Riprendere il grilling dal punto "fonti aggregatore vs listing-magro", poi
+implementare distillazione + runner GitHub Actions, quindi abilitare 3-4 fonti in test.
