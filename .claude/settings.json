@@ -5,21 +5,9 @@
         "source": "github",
         "repo": "obra/superpowers"
       }
-    },
-    "ruflo": {
-      "source": {
-        "source": "github",
-        "repo": "ruvnet/ruflo"
-      }
     }
   },
   "enabledPlugins": {
-    "superpowers@superpowers-dev": true,
-    "ruflo-core@ruflo": true,
-    "ruflo-swarm@ruflo": true,
-    "ruflo-rag-memory@ruflo": true,
-    "ruflo-testgen@ruflo": true,
-    "ruflo-docs@ruflo": true,
-    "ruflo-security-audit@ruflo": true
+    "superpowers@superpowers-dev": true
   }
 }
