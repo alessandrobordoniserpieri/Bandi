@@ -915,6 +915,7 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 0.625rem;
   display: flex;
   flex-direction: column;
