@@ -9,7 +9,9 @@ import { throttledLoop } from "./throttle";
 import { sanitizeHtml } from "./sanitize-html";
 
 const DETAIL_STALE_DAYS = 7;
-const DETAIL_THROTTLE_MS = 7_000;
+// LLM-call spacing now lives in a single provider-level gate (see throttleProvider), which covers
+// both listing chunks and detail calls. The detail loop therefore adds no throttle of its own.
+const DETAIL_THROTTLE_MS = 0;
 
 export interface PipelineDeps {
   fetcher: PageFetcher;

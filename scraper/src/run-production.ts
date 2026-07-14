@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { ExtractedGrant, GrantsDb, PipelineResult, ScrapeLogEntry, StoredGrant } from "./pipeline/types";
 import { getProvider } from "./providers";
+import { throttleProvider } from "./providers/throttle-provider";
 import { BrowserlessFetcher } from "./pipeline/browserless-fetcher";
 import { SupabaseGrantsDb } from "./db/supabase-grants-db";
 import { loadEnabledSources } from "./sources";
@@ -68,7 +69,11 @@ export async function runProductionScrape(
   const client = createClient(supabaseUrl!, env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const llm = getProvider(env);
+  // Single throttle gate over EVERY LLM call (listing chunks + detail), so the provider rate limit
+  // (Gemini free ~15 req/min) is respected by construction across the whole pipeline, not just the
+  // detail phase. Default 5s ≈ 12 req/min. Tune via LLM_THROTTLE_MS.
+  const throttleMs = Number(env.LLM_THROTTLE_MS ?? "5000");
+  const llm = throttleProvider(getProvider(env), Number.isFinite(throttleMs) ? throttleMs : 5000);
   const fetcher = new BrowserlessFetcher({ apiKey: env.BROWSERLESS_API_KEY!, baseUrl: env.BROWSERLESS_URL });
   const db: GrantsDb = options.dryRun ? new DryRunGrantsDb(client) : new SupabaseGrantsDb(client);
 

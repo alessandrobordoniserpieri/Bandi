@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-14T19:43:59.340Z",
+  "timestamp": "2026-07-14T19:58:59.346Z",
   "projectRoot": "/workspaces/Bandi",
   "structure": {
     "hasPackageJson": true,
@@ -7,5 +7,5 @@
     "hasClaudeConfig": true,
     "hasClaudeFlow": true
   },
-  "scannedAt": 1784058239340
+  "scannedAt": 1784059139346
 }
