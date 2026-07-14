@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-07-14T19:43:59.340Z",
+  "projectRoot": "/workspaces/Bandi",
+  "structure": {
+    "hasPackageJson": true,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1784058239340
+}
