@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
   --bg: oklch(1.000 0.000 0);
@@ -100,7 +101,7 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-text-on-primary: var(--text-on-primary);
-  --color-primary: var(--primary);
+  --color-primary: var(--primary-fill);
   --color-primary-hover: var(--primary-hover);
   --color-primary-fill: var(--primary-fill);
   --color-primary-fill-hover: var(--primary-fill-hover);
@@ -113,6 +114,29 @@
   --color-error-light: var(--error-light);
   --color-info: var(--info);
   --color-info-light: var(--info-light);
+
+  /* shadcn/ui token bridge — maps shadcn's expected semantic names to the existing OKLCH roles,
+     so shadcn components inherit this design system's palette and flip in dark mode automatically
+     (the raw --* vars above already switch via prefers-color-scheme; no .dark class needed).
+     Note: --color-primary/--color-border/--color-ring above already serve as shadcn's primary/
+     border/ring (--color-primary points at the fill role for bg-primary). */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface-raised);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--text);
+  --color-primary-foreground: var(--text-on-primary);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--primary-light);
+  --color-accent-foreground: var(--primary);
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--text-on-primary);
+  --color-input: var(--border);
+
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
 }
