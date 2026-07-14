@@ -13,6 +13,15 @@ capiti e decisi in questa sessione (grilling incluso).
 > - Le idee di **distillazione a lista-link** e **runner GitHub Actions** sono
 >   **decise ma NON ancora implementate**: il codice manda tuttora l'HTML
 >   sanitizzato intero (in chunk), non un elenco distillato.
+>
+> **Aggiornamento — PR #52 (implementata):** molte delle decisioni qui sotto sono
+> ora in codice. Sistema di **archetipi** (`full` / `listing-light`, registro in
+> `scraper/src/pipeline/archetypes.ts`), **throttle unico** a livello provider su
+> tutte le chiamate LLM, **budget di tempo conservativo** (270s) con log di run
+> troncato, **ordinamento fonti** per `priority` + `last_run_at` (migration `0010`),
+> **scheduler** Supabase `pg_cron`+`pg_net` ogni 6 min → endpoint Vercel (migration
+> `0011`). Timeout per-chiamata LLM 60s→35s. Debito: etichettare ogni fonte col suo
+> archetipo. Restano NON implementati: distillazione a lista-link e runner GitHub Actions.
 
 ---
 
@@ -77,7 +86,7 @@ Pipeline a **due fasi** (`run.ts`):
   pagina del singolo bando → `extractDetail` (16 campi ricchi) → `markDetailFetched`.
   - `findGrantsNeedingDetail` **già esclude** `status = "scaduto"`
     (`supabase-grants-db.ts`) → nessun bando scaduto riceve mai una chiamata detail.
-  - Throttle 7s tra i bandi.
+  - Il throttle tra i bandi è ora un **gate unico a livello provider** (vedi PR #52).
 
 ### Scoperte empiriche (misurate sulla pagina reale sportesalute, 1MB)
 - Sanitizzato: **191K char (~48K token)**; distillato ad **ancore+href: ~7.9K token**;

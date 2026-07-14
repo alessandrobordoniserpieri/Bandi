@@ -3,6 +3,9 @@
 export interface ThrottleOptions {
   delayMs: number;
   sleep?: (ms: number) => Promise<void>;
+  // Checked before each item; when it returns true the loop stops early (remaining items are left
+  // untouched). Used to honor the time budget mid-loop. `stoppedAt` reports the index reached.
+  shouldStop?: () => boolean;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -10,6 +13,8 @@ const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 export interface ThrottledResult<T> {
   results: (T | null)[];
   errors: string[];
+  // Number of items not processed because shouldStop() fired (0 when the loop ran to completion).
+  stoppedShort: number;
 }
 
 export async function throttledLoop<T>(
@@ -22,6 +27,9 @@ export async function throttledLoop<T>(
   const errors: string[] = [];
 
   for (let i = 0; i < items.length; i++) {
+    if (opts.shouldStop?.()) {
+      return { results, errors, stoppedShort: items.length - i };
+    }
     const item = items[i]!;
     try {
       results.push(await fn(item));
@@ -34,5 +42,5 @@ export async function throttledLoop<T>(
     }
   }
 
-  return { results, errors };
+  return { results, errors, stoppedShort: 0 };
 }

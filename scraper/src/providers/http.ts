@@ -21,8 +21,10 @@ export interface HttpRequest {
 export type FetchLike = (url: string, init: HttpRequest) => Promise<HttpResponse>;
 
 // Per-request cap so a hung provider can't stall the pipeline; a fired timeout aborts the
-// fetch, which postJson maps to a retryable "errore di rete".
-export const DEFAULT_TIMEOUT_MS = 60_000;
+// fetch, which postJson maps to a retryable "errore di rete". Kept well under the scrape time
+// budget so a single slow/hung call (e.g. an oversized page) can't eat a large slice of the run's
+// ~270s — it fails fast and the grant is retried next run instead.
+export const DEFAULT_TIMEOUT_MS = 35_000;
 
 // Config every adapter accepts. `fetchImpl` and `retry` are injected in tests.
 export interface ProviderConfig {

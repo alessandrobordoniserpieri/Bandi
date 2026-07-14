@@ -163,6 +163,7 @@ describe("extractGrants", () => {
     const bigHtml = "a".repeat(50_000);
     const calls: string[] = [];
     const llm: LLMProvider = {
+      name: "fake",
       async extract({ html }) {
         calls.push(`len=${html.length}`);
         return [{ title: `Bando ${calls.length}`, url: `https://x/${calls.length}` }];
@@ -180,6 +181,7 @@ describe("extractGrants", () => {
     const bigHtml = "a".repeat(50_000);
     const duplicate = { title: "Same Bando", url: "https://x/same" };
     const llm: LLMProvider = {
+      name: "fake",
       async extract() { return [duplicate]; },
     };
     const out = await extractGrants(
@@ -194,6 +196,7 @@ describe("extractGrants", () => {
     const bigHtml = "a".repeat(50_000);
     let call = 0;
     const llm: LLMProvider = {
+      name: "fake",
       async extract() {
         call++;
         return call === 1
@@ -216,6 +219,7 @@ describe("extractGrants", () => {
     const bigHtml = item.repeat(600);
     const seen: string[] = [];
     const llm: LLMProvider = {
+      name: "fake",
       async extract({ html }) {
         seen.push(html);
         return [];

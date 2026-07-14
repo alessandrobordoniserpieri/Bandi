@@ -1,6 +1,6 @@
 // scraper/src/pipeline/extract-grants.ts
 import type { LLMProvider, JsonSchema } from "../providers/types";
-import type { ExtractedGrant, GrantsDb, RawPage } from "./types";
+import type { Archetype, ExtractedGrant, GrantsDb, RawPage } from "./types";
 import { TAG_SET, LEGAL_TYPE_SET, DOCUMENT_KEY_SET, GEO_SCOPES, COMPLEXITY, GRANT_STATUS } from "./vocab";
 import type { GeoScope, Complexity, GrantStatus } from "./vocab";
 import { parseItalianAmount } from "./enrich";
@@ -83,7 +83,7 @@ function collectHrefs(html: string): Set<string> {
   let m: RegExpExecArray | null;
   while ((m = HREF_RE.exec(html)) !== null) {
     const href = m[1];
-    if (isValidHttpUrl(href)) set.add(href);
+    if (href && isValidHttpUrl(href)) set.add(href);
   }
   return set;
 }
@@ -182,8 +182,8 @@ const OVERLAP = 5_000;
 // mid-record. Fallback to the last space, then a hard cut, so we always make progress.
 const BOUNDARY_TAGS = ["</h2>", "</h3>", "</table>", "</tr>", "</li>", "</p>"];
 
-function findBoundary(text: string, from: number, to: number): number {
-  for (const tag of BOUNDARY_TAGS) {
+function findBoundary(text: string, from: number, to: number, boundaryTags: string[]): number {
+  for (const tag of boundaryTags) {
     const idx = text.lastIndexOf(tag, to);
     if (idx > from) return idx + tag.length;
   }
@@ -191,13 +191,13 @@ function findBoundary(text: string, from: number, to: number): number {
   return space > from ? space : to;
 }
 
-function splitIntoChunks(text: string, maxLen: number, overlap: number = OVERLAP): string[] {
+function splitIntoChunks(text: string, maxLen: number, overlap: number, boundaryTags: string[]): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];
   let start = 0;
   while (start < text.length) {
     const hardEnd = start + maxLen;
-    const end = hardEnd >= text.length ? text.length : findBoundary(text, start, hardEnd);
+    const end = hardEnd >= text.length ? text.length : findBoundary(text, start, hardEnd, boundaryTags);
     chunks.push(text.slice(start, end));
     if (end >= text.length) break;
     const step = end - overlap;
@@ -210,13 +210,13 @@ async function extractFromChunks(
   chunks: string[],
   llm: LLMProvider,
   pageUrl: string,
+  schema: JsonSchema,
+  instructions: string,
 ): Promise<unknown[]> {
   const allItems: unknown[] = [];
   for (const chunk of chunks) {
     try {
-      let raw: unknown = await llm.extract({
-        html: chunk, schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS,
-      });
+      let raw: unknown = await llm.extract({ html: chunk, schema, instructions });
       if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { continue; } }
       if (isUnknownArray(raw)) allItems.push(...raw);
     } catch (err) {
@@ -226,19 +226,38 @@ async function extractFromChunks(
   return allItems;
 }
 
+// Default extraction strategy (archetype "full" / A): the listing page carries all fields, the
+// detail phase is optional enrichment. Uses the default sanitizer, chunker, boundary tags and URL
+// snapping. Other archetypes live in archetypes.ts and override only what differs. Declared here,
+// after the constants it references, to avoid a temporal-dead-zone error at module load.
+export const FULL_ARCHETYPE: Archetype = {
+  name: "full",
+  sanitize: sanitizeHtml,
+  chunkSize: CHUNK_SIZE,
+  overlap: OVERLAP,
+  boundaryTags: BOUNDARY_TAGS,
+  urlSnapping: true,
+  listing: { schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS },
+  detailRequired: false,
+};
+
 export async function extractGrants(
-  page: RawPage, deps: { llm: LLMProvider; db: GrantsDb },
+  page: RawPage,
+  deps: { llm: LLMProvider; db: GrantsDb },
+  archetype: Archetype = FULL_ARCHETYPE,
 ): Promise<ExtractedGrant[]> {
-  const cleaned = sanitizeHtml(page.html);
+  const cleaned = archetype.sanitize(page.html);
   const hrefs = collectHrefs(cleaned);
-  const chunks = splitIntoChunks(cleaned, CHUNK_SIZE);
+  const chunks = splitIntoChunks(cleaned, archetype.chunkSize, archetype.overlap, archetype.boundaryTags);
 
-  console.log(`[extractGrants] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
+  console.log(`[extractGrants:${archetype.name}] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
 
-  const rawItems = await extractFromChunks(chunks, deps.llm, page.url);
+  const rawItems = await extractFromChunks(
+    chunks, deps.llm, page.url, archetype.listing.schema, archetype.listing.instructions,
+  );
   if (rawItems.length === 0) return [];
 
-  console.log(`[extractGrants] ${page.url}: LLM returned ${rawItems.length} items total`);
+  console.log(`[extractGrants:${archetype.name}] ${page.url}: LLM returned ${rawItems.length} items total`);
   const byUrl = new Map<string, { grant: ExtractedGrant; item: unknown }>();
   for (const item of rawItems) {
     const coerced = coerce(item, page.sourceId, page.url);
@@ -247,8 +266,11 @@ export async function extractGrants(
       console.warn(`[extractGrants] coerce rejected: title=${o?.title} url=${o?.url}`);
       continue;
     }
-    const snapped = snapToHref(coerced.url, hrefs);
-    if (snapped) coerced.url = snapped;
+    // URL snapping is opt-in per archetype and needs hrefs to have survived cleaning.
+    if (archetype.urlSnapping) {
+      const snapped = snapToHref(coerced.url, hrefs);
+      if (snapped) coerced.url = snapped;
+    }
     const providerId = await resolveProviderId(item, deps.db);
     const next: ExtractedGrant = { ...coerced, providerId };
     const prev = byUrl.get(next.url);

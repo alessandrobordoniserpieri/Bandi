@@ -1,13 +1,41 @@
 // scraper/src/pipeline/types.ts
 import type { GeoScope, Complexity, GrantStatus, FundingType } from "./vocab";
+import type { JsonSchema } from "../providers/types";
 
 // Per-source scraping hints stored in grant_sources.scrape_config (jsonb). All optional:
 // listUrl overrides the source url for the listing page; maxPages caps pagination (MVP: 1);
-// waitFor is passed to the fetcher (CSS selector or ms) to wait before capturing HTML.
+// waitFor is passed to the fetcher (CSS selector or ms) to wait before capturing HTML;
+// archetype selects the extraction strategy from the registry (default "full").
 export interface ScrapeConfig {
   listUrl?: string;
   maxPages?: number;
   waitFor?: string;
+  archetype?: string;
+}
+
+// An extraction strategy for a family of sites. The pipeline nucleus (coerce, vocabulary
+// validation, URL snapping, dedup/merge, Italian-amount parsing) is shared across all archetypes;
+// an archetype only supplies the parts that genuinely vary from site family to site family. New
+// archetypes are added to the registry in archetypes.ts, never by forking the orchestrator.
+export interface Archetype {
+  name: string;
+  // HTML cleaning. Must be kept coherent with boundaryTags (the chunker splits on those closing
+  // tags) and with urlSnapping (which needs href="..." to survive cleaning).
+  sanitize: (html: string) => string;
+  chunkSize: number;
+  overlap: number;
+  // Closing tags the chunker may split on, so a grant is never cut mid-record. Declared explicitly
+  // per archetype: an archetype with a custom sanitize that drops these must pass a coherent list
+  // (or [] to fall back to whitespace splitting) rather than silently losing the guarantee.
+  boundaryTags: string[];
+  // When true, a hallucinated URL is snapped to the closest same-domain href in the page. Requires
+  // sanitize to preserve href attributes.
+  urlSnapping: boolean;
+  // The listing-page extraction. "full" pulls all 16 fields; "listing-light" pulls only title/url/
+  // deadline and leaves the rest to the detail phase.
+  listing: { schema: JsonSchema; instructions: string };
+  // True when the listing is intentionally light and the detail phase is essential (archetype B).
+  detailRequired: boolean;
 }
 
 export interface SourceConfig { id: string; name: string; url: string; scrapeConfig?: ScrapeConfig; }
