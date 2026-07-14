@@ -2,11 +2,11 @@
 import type { LLMProvider } from "../providers/types";
 import type { GrantsDb, PageFetcher, PipelineResult, SourceConfig, StoredGrant } from "./types";
 import { extractGrants } from "./extract-grants";
+import { resolveArchetype } from "./archetypes";
 import { extractDetail } from "./extract-detail";
 import { enrich } from "./enrich";
 import { saveGrant } from "./save";
 import { throttledLoop } from "./throttle";
-import { sanitizeHtml } from "./sanitize-html";
 import { UNLIMITED_BUDGET, type Budget } from "./budget";
 
 const DETAIL_STALE_DAYS = 7;
@@ -63,15 +63,16 @@ export async function runPipeline(
       sourceId: source.id, inserted: 0, updated: 0, skipped: 0, errors: [], detailErrors: [],
     };
     const listingStart = Date.now();
+    const archetype = resolveArchetype(source.scrapeConfig?.archetype);
 
     try {
       const pages = await deps.fetcher.fetchPages(source);
       for (const page of pages) {
-        const cleaned = sanitizeHtml(page.html);
+        const cleaned = archetype.sanitize(page.html);
         if (deps.db.logDebugHtml) {
           await deps.db.logDebugHtml(source.id, page.url, page.html, cleaned).catch(() => {});
         }
-        const grants = await extractGrants(page, { llm: deps.llm, db: deps.db });
+        const grants = await extractGrants(page, { llm: deps.llm, db: deps.db }, archetype);
         for (const raw of grants) {
           const outcome = await saveGrant(enrich(raw), deps.db);
           result[outcome] += 1;
