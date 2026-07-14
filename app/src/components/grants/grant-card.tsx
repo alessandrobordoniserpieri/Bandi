@@ -17,7 +17,7 @@ export function GrantCard({
   return (
     <article
       data-density={density}
-      className="group relative flex gap-4 rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow] duration-200 hover:border-border-hover hover:shadow-md motion-reduce:transition-none group-data-[density=compact]:gap-3 data-[density=compact]:gap-3 data-[density=compact]:p-3"
+      className="group relative flex gap-4 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-200 hover:border-border-hover hover:shadow-[var(--shadow-md)] motion-reduce:transition-none group-data-[density=compact]:gap-3 data-[density=compact]:gap-3 data-[density=compact]:p-3"
     >
       {/* Score column — the primary information (score-first hierarchy). Number + a verdict-colored
           bar, deliberately not a ring (anti-gamification). */}
