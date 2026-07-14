@@ -4,6 +4,8 @@ import { FakeLLMProvider } from "../src/providers/fake";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import { FixtureFetcher } from "./helpers/fixtures";
 import type { RawPage, SourceConfig } from "../src/pipeline/types";
+import type { Budget } from "../src/pipeline/budget";
+import { createBudget } from "../src/pipeline/budget";
 
 const sources: SourceConfig[] = [
   { id: "s1", name: "Fonte 1", url: "https://a/list" },
@@ -68,5 +70,38 @@ describe("runPipeline", () => {
     ]));
     const [r1] = await runPipeline(sources, { ...deps, llm: llm2 });
     expect(r1).toMatchObject({ updated: 1, skipped: 1 });
+  });
+
+  it("skips all sources and reports truncation when the budget is already exhausted", async () => {
+    const deps = makeDeps();
+    const exhausted: Budget = { hasTimeFor: () => false, remainingMs: () => 0 };
+    const truncated: { skipped: SourceConfig[]; total: number }[] = [];
+    const results = await runPipeline(sources, {
+      ...deps,
+      budget: exhausted,
+      onTruncated: (skipped, total) => truncated.push({ skipped, total }),
+    });
+    expect(results).toEqual([]);              // nothing processed
+    expect(deps.db.grants.length).toBe(0);
+    expect(truncated).toHaveLength(1);
+    expect(truncated[0]!.skipped.map((s) => s.id)).toEqual(["s1", "s2"]);
+    expect(truncated[0]!.total).toBe(2);
+  });
+
+  it("processes sources until the budget runs out, then truncates the rest", async () => {
+    const deps = makeDeps();
+    // A clock that advances 200s per read. First source's gate check passes (t=0 < deadline 250s),
+    // subsequent checks push past the 250s deadline, so the second source is skipped.
+    let reads = 0;
+    const now = () => (reads++) * 200_000;
+    const truncated: SourceConfig[][] = [];
+    const results = await runPipeline(sources, {
+      ...deps,
+      budget: createBudget(250_000, now),
+      worstCaseCallMs: 40_000,
+      onTruncated: (skipped) => truncated.push(skipped),
+    });
+    expect(results.map((r) => r.sourceId)).toEqual(["s1"]); // only the first ran
+    expect(truncated[0]!.map((s) => s.id)).toEqual(["s2"]);
   });
 });

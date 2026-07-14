@@ -7,11 +7,16 @@ import { enrich } from "./enrich";
 import { saveGrant } from "./save";
 import { throttledLoop } from "./throttle";
 import { sanitizeHtml } from "./sanitize-html";
+import { UNLIMITED_BUDGET, type Budget } from "./budget";
 
 const DETAIL_STALE_DAYS = 7;
 // LLM-call spacing now lives in a single provider-level gate (see throttleProvider), which covers
 // both listing chunks and detail calls. The detail loop therefore adds no throttle of its own.
 const DETAIL_THROTTLE_MS = 0;
+// Worst-case duration of one LLM call (per-call timeout × retries + throttle). The budget refuses
+// to start a unit of work unless this much time remains, so a call can never straddle Vercel's
+// hard 300s kill. Overridable per run (see run-production).
+const DEFAULT_WORST_CASE_CALL_MS = 40_000;
 
 export interface PipelineDeps {
   fetcher: PageFetcher;
@@ -19,14 +24,41 @@ export interface PipelineDeps {
   db: GrantsDb;
   detailThrottleMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  // Conservative wall-clock budget for the whole invocation. Defaults to unlimited (manual/tests).
+  budget?: Budget;
+  worstCaseCallMs?: number;
+  // Called once when the budget cuts the run short, with the sources never reached. Defaults to a
+  // console.warn so the truncation is visible in Vercel logs.
+  onTruncated?: (skipped: SourceConfig[], total: number) => void;
 }
+
+const defaultOnTruncated = (skipped: SourceConfig[], total: number): void => {
+  console.warn(
+    `[runPipeline] budget esaurito: run troncato, saltate ${skipped.length}/${total} fonti: ` +
+      skipped.map((s) => s.name).join(", "),
+  );
+};
 
 export async function runPipeline(
   sources: SourceConfig[],
   deps: PipelineDeps,
 ): Promise<PipelineResult[]> {
   const results: PipelineResult[] = [];
-  for (const source of sources) {
+  const budget = deps.budget ?? UNLIMITED_BUDGET;
+  const worstCaseCallMs = deps.worstCaseCallMs ?? DEFAULT_WORST_CASE_CALL_MS;
+
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i]!;
+
+    // Conservative gate: never start a source unless there is time left for at least one
+    // worst-case LLM call. The remaining sources are left for the next run (they keep their older
+    // last_run_at, so they sort to the front) and the truncation is reported.
+    if (!budget.hasTimeFor(worstCaseCallMs)) {
+      const skipped = sources.slice(i);
+      (deps.onTruncated ?? defaultOnTruncated)(skipped, sources.length);
+      break;
+    }
+
     const result: PipelineResult = {
       sourceId: source.id, inserted: 0, updated: 0, skipped: 0, errors: [], detailErrors: [],
     };
@@ -70,7 +102,7 @@ export async function runPipeline(
       if (needDetail.length > 0) {
         const items = needDetail.map((g) => ({ id: g.id, label: g.title }));
 
-        const { errors: detailErrs } = await throttledLoop(
+        const { errors: detailErrs, stoppedShort } = await throttledLoop(
           items,
           async (item) => {
             const grant = needDetail.find((g) => g.id === item.id)!;
@@ -103,9 +135,17 @@ export async function runPipeline(
             await deps.db.markDetailFetched(grant.id, patch);
             detailEnriched++;
           },
-          { delayMs: deps.detailThrottleMs ?? DETAIL_THROTTLE_MS, sleep: deps.sleep },
+          {
+            delayMs: deps.detailThrottleMs ?? DETAIL_THROTTLE_MS,
+            sleep: deps.sleep,
+            // Stop enriching once the budget can no longer afford a worst-case call. The un-enriched
+            // grants keep detail_fetched_at null and are picked up by the next run.
+            shouldStop: () => !budget.hasTimeFor(worstCaseCallMs),
+          },
         );
 
+        // Grants left un-enriched by the budget count as skipped (they retry next run).
+        detailSkipped += stoppedShort;
         result.detailErrors.push(...detailErrs);
       }
     } catch (err) {

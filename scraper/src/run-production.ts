@@ -7,6 +7,7 @@ import { BrowserlessFetcher } from "./pipeline/browserless-fetcher";
 import { SupabaseGrantsDb } from "./db/supabase-grants-db";
 import { loadEnabledSources } from "./sources";
 import { runPipeline } from "./pipeline/run";
+import { createBudget } from "./pipeline/budget";
 
 export interface ScrapeOptions {
   source?: string;   // filter to a single source by name or id
@@ -81,5 +82,19 @@ export async function runProductionScrape(
   if (options.source) {
     sources = sources.filter((s) => s.name === options.source || s.id === options.source);
   }
-  return runPipeline(sources, { fetcher, llm, db });
+
+  // Soft wall-clock budget below Vercel's 300s hard kill (default 270s, 30s margin). The pipeline
+  // stops starting new sources / detail calls once less than one worst-case call fits.
+  const budgetMs = numberEnv(env.SCRAPE_BUDGET_MS, 270_000);
+  const worstCaseCallMs = numberEnv(env.LLM_CALL_WORST_CASE_MS, 40_000);
+  return runPipeline(sources, {
+    fetcher, llm, db,
+    budget: createBudget(budgetMs),
+    worstCaseCallMs,
+  });
+}
+
+function numberEnv(raw: string | undefined, fallback: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
 }
