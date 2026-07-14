@@ -387,6 +387,9 @@ details > :not(summary) { padding: 1rem; }
   height: 3.5rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-raised);
+  position: sticky;
+  top: 0;
+  z-index: 20;
   flex-shrink: 0;
 }
 .app-brand {
