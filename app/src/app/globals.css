@@ -568,6 +568,13 @@ main {
 /* GRANT CARD                                                          */
 /* ------------------------------------------------------------------ */
 
+/* Vertical rhythm for the grant list (the card component itself carries no margin). */
+.grant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .grant-card {
   display: flex;
   align-items: stretch;

@@ -53,7 +53,11 @@ export default async function DashboardPage(
       <FilterBar filters={filters} sort={sort} density={density} />
       {shown.length === 0
         ? <EmptyState profileComplete={percent >= 100} />
-        : shown.map((m) => <GrantCard key={m.grant.id} matched={m} density={density} />)}
+        : (
+          <div className="grant-list">
+            {shown.map((m) => <GrantCard key={m.grant.id} matched={m} density={density} />)}
+          </div>
+        )}
     </main>
   );
 }
