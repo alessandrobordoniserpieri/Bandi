@@ -1,7 +1,10 @@
 export function CompletionBar({ percent }: { percent: number }) {
   return (
     <div className="completion-bar">
-      <span className="completion-bar-label">Completamento profilo: <strong>{percent}%</strong></span>
+      <div className="completion-bar-head">
+        <span className="completion-bar-label">Completamento profilo</span>
+        <strong className="completion-bar-percent">{percent}%</strong>
+      </div>
       <progress value={percent} max={100}>{percent}%</progress>
     </div>
   );

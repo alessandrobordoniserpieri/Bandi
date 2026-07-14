@@ -41,7 +41,7 @@ export default async function ProfiloPage() {
       </div>
       <CompletionBar percent={percent} />
       {suggestions.length > 0 && (
-        <ul style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", margin: "0 0 1.5rem", paddingLeft: "1.25rem" }}>
+        <ul className="profile-hints">
           {suggestions.map((s) => <li key={s.section}>{s.message}</li>)}
         </ul>
       )}
