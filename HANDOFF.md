@@ -127,6 +127,23 @@ Queste erano le fonti nella versione beta (`grant-radar-server.mjs`, ora rimosso
 4. **URL relativi**: Gemini restituisce path relativi invece di URL assoluti. Fix: risoluzione con `new URL(raw, pageUrl)` (PR #41).
 5. **Rate limit Gemini**: piano free ha ~15 req/min. Troppe chiamate ravvicinate danno 429.
 
+## Refactor scraping (2026-07-14, PR #52)
+
+Ristrutturazione dell'architettura di scraping per la produzione con molte fonti. Dettagli completi in issue #52.
+
+- **Archetipi** (`scraper/src/pipeline/archetypes.ts`): strategia di estrazione per famiglia di siti, scelta da `scrape_config.archetype` (default `full`). Override mirati (sanitize, chunking, boundary tags, url-snapping, schema/istruzioni LLM) su un nucleo condiviso. `full` (A, listing pieno) e `listing-light` (B, solo titolo/url/deadline + detail essenziale). Nuovi archetipi si aggiungono al registro in codice.
+- **Throttle unico** (`throttleProvider`): un solo gate su TUTTE le chiamate LLM (listing-chunk + detail), non più solo detail. `LLM_THROTTLE_MS` default 5s.
+- **Budget di tempo conservativo** (`budget.ts`): soft 270s (`SCRAPE_BUDGET_MS`), non inizia una fonte/chiamata se non c'è margine per un caso peggiore (`LLM_CALL_WORST_CASE_MS` 40s) → mai a cavallo dei 300s Vercel. Log esplicito di run troncato. Timeout per-chiamata LLM 60s→35s.
+- **Ordinamento fonti** (`loadEnabledSources`): `priority` (enum high/medium/low, default medium) + `last_run_at` asc (nulls first) → round-robin anti-fame. Migration `0010`.
+- **Scheduler** (migration `0011`): Supabase `pg_cron` + `pg_net` ogni 6 min → endpoint Vercel esistente; esecuzione resta su Vercel. Richiede due secret in Vault (`scrape_endpoint_url`, `scrape_cron_secret`). Migrazione a Vercel Pro = `cron.unschedule` + riga in `vercel.json`.
+- **Debito**: etichettare esplicitamente ogni fonte (incluse le disabilitate) col proprio archetipo.
+
+### Problemi noti risolti da questo refactor
+- Throttle non uniforme (solo detail) → gate unico a livello provider.
+- Nessun budget di tempo nei 300s → budget conservativo + troncamento osservabile.
+- sportesalute.eu timeout su pagina grande → timeout per-chiamata 35s (fail-fast, retry al run dopo) + archetipo dedicato possibile.
+- Fonti in coda mai raggiunte → ordinamento priority + last_run_at.
+
 ## Migrazioni DB applicate (Supabase)
 
 - `0001_enums.sql` → enum types (grant_status, geo_scope, complexity, funding_type)

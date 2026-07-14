@@ -36,10 +36,18 @@ cd scraper && npm run scrape -- --dry-run  # extract without writing to DB
 
 ### Scraper pipeline (`scraper/src/pipeline/`)
 
-Two-phase pipeline triggered by Vercel cron (`GET /api/cron/scrape`, daily 03:00 UTC):
+Two-phase pipeline. Scheduling is by Supabase `pg_cron` + `pg_net` every 6 min (migration 0011), which POSTs the existing Vercel endpoint (`/api/cron/scrape`); execution stays on Vercel (Node, 300s). A daily Vercel cron in `vercel.json` remains as a backstop.
 
-1. **Listing phase**: `fetchPages` (Browserless headless Chrome) → `sanitizeHtml` (strip noise, 80K char cap) → `extractGrants` (Gemini 2.5 Flash structured JSON) → `enrich` → `saveGrant` (dedup by URL)
-2. **Detail phase**: for grants missing detail data, fetch individual pages → `extractDetail` → `markDetailFetched`. 7s throttle between Gemini calls.
+1. **Listing phase**: `fetchPages` (Browserless) → `archetype.sanitize` → `extractGrants` (archetype-parameterized, Gemini structured JSON) → `enrich` → `saveGrant` (dedup by URL)
+2. **Detail phase**: for grants with `detail_fetched_at` null or stale (>7d), fetch individual pages → `extractDetail` → `markDetailFetched`.
+
+**Archetypes** (`archetypes.ts`): extraction strategy per site-family, selected by `scrape_config.archetype` (default `full`). An archetype overrides only what varies — `sanitize`, `chunkSize`/`overlap`, `boundaryTags`, `urlSnapping`, listing schema/instructions — while the nucleus (`coerce`, vocabulary validation, `snapToHref`, `mergeGrants`, `parseItalianAmount`) is shared. `full` (A) = full listing, optional detail; `listing-light` (B) = title/url/deadline only, detail essential. Add new archetypes to the registry, never by forking the orchestrator.
+
+**Throttle**: a single provider-level gate (`throttleProvider`, `LLM_THROTTLE_MS` default 5s) spaces ALL LLM calls (listing chunks + detail), not just the detail phase.
+
+**Time budget** (`budget.ts`): a conservative wall-clock budget (`SCRAPE_BUDGET_MS` default 270s) enforced in `runPipeline` — never start a source or detail call unless one worst-case LLM call still fits, so a call can't straddle Vercel's 300s kill. Skipped work is picked up next run; a truncation is logged.
+
+**Source ordering** (`loadEnabledSources`): priority-first (`priority` enum high→medium→low, default medium), `last_run_at` ascending (nulls first) as the in-band tiebreaker — a self-balancing round-robin so budget-skipped sources rise to the top next run.
 
 Key seams (interfaces in `types.ts`): `PageFetcher`, `LLMProvider`, `GrantsDb` — all dependency-injected, with in-memory fakes for tests.
 
@@ -78,3 +86,5 @@ Protected by `CRON_SECRET` header. Both routes use `Cache-Control: no-store` to 
 App: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `RESEND_API_KEY`
 
 Scraper (also needed in app for cron): `AI_PROVIDER` (default: gemini), `GEMINI_API_KEY`, `BROWSERLESS_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+
+Scraper tuning (optional, sensible defaults): `LLM_THROTTLE_MS` (5000), `SCRAPE_BUDGET_MS` (270000), `LLM_CALL_WORST_CASE_MS` (40000).
