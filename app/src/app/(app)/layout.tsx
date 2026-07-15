@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../(auth)/actions";
+import { NavTabs } from "./nav-tabs";
+import { Button } from "@/components/ui/button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -25,15 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div>
       <nav className="app-nav">
         <strong className="app-brand">BANDI-SCANNER</strong>
-        {isOnboarded && (
-          <div className="app-tabs">
-            <Link href="/">Dashboard</Link>
-            <Link href="/nuovi-bandi">Nuovi bandi</Link>
-            <Link href="/i-miei-bandi">I miei bandi</Link>
-            <Link href="/profilo">Profilo</Link>
-          </div>
-        )}
-        <form action={signOut} className="app-logout"><button type="submit">Esci</button></form>
+        {isOnboarded && <NavTabs />}
+        <form action={signOut} className="app-logout">
+          <Button type="submit" variant="ghost" size="sm">Esci</Button>
+        </form>
       </nav>
       {children}
     </div>

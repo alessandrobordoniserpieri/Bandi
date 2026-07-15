@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { signIn, type AuthState } from "../actions";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState<AuthState, FormData>(signIn, undefined);
@@ -20,7 +21,7 @@ export default function LoginPage() {
           <Link href="/recupera-password" className="auth-recover-link">Password dimenticata?</Link>
         </div>
         {state && "error" in state && <p role="alert" className="form-feedback" data-type="error">{state.error}</p>}
-        <button type="submit" className="btn-primary" disabled={pending}>{pending ? "Accesso…" : "Accedi"}</button>
+        <Button type="submit" className="w-full" disabled={pending}>{pending ? "Accesso…" : "Accedi"}</Button>
       </form>
       <p className="auth-footer">Non hai un account? <Link href="/signup">Registra il tuo ente</Link></p>
     </AuthShell>

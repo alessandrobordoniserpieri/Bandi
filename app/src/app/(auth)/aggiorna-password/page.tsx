@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updatePassword, type AuthState } from "../actions";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { Button } from "@/components/ui/button";
 
 export default function AggiornaPasswordPage() {
   const [state, action, pending] = useActionState<AuthState, FormData>(updatePassword, undefined);
@@ -14,7 +15,7 @@ export default function AggiornaPasswordPage() {
         <label htmlFor="password">Nuova password</label>
         <input id="password" name="password" type="password" autoComplete="new-password" required minLength={6} />
         {state && "error" in state && <p role="alert" className="form-feedback" data-type="error">{state.error}</p>}
-        <button type="submit" className="btn-primary" disabled={pending}>{pending ? "Salvataggio…" : "Salva nuova password"}</button>
+        <Button type="submit" className="w-full" disabled={pending}>{pending ? "Salvataggio…" : "Salva nuova password"}</Button>
       </form>
     </AuthShell>
   );

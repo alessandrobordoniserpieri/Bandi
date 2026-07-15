@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { ExtractedGrant } from "bandi-scraper";
+import { Button } from "@/components/ui/button";
 
 type Phase =
   | { step: "closed" }
@@ -61,9 +62,9 @@ export function SubmitUrlDialog() {
 
   if (phase.step === "closed") {
     return (
-      <button type="button" onClick={() => setPhase({ step: "input" })} style={{ marginBottom: "1rem" }}>
+      <Button type="button" variant="outline" onClick={() => setPhase({ step: "input" })} className="mb-4">
         Segnala un bando
-      </button>
+      </Button>
     );
   }
 
@@ -81,7 +82,7 @@ export function SubmitUrlDialog() {
               placeholder="https://…"
               onChange={(e) => setUrl(e.target.value)}
             />
-            <button type="button" className="btn-primary" onClick={preview} disabled={!url}>Analizza</button>
+            <Button type="button" onClick={preview} disabled={!url}>Analizza</Button>
           </div>
         </div>
       )}
@@ -99,8 +100,8 @@ export function SubmitUrlDialog() {
             <li>Forme ammesse: {phase.grant.eligibleTypes.join(", ") || "n/d"}</li>
           </ul>
           <div className="submit-dialog-actions">
-            <button type="button" className="btn-primary" onClick={() => confirm(phase.grant)}>Conferma e pubblica</button>
-            <button type="button" onClick={() => setPhase({ step: "input" })}>Annulla</button>
+            <Button type="button" onClick={() => confirm(phase.grant)}>Conferma e pubblica</Button>
+            <Button type="button" variant="outline" onClick={() => setPhase({ step: "input" })}>Annulla</Button>
           </div>
         </div>
       )}
@@ -118,7 +119,7 @@ export function SubmitUrlDialog() {
         </p>
       )}
 
-      <button type="button" className="btn-ghost btn-sm" onClick={() => { setPhase({ step: "closed" }); setUrl(""); }}>Chiudi</button>
+      <Button type="button" variant="ghost" size="sm" onClick={() => { setPhase({ step: "closed" }); setUrl(""); }}>Chiudi</Button>
     </section>
   );
 }

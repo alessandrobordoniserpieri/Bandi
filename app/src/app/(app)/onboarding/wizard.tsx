@@ -5,6 +5,7 @@ import { createProfile, type ProfileActionState } from "@/lib/profile/actions";
 import { SectionIdentity } from "@/components/profile/section-identity";
 import { SectionTerritory } from "@/components/profile/section-territory";
 import { SectionThemes } from "@/components/profile/section-themes";
+import { Button } from "@/components/ui/button";
 
 const STEPS = ["Identità", "Territorio", "Temi e attività"];
 
@@ -26,12 +27,12 @@ export function OnboardingWizard() {
       <div hidden={step !== 2}><SectionThemes /></div>
       {state && "error" in state && <p role="alert" className="form-feedback" data-type="error">{state.error}</p>}
       <div className="wizard-actions">
-        {step > 0 && <button type="button" onClick={() => setStep(step - 1)}>Indietro</button>}
+        {step > 0 && <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>Indietro</Button>}
         {step < STEPS.length - 1
-          ? <button type="button" className="btn-primary" onClick={() => setStep(step + 1)}>Avanti</button>
-          : <button type="submit" className="btn-primary" disabled={pending}>
+          ? <Button type="button" onClick={() => setStep(step + 1)}>Avanti</Button>
+          : <Button type="submit" disabled={pending}>
               {pending ? "Salvataggio…" : "Completa e vai alla Dashboard"}
-            </button>}
+            </Button>}
       </div>
     </form>
   );

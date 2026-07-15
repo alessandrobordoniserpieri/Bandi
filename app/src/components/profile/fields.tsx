@@ -1,5 +1,12 @@
 "use client";
 import { type ReactNode } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function TextField(props: {
   name: string; label: string; defaultValue?: string; type?: string; required?: boolean;
@@ -29,17 +36,25 @@ export function SelectField(props: {
   defaultValue?: string | number; required?: boolean; placeholder?: string;
   labels?: Record<string, string>;
 }) {
+  const initial = props.defaultValue !== undefined && props.defaultValue !== ""
+    ? String(props.defaultValue) : undefined;
   return (
     <div className="form-group">
       <label htmlFor={props.name}>
         {props.label}{props.required && " *"}
       </label>
-      <select id={props.name} name={props.name} defaultValue={String(props.defaultValue ?? "")} required={props.required}>
-        <option value="">{props.placeholder ?? "— seleziona —"}</option>
-        {props.options.map((o) => (
-          <option key={String(o)} value={String(o)}>{props.labels?.[String(o)] ?? String(o)}</option>
-        ))}
-      </select>
+      <Select name={props.name} defaultValue={initial} required={props.required}>
+        <SelectTrigger id={props.name} className="w-full">
+          <SelectValue placeholder={props.placeholder ?? "— seleziona —"} />
+        </SelectTrigger>
+        <SelectContent>
+          {props.options.map((o) => (
+            <SelectItem key={String(o)} value={String(o)}>
+              {props.labels?.[String(o)] ?? String(o)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

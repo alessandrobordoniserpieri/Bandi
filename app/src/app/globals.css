@@ -187,7 +187,7 @@ img { max-width: 100%; height: auto; }
 
 input[type="text"], input[type="email"], input[type="password"], input[type="url"],
 input[type="number"], input[type="tel"], input[type="search"],
-select, textarea {
+textarea {
   display: block;
   width: 100%;
   padding: 0.5rem 0.75rem;
@@ -199,12 +199,12 @@ select, textarea {
   border-radius: var(--radius);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-input:focus, select:focus, textarea:focus {
+input:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--ring);
 }
-input:disabled, select:disabled, textarea:disabled {
+input:disabled, textarea:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -254,7 +254,16 @@ label:has(input[type="checkbox"]), label:has(input[type="radio"]) {
 /* BUTTONS                                                             */
 /* ------------------------------------------------------------------ */
 
-button, .btn {
+/* :not([data-slot]) excludes every shadcn/Radix-generated <button> — Button itself
+   (data-slot="button") and triggers like Select's (data-slot="select-trigger" — Radix renders
+   Select.Trigger as a native <button>), all fully self-styled via Tailwind classes. This legacy
+   block now only backs the handful of plain <button> elements left un-migrated (e.g.
+   density-toggle's segmented control). Without the guard, this bare `button` selector's
+   border/background still wins the cascade over Tailwind utility classes for any property a
+   variant leaves unset (e.g. Button's `ghost` sets no resting background, `default`/`ghost` set
+   no border; Select's trigger sets border via `border-input` but a differing radius/padding
+   would still leak) — a real leak, not a hypothetical. */
+button:not([data-slot]), .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -271,27 +280,12 @@ button, .btn {
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
 }
-button:hover { background: var(--surface); border-color: var(--border-hover); }
-button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+button:not([data-slot]):hover { background: var(--surface); border-color: var(--border-hover); }
+button:not([data-slot]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+button:not([data-slot]):disabled { opacity: 0.5; cursor: not-allowed; }
+/* Press feedback stays universal — transform doesn't fight any Tailwind utility, so every
+   button (shadcn or legacy) gets the same tactile affordance. */
 button:active:not(:disabled) { transform: scale(0.98); }
-
-.btn-primary {
-  background: var(--primary-fill);
-  color: var(--text-on-primary);
-  border-color: var(--primary-fill);
-}
-.btn-primary:hover { background: var(--primary-fill-hover); border-color: var(--primary-fill-hover); }
-
-.btn-ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--text-secondary);
-}
-.btn-ghost:hover { background: var(--surface); color: var(--text); }
-
-.btn-sm { padding: 0.25rem 0.625rem; font-size: 0.8125rem; }
-.btn-lg { padding: 0.625rem 1.25rem; font-size: 1rem; }
 
 /* ------------------------------------------------------------------ */
 /* PROGRESS BAR                                                        */
@@ -432,14 +426,6 @@ details > :not(summary) { padding: 1rem; }
 .app-logout {
   margin-left: auto;
 }
-.app-logout button {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  padding: 0.375rem 0.5rem;
-}
-.app-logout button:hover { color: var(--error); background: transparent; }
 
 /* ------------------------------------------------------------------ */
 /* MAIN CONTENT                                                        */
@@ -805,13 +791,14 @@ main {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
-.filter-bar select,
 .filter-bar input[type="number"] {
   width: auto;
   min-width: 7rem;
   padding: 0.375rem 0.5rem;
   font-size: 0.8125rem;
 }
+.filter-bar-sort { gap: 0.125rem; }
+.filter-bar-sort label { margin-bottom: 0; }
 .filter-bar fieldset {
   display: flex;
   flex-wrap: wrap;
