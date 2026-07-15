@@ -4,6 +4,7 @@ import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
 import { getGrant } from "@/lib/grants/queries";
 import { getSavedGrantByGrantId } from "@/lib/saved-grants/queries";
 import { SaveButton } from "@/components/saved-grants/save-button";
+import { buttonVariants } from "@/components/ui/button";
 import { AIAnalysisPanel } from "@/components/grants/ai-analysis-panel";
 import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
@@ -148,7 +149,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
 
       <section className="detail-section" style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
         <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />
-        <a href={grant.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
+        <a href={grant.url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
           Apri bando originale
         </a>
       </section>

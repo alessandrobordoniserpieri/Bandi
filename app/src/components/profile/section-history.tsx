@@ -6,11 +6,26 @@ import { CheckboxField, SelectField, MultiCheckbox } from "./fields";
 import {
   OUTCOME_OPTIONS, COFUNDING_OPTIONS, INCOME_SOURCE_OPTIONS,
 } from "@/lib/profile/constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 type HistoryRow = {
   grant_name: string; provider_id: string | null; year: number | null;
   outcome: string; amount: number | null; kind: string | null;
 };
+
+function RowSelect({ value, placeholder, options, onChange }: {
+  value: string; placeholder: string; options: { value: string; label: string }[]; onChange: (v: string) => void;
+}) {
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger className="w-full"><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent>
+        {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function SectionHistory(
   { defaultValue, providers }:
@@ -38,29 +53,23 @@ export function SectionHistory(
           <div key={i}>
             <input placeholder="Nome bando" value={r.grant_name}
               onChange={(e) => update(i, { grant_name: e.target.value })} />
-            <select value={r.provider_id ?? ""}
-              onChange={(e) => update(i, { provider_id: e.target.value || null })}>
-              <option value="">— erogatore —</option>
-              {(providers ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <RowSelect value={r.provider_id ?? ""} placeholder="— erogatore —"
+              options={(providers ?? []).map((p) => ({ value: p.id, label: p.name }))}
+              onChange={(v) => update(i, { provider_id: v || null })} />
             <input placeholder="Anno" type="number" value={r.year ?? ""}
               onChange={(e) => update(i, { year: e.target.value ? Number(e.target.value) : null })} />
-            <select value={r.outcome} onChange={(e) => update(i, { outcome: e.target.value })}>
-              {OUTCOME_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
+            <RowSelect value={r.outcome} placeholder="Esito"
+              options={OUTCOME_OPTIONS.map((o) => ({ value: o, label: o }))}
+              onChange={(v) => update(i, { outcome: v })} />
             <input placeholder="Importo" type="number" value={r.amount ?? ""}
               onChange={(e) => update(i, { amount: e.target.value ? Number(e.target.value) : null })} />
-            <select value={r.kind ?? ""}
-              onChange={(e) => update(i, { kind: e.target.value || null })}>
-              <option value="">— tipo fondo —</option>
-              <option value="pubblico">Pubblico</option>
-              <option value="privato">Privato</option>
-              <option value="eu">UE</option>
-            </select>
-            <button type="button" onClick={() => remove(i)}>Rimuovi</button>
+            <RowSelect value={r.kind ?? ""} placeholder="— tipo fondo —"
+              options={[{ value: "pubblico", label: "Pubblico" }, { value: "privato", label: "Privato" }, { value: "eu", label: "UE" }]}
+              onChange={(v) => update(i, { kind: v || null })} />
+            <Button type="button" variant="outline" size="sm" onClick={() => remove(i)}>Rimuovi</Button>
           </div>
         ))}
-        <button type="button" onClick={add}>Aggiungi progetto</button>
+        <Button type="button" variant="outline" size="sm" onClick={add}>Aggiungi progetto</Button>
       </fieldset>
       <CheckboxField name="public_funds" label="Fondi pubblici ricevuti" defaultChecked={d.public_funds} />
       <CheckboxField name="private_funds" label="Fondi privati ricevuti" defaultChecked={d.private_funds} />

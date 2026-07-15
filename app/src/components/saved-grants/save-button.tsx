@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { saveGrant, removeSavedGrant } from "@/lib/saved-grants/actions";
 import { statusLabel, type SavedGrantStatus } from "@/lib/saved-grants/status";
+import { Button } from "@/components/ui/button";
 
 export function SaveButton({
   grantId,
@@ -26,8 +27,8 @@ export function SaveButton({
   }
 
   return (
-    <button type="button" onClick={toggle} disabled={pending} aria-pressed={status !== null}>
+    <Button type="button" variant={status ? "secondary" : "default"} onClick={toggle} disabled={pending} aria-pressed={status !== null}>
       {status ? `Rimuovi dai salvati (${statusLabel(status)})` : "Salva"}
-    </button>
+    </Button>
   );
 }

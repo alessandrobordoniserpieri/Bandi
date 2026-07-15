@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { requestPasswordReset, type AuthState } from "../actions";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { Button } from "@/components/ui/button";
 
 export default function RecuperaPasswordPage() {
   const [state, action, pending] = useActionState<AuthState, FormData>(requestPasswordReset, undefined);
@@ -16,7 +17,7 @@ export default function RecuperaPasswordPage() {
         <input id="email" name="email" type="email" autoComplete="email" required />
         {state && "error" in state && <p role="alert" className="form-feedback" data-type="error">{state.error}</p>}
         {state && "message" in state && <p role="status" className="form-feedback" data-type="success">{state.message}</p>}
-        <button type="submit" className="btn-primary" disabled={pending}>{pending ? "Invio…" : "Invia link di recupero"}</button>
+        <Button type="submit" className="w-full" disabled={pending}>{pending ? "Invio…" : "Invia link di recupero"}</Button>
       </form>
       <p className="auth-footer"><Link href="/login">Torna al login</Link></p>
     </AuthShell>

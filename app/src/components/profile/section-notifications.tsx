@@ -1,6 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
 import { updateAlertSettings, type AlertFrequency } from "@/lib/settings/actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 export function SectionNotifications({
   initialThreshold,
@@ -23,14 +25,18 @@ export function SectionNotifications({
 
       <div className="form-group" style={{ marginBottom: "1rem" }}>
         <label htmlFor="alert-frequency">Frequenza</label>
-        <select
-          id="alert-frequency"
+        <Select
           value={frequency}
-          onChange={(e) => { setFrequency(e.target.value as AlertFrequency); setSaved(false); }}
+          onValueChange={(v) => { setFrequency(v as AlertFrequency); setSaved(false); }}
         >
-          <option value="weekly">Settimanale</option>
-          <option value="off">Disattivata</option>
-        </select>
+          <SelectTrigger id="alert-frequency" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="weekly">Settimanale</SelectItem>
+            <SelectItem value="off">Disattivata</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="form-group" style={{ marginBottom: "1rem" }}>
@@ -50,9 +56,9 @@ export function SectionNotifications({
       </div>
 
       <div className="form-actions">
-        <button
+        <Button
           type="button"
-          className="btn-primary btn-sm"
+          size="sm"
           disabled={pending}
           onClick={() => start(async () => {
             const res = await updateAlertSettings(threshold, frequency);
@@ -60,7 +66,7 @@ export function SectionNotifications({
           })}
         >
           {pending ? "Salvataggio…" : saved ? "Salvato ✓" : "Salva preferenze"}
-        </button>
+        </Button>
       </div>
     </section>
   );

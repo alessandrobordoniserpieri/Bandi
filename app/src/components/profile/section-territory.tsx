@@ -5,6 +5,7 @@ import { PROVINCES, regionForProvince } from "@/lib/matching";
 import type { ProfileRow } from "@/lib/profile/schema";
 import { SelectField, TextField, MultiCheckbox } from "./fields";
 import { OPERATING_SCOPE_OPTIONS } from "@/lib/profile/constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function SectionTerritory({ defaultValue }: { defaultValue?: Partial<ProfileRow> }) {
   const d = defaultValue ?? {};
@@ -12,14 +13,17 @@ export function SectionTerritory({ defaultValue }: { defaultValue?: Partial<Prof
   const region = province ? (regionForProvince(province) ?? "") : (d.region ?? "");
   return (
     <>
-      <label>
-        Provincia *
-        <select name="province" defaultValue={d.province ?? ""} required
-          onChange={(e) => setProvince(e.target.value)}>
-          <option value="">— seleziona —</option>
-          {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-      </label>
+      <div className="form-group">
+        <label htmlFor="province">Provincia *</label>
+        <Select name="province" defaultValue={d.province || undefined} required onValueChange={setProvince}>
+          <SelectTrigger id="province" className="w-full">
+            <SelectValue placeholder="— seleziona —" />
+          </SelectTrigger>
+          <SelectContent>
+            {PROVINCES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
       <label>Regione (auto)<input value={region} readOnly /></label>
       <TextField name="municipality" label="Comune sede" defaultValue={d.municipality ?? ""} />
       <SelectField name="operating_scope" label="Ambito operativo"

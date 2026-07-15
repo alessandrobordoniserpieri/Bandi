@@ -4,6 +4,7 @@ import { serializeFilters, type Filters, type SortKey } from "@/lib/grants/filte
 import type { Verdict, GeoScope } from "@/lib/matching";
 import type { DensityMode } from "@/lib/grants/view-density";
 import { DensityToggle } from "./density-toggle";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const VERDICTS: Verdict[] = ["Candidabile", "Da preparare", "Da valutare", "Bassa priorità", "Non compatibile"];
 const GEOS: GeoScope[] = ["comunale", "provinciale", "regionale", "nazionale", "europeo"];
@@ -36,13 +37,19 @@ export function FilterBar({
 
   return (
     <div className="filter-bar">
-      <label>Ordina per{" "}
-        <select value={sort} onChange={(e) => go(filters, e.target.value as SortKey)}>
-          <option value="score">Compatibilità</option>
-          <option value="deadline">Scadenza</option>
-          <option value="amount">Importo</option>
-        </select>
-      </label>
+      <div className="form-group filter-bar-sort">
+        <label htmlFor="sort-select">Ordina per</label>
+        <Select value={sort} onValueChange={(v) => go(filters, v as SortKey)}>
+          <SelectTrigger id="sort-select" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="score">Compatibilità</SelectItem>
+            <SelectItem value="deadline">Scadenza</SelectItem>
+            <SelectItem value="amount">Importo</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <label className="filter-chip">
         <input type="checkbox" checked={!!filters.onlyCandidabili}
           onChange={(e) => go({ ...filters, onlyCandidabili: e.target.checked || undefined }, sort)} />

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { updateNotes } from "@/lib/saved-grants/actions";
+import { Button } from "@/components/ui/button";
 
 export function NotesEditor({
   savedGrantId,
@@ -24,9 +25,10 @@ export function NotesEditor({
           setSaved(false);
         }}
       />
-      <button
+      <Button
         type="button"
-        className="btn-sm"
+        variant="outline"
+        size="sm"
         disabled={pending}
         onClick={() => start(async () => {
           const res = await updateNotes(savedGrantId, notes);
@@ -34,7 +36,7 @@ export function NotesEditor({
         })}
       >
         {pending ? "Salvataggio…" : saved ? "Salvato ✓" : "Salva note"}
-      </button>
+      </Button>
     </div>
   );
 }

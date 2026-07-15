@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { deleteAccount } from "../../(auth)/actions";
 import { OnboardingWizard } from "./wizard";
+import { Button } from "@/components/ui/button";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
@@ -22,9 +23,9 @@ export default async function OnboardingPage() {
         <OnboardingWizard />
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
           <form action={deleteAccount}>
-            <button type="submit" className="btn-ghost" style={{ color: "var(--error)", fontSize: "0.8125rem" }}>
+            <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
               Elimina account
-            </button>
+            </Button>
           </form>
         </div>
       </div>

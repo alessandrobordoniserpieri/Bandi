@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { GrantAnalysis } from "@/lib/ai/analyze-grant";
+import { Button } from "@/components/ui/button";
 
 const DISCLAIMER = "Analisi generata da AI: verifica sempre il testo ufficiale del bando.";
 
@@ -41,9 +42,9 @@ export function AIAnalysisPanel({ grantId }: { grantId: string }) {
   return (
     <section className="ai-panel">
       <div className="ai-panel-header">
-        <button type="button" className="btn-primary" onClick={run} disabled={loading}>
+        <Button type="button" onClick={run} disabled={loading}>
           {loading ? "Analisi in corso…" : "Analisi AI approfondita"}
-        </button>
+        </Button>
       </div>
       {error && <p role="alert" className="form-feedback" data-type="error" style={{ padding: "0.5rem 1rem" }}>{error}</p>}
       {analysis && (
