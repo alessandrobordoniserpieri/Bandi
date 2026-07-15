@@ -32,6 +32,9 @@ export interface ProviderConfig {
   model?: string;
   fetchImpl?: FetchLike;
   retry?: RetryOptions;
+  // Gemini-only: token budget for 2.5 "thinking". 0 disables it (the default for extraction).
+  // Ignored by adapters that have no equivalent.
+  thinkingBudget?: number;
 }
 
 // Wraps Node's global fetch behind FetchLike (cast at the boundary to avoid a DOM-lib dep).

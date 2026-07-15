@@ -40,5 +40,8 @@ export function getProvider(env: Record<string, string | undefined> = process.en
     throw new Error(`Chiave API mancante per AI_PROVIDER="${name}": imposta ${spec.keyEnv}.`);
   }
   const model = env[spec.modelEnv]?.trim();
-  return spec.make(model ? { apiKey, model } : { apiKey });
+  // Gemini "thinking" budget (default 0 = off, see GeminiProvider). Harmlessly ignored by others.
+  const rawThinking = env.GEMINI_THINKING_BUDGET?.trim();
+  const thinkingBudget = rawThinking && Number.isFinite(Number(rawThinking)) ? Number(rawThinking) : 0;
+  return spec.make({ apiKey, ...(model ? { model } : {}), thinkingBudget });
 }

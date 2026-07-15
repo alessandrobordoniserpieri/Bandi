@@ -15,12 +15,19 @@ export class GeminiProvider implements LLMProvider {
   private readonly model: string;
   private readonly fetchImpl: FetchLike;
   private readonly retry?: RetryOptions;
+  // Gemini 2.5 "thinking" is on by default and, for structured extraction, is pure waste: a trivial
+  // prompt burns ~800 thinking tokens, a 30 KB chunk tens of thousands — which both blows the
+  // tokens-per-minute quota (429) and makes each call slow enough to hit the 35 s timeout, so the
+  // call fails AND is retried, burning even more, all for zero output. Default 0 = thinking off.
+  // Override with GEMINI_THINKING_BUDGET (e.g. for a reasoning-heavy use like the AI analysis).
+  private readonly thinkingBudget: number;
 
   constructor(config: ProviderConfig) {
     this.apiKey = config.apiKey;
     this.model = config.model ?? DEFAULT_MODEL;
     this.fetchImpl = config.fetchImpl ?? defaultFetch;
     this.retry = config.retry;
+    this.thinkingBudget = config.thinkingBudget ?? 0;
   }
 
   async extract(input: { html: string; schema: JsonSchema; instructions: string }): Promise<unknown> {
@@ -36,6 +43,7 @@ export class GeminiProvider implements LLMProvider {
             generationConfig: {
               response_mime_type: "application/json",
               response_schema: input.schema,
+              thinkingConfig: { thinkingBudget: this.thinkingBudget },
             },
           },
         }),
