@@ -64,6 +64,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
+      <div className="detail-body">
       <section className="detail-section">
         <h2>Indicatori</h2>
         <p>Scadenza: <DeadlineBadge indicator={match.indicators.deadline} /></p>
@@ -90,7 +91,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       {grant.summary && (
         <section className="detail-section">
           <h2>Sintesi</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.summary}</p>
+          <p className="detail-prose">{grant.summary}</p>
         </section>
       )}
 
@@ -109,31 +110,31 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       {grant.requirements && (
         <section className="detail-section">
           <h2>Requisiti</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.requirements}</p>
+          <p className="detail-prose">{grant.requirements}</p>
         </section>
       )}
       {grant.beneficiaries && (
         <section className="detail-section">
           <h2>Destinatari</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.beneficiaries}</p>
+          <p className="detail-prose">{grant.beneficiaries}</p>
         </section>
       )}
       {grant.eligibleExpenses && (
         <section className="detail-section">
           <h2>Spese ammissibili</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.eligibleExpenses}</p>
+          <p className="detail-prose">{grant.eligibleExpenses}</p>
         </section>
       )}
       {grant.applicationMethod && (
         <section className="detail-section">
           <h2>Modalità di presentazione</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.applicationMethod}</p>
+          <p className="detail-prose">{grant.applicationMethod}</p>
         </section>
       )}
       {grant.contactInfo && (
         <section className="detail-section">
           <h2>Contatti</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>{grant.contactInfo}</p>
+          <p className="detail-prose">{grant.contactInfo}</p>
         </section>
       )}
       {grant.openingDate && (
@@ -142,6 +143,8 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{grant.openingDate}</p>
         </section>
       )}
+
+      </div>
 
       <section className="detail-section" style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
         <SaveButton grantId={grant.id} initialStatus={saved?.status ?? null} />

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
   --bg: oklch(1.000 0.000 0);
@@ -100,7 +101,7 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-text-on-primary: var(--text-on-primary);
-  --color-primary: var(--primary);
+  --color-primary: var(--primary-fill);
   --color-primary-hover: var(--primary-hover);
   --color-primary-fill: var(--primary-fill);
   --color-primary-fill-hover: var(--primary-fill-hover);
@@ -113,6 +114,29 @@
   --color-error-light: var(--error-light);
   --color-info: var(--info);
   --color-info-light: var(--info-light);
+
+  /* shadcn/ui token bridge — maps shadcn's expected semantic names to the existing OKLCH roles,
+     so shadcn components inherit this design system's palette and flip in dark mode automatically
+     (the raw --* vars above already switch via prefers-color-scheme; no .dark class needed).
+     Note: --color-primary/--color-border/--color-ring above already serve as shadcn's primary/
+     border/ring (--color-primary points at the fill role for bg-primary). */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface-raised);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--text);
+  --color-primary-foreground: var(--text-on-primary);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--primary-light);
+  --color-accent-foreground: var(--primary);
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--text-on-primary);
+  --color-input: var(--border);
+
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -124,12 +148,18 @@
   }
 }
 
+/* Surface layering: the app sits on --surface so white cards/panels (--surface-raised) lift off it.
+   In dark the base is already deep (--bg 0.13) and gives stronger separation than --surface, so
+   keep --bg there — the light-mode flatness (white-on-white) is the case this fixes. */
 body {
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   font-family: var(--font-sans);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  body { background: var(--bg); }
 }
 
 html, body {
@@ -291,29 +321,36 @@ details {
   overflow: hidden;
   margin-bottom: 0.75rem;
   background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
 }
 details + details { margin-top: 0; }
 details[open] > summary { border-bottom: 1px solid var(--border); }
 summary {
   display: flex;
   align-items: center;
-  padding: 0.875rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
   color: var(--text);
   cursor: pointer;
   transition: background var(--transition-fast);
   list-style: none;
 }
 summary::-webkit-details-marker { display: none; }
-summary::before {
-  content: "▸";
-  font-size: 0.75rem;
-  margin-right: 0.625rem;
+/* Chevron on the right (rotates on open), replacing the old left unicode triangle. */
+summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-left: 0.25rem;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg) translateY(-1px);
   transition: transform var(--transition-fast);
-  color: var(--text-muted);
 }
-details[open] > summary::before { transform: rotate(90deg); }
+details[open] > summary::after { transform: rotate(-135deg) translateY(2px); }
 summary:hover { background: var(--surface); }
 details > :not(summary) { padding: 1rem; }
 
@@ -334,9 +371,8 @@ details > :not(summary) { padding: 1rem; }
 .section-label { flex: 1; }
 .section-priority {
   font-size: 0.6875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 600;
+  text-transform: capitalize;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   flex-shrink: 0;
@@ -357,6 +393,9 @@ details > :not(summary) { padding: 1rem; }
   height: 3.5rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-raised);
+  position: sticky;
+  top: 0;
+  z-index: 20;
   flex-shrink: 0;
 }
 .app-brand {
@@ -444,9 +483,10 @@ main {
   align-items: baseline;
   gap: 0.375rem;
   padding: 0.625rem 1rem;
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
   font-size: 0.8125rem;
   color: var(--text-secondary);
 }
@@ -464,12 +504,13 @@ main {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
   gap: 1.5rem;
   margin-bottom: 1.5rem;
   padding: 1.25rem 1.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--surface-raised);
 }
 .detail-score-block {
   flex: 0 0 auto;
@@ -501,9 +542,47 @@ main {
   align-items: center;
 }
 
+/* Content sections grouped into one raised panel (rows separated by internal dividers), so the
+   detail body reads as a single cohesive surface instead of flat sections floating on --surface. */
+.detail-body {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 0 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.detail-body .detail-section { padding: 1.25rem 0; }
+
+.detail-prose {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+.detail-fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.detail-fields dt { color: var(--text-muted); }
+.detail-fields dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }
+
 /* ------------------------------------------------------------------ */
 /* GRANT CARD                                                          */
 /* ------------------------------------------------------------------ */
+
+/* Vertical rhythm for the grant list (the card component itself carries no margin). */
+.grant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 
 .grant-card {
   display: flex;
@@ -716,7 +795,7 @@ main {
   flex-wrap: wrap;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   margin-bottom: 1.25rem;
@@ -836,7 +915,7 @@ main {
   font-size: 0.8125rem;
   font-weight: 600;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--surface-raised);
   color: var(--text-secondary);
 }
 .kanban-column-header[data-status="candidato"] { background: var(--primary-light); color: var(--primary); }
@@ -852,6 +931,7 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 0.625rem;
   display: flex;
   flex-direction: column;
@@ -880,12 +960,12 @@ main {
 /* ------------------------------------------------------------------ */
 /* AI ANALYSIS PANEL                                                   */
 /* ------------------------------------------------------------------ */
-
 .ai-panel {
   margin-top: 1.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 .ai-panel-header {
@@ -1077,16 +1157,38 @@ main {
 
 .completion-bar {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
   margin-bottom: 1.25rem;
+}
+.completion-bar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
 }
 .completion-bar-label {
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  white-space: nowrap;
 }
-.completion-bar progress { flex: 1; }
+.completion-bar-percent {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.completion-bar progress { width: 100%; }
+
+/* Profile suggestions: a subtle tip panel instead of a bare inline bullet list. */
+.profile-hints {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem 0.75rem 2.25rem;
+  background: var(--info-light);
+  border: 1px solid color-mix(in oklch, var(--info) 22%, transparent);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.profile-hints li { margin: 0.125rem 0; }
 
 /* ------------------------------------------------------------------ */
 /* PROFILE FORM                                                        */
@@ -1139,7 +1241,7 @@ main {
 .submit-dialog {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--surface-raised);
   padding: 1rem 1.25rem;
   margin-bottom: 1.25rem;
 }

@@ -1,5 +1,11 @@
 import type { Verdict } from "@/lib/matching";
+import { Badge } from "@/components/ui/badge";
+import { VERDICT_TONE, toneStyle } from "./badge-tone";
 
 export function VerdictBadge({ verdict }: { verdict: Verdict }) {
-  return <span className="badge badge-verdict" data-verdict={verdict}>{verdict}</span>;
+  return (
+    <Badge variant="outline" data-verdict={verdict} style={toneStyle(VERDICT_TONE[verdict])}>
+      {verdict}
+    </Badge>
+  );
 }

@@ -1,5 +1,15 @@
 import type { MatchResult } from "@/lib/matching";
+import { Badge } from "@/components/ui/badge";
+import { DEADLINE_TONE, TONE_FALLBACK, toneStyle } from "./badge-tone";
 
 export function DeadlineBadge({ indicator }: { indicator: MatchResult["indicators"]["deadline"] }) {
-  return <span className="badge badge-deadline" data-color={indicator.color}>{indicator.label}</span>;
+  return (
+    <Badge
+      variant="outline"
+      data-color={indicator.color}
+      style={toneStyle(DEADLINE_TONE[indicator.color] ?? TONE_FALLBACK)}
+    >
+      {indicator.label}
+    </Badge>
+  );
 }
