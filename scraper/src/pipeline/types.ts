@@ -31,11 +31,19 @@ export interface Archetype {
   // When true, a hallucinated URL is snapped to the closest same-domain href in the page. Requires
   // sanitize to preserve href attributes.
   urlSnapping: boolean;
+  // Optional deterministic code parser for perfectly-structured pages: returns raw grant items
+  // (same shape the LLM would) straight from the HTML, so extractGrants can skip the LLM entirely.
+  // Returning [] (e.g. the page was redesigned) makes extractGrants fall back to the LLM path.
+  parse?: (html: string) => unknown[];
   // The listing-page extraction. "full" pulls all 16 fields; "listing-light" pulls only title/url/
   // deadline and leaves the rest to the detail phase.
   listing: { schema: JsonSchema; instructions: string };
   // True when the listing is intentionally light and the detail phase is essential (archetype B).
   detailRequired: boolean;
+  // Whether the pipeline runs the per-grant detail phase at all. Some listings are self-contained
+  // AND link to many unrelated external sites (e.g. "bandi altri enti" aggregators): fetching a
+  // detail page per grant is pointless and expensive, so the archetype opts out entirely.
+  detailEnabled: boolean;
 }
 
 export interface SourceConfig { id: string; name: string; url: string; scrapeConfig?: ScrapeConfig; }

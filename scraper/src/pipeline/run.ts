@@ -94,12 +94,15 @@ export async function runPipeline(
       durationMs: listingDuration,
     });
 
-    // Phase 2: detail enrichment
+    // Phase 2: detail enrichment — only when the archetype opts in. Archetypes whose listing is
+    // self-contained and links out to many unrelated external sites (detailEnabled false) skip it.
     const detailStart = Date.now();
     let detailEnriched = 0;
     let detailSkipped = 0;
     try {
-      const needDetail = await deps.db.findGrantsNeedingDetail(source.id, DETAIL_STALE_DAYS);
+      const needDetail = archetype.detailEnabled
+        ? await deps.db.findGrantsNeedingDetail(source.id, DETAIL_STALE_DAYS)
+        : [];
       if (needDetail.length > 0) {
         const items = needDetail.map((g) => ({ id: g.id, label: g.title }));
 

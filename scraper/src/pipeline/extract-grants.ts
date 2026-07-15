@@ -239,6 +239,7 @@ export const FULL_ARCHETYPE: Archetype = {
   urlSnapping: true,
   listing: { schema: GRANT_JSON_SCHEMA, instructions: EXTRACT_INSTRUCTIONS },
   detailRequired: false,
+  detailEnabled: true,
 };
 
 export async function extractGrants(
@@ -248,16 +249,23 @@ export async function extractGrants(
 ): Promise<ExtractedGrant[]> {
   const cleaned = archetype.sanitize(page.html);
   const hrefs = collectHrefs(cleaned);
-  const chunks = splitIntoChunks(cleaned, archetype.chunkSize, archetype.overlap, archetype.boundaryTags);
 
-  console.log(`[extractGrants:${archetype.name}] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
-
-  const rawItems = await extractFromChunks(
-    chunks, deps.llm, page.url, archetype.listing.schema, archetype.listing.instructions,
-  );
+  // Primary path: a deterministic code parser, when the archetype provides one (perfectly-structured
+  // pages). Falls back to the LLM when there is no parser, or the parser returned nothing (e.g. the
+  // page was redesigned and the code no longer matches).
+  let rawItems: unknown[] = archetype.parse ? archetype.parse(page.html) : [];
+  if (rawItems.length > 0) {
+    console.log(`[extractGrants:${archetype.name}] ${page.url}: code parser → ${rawItems.length} items, ${hrefs.size} hrefs`);
+  } else {
+    const chunks = splitIntoChunks(cleaned, archetype.chunkSize, archetype.overlap, archetype.boundaryTags);
+    console.log(`[extractGrants:${archetype.name}] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
+    rawItems = await extractFromChunks(
+      chunks, deps.llm, page.url, archetype.listing.schema, archetype.listing.instructions,
+    );
+  }
   if (rawItems.length === 0) return [];
 
-  console.log(`[extractGrants:${archetype.name}] ${page.url}: LLM returned ${rawItems.length} items total`);
+  console.log(`[extractGrants:${archetype.name}] ${page.url}: ${rawItems.length} items total`);
   const byUrl = new Map<string, { grant: ExtractedGrant; item: unknown }>();
   for (const item of rawItems) {
     const coerced = coerce(item, page.sourceId, page.url);

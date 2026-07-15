@@ -4,6 +4,7 @@ import { FULL_ARCHETYPE, extractGrants } from "../src/pipeline/extract-grants";
 import { FakeLLMProvider } from "../src/providers/fake";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import type { RawPage } from "../src/pipeline/types";
+import type { LLMProvider } from "../src/providers/types";
 
 const page = (html: string): RawPage => ({ sourceId: "s1", url: "https://x/list", html });
 
@@ -64,13 +65,47 @@ describe("sportesalute archetype", () => {
     expect(cleaned).toContain("nessuna card qui");
   });
 
+  it("the code parser extracts grants deterministically (no LLM), decoding fields", () => {
+    const items = resolveArchetype("sportesalute").parse!(fixture) as Array<Record<string, unknown>>;
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      title: "Bando Uno",
+      url: "https://ente-a.it/b1",
+      deadline: "2026-09-01", // 01/09/2026 → ISO
+      area: "Lazio",
+    });
+    expect(String(items[0]!.beneficiaries)).toContain("terzo settore");
+    expect(String(items[0]!.amount)).toContain("100.000");
+    // A trailing empty label must yield null, not a fabricated value.
+    expect(resolveArchetype("sportesalute").parse!(
+      fixture.replace("Euro 100.000", ""),
+    )[0] as Record<string, unknown>).toMatchObject({ amount: null });
+  });
+
+  it("extractGrants uses the code parser and never calls the LLM when parse is present", async () => {
+    const archetype = {
+      ...FULL_ARCHETYPE,
+      name: "parsed",
+      parse: () => [{ title: "P", url: "https://x/p" }],
+    };
+    const llm: LLMProvider = {
+      name: "boom",
+      extract: async () => { throw new Error("LLM must not be called on the parser path"); },
+    };
+    const out = await extractGrants(page("<html>x</html>"), { llm, db: new InMemoryGrantsDb() }, archetype);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.url).toBe("https://x/p");
+  });
+
   it("exposes the trimmed schema (no 16-field bloat) and keeps detail optional", () => {
     const a = resolveArchetype("sportesalute");
     const props = (a.listing.schema.items as { properties: Record<string, unknown> }).properties;
     expect(Object.keys(props).sort()).toEqual(
-      ["amount", "area", "beneficiaries", "deadline", "providerName", "title", "url"],
+      ["amount", "area", "beneficiaries", "deadline", "title", "url"],
     );
     expect(a.detailRequired).toBe(false);
+    // The whole point: no per-grant detail fetching for this aggregator archetype.
+    expect(a.detailEnabled).toBe(false);
     expect(a.boundaryTags).toEqual(["</li>"]);
   });
 });
@@ -81,6 +116,9 @@ describe("archetype fields", () => {
     const light = resolveArchetype("listing-light");
     expect(full.detailRequired).toBe(false);
     expect(light.detailRequired).toBe(true);
+    // Both run the detail phase (full as optional enrichment, light as essential).
+    expect(full.detailEnabled).toBe(true);
+    expect(light.detailEnabled).toBe(true);
     // The light listing schema exposes only title/url/deadline.
     const lightProps = (light.listing.schema.items as { properties: Record<string, unknown> }).properties;
     expect(Object.keys(lightProps).sort()).toEqual(["deadline", "title", "url"]);
