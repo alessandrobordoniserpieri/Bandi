@@ -8,6 +8,8 @@ export interface DirectFetcherConfig {
   fetchImpl?: FetchLike;
   timeoutMs?: number;
   retry?: RetryOptions;
+  // Clock seam for the {today} URL token; defaults to the real wall clock. Injected in tests.
+  now?: () => Date;
 }
 
 // Plain HTTP fetcher for sources that are JSON APIs: no Chrome rendering, no Browserless
@@ -21,15 +23,20 @@ export class DirectFetcher implements PageFetcher {
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
   private readonly retry?: RetryOptions;
+  private readonly now: () => Date;
 
   constructor(config: DirectFetcherConfig = {}) {
     this.fetchImpl = config.fetchImpl ?? defaultFetch;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.retry = config.retry;
+    this.now = config.now ?? (() => new Date());
   }
 
   async fetchPages(source: SourceConfig): Promise<RawPage[]> {
-    const url = source.scrapeConfig?.listUrl ?? source.url;
+    // {today} → current ISO date, so a static listUrl in the DB can carry a dynamic server-side
+    // date filter (e.g. Plone's scadenza_bando.range=min) without the date rotting.
+    const today = this.now().toISOString().slice(0, 10);
+    const url = (source.scrapeConfig?.listUrl ?? source.url).replace(/\{today\}/g, today);
     const body = await withRetry(
       async () => {
         let res;

@@ -6,6 +6,12 @@ import { InMemoryGrantsDb } from "./helpers/memory-db";
 import type { PageFetcher, RawPage, SourceConfig } from "../src/pipeline/types";
 import type { LLMProvider } from "../src/providers/types";
 
+// ISO date N days from now, so status assertions (which compare the deadline to "today") don't
+// rot: item0 uses a FUTURE deadline (still applicable), item1 a PAST one (expired).
+const isoInDays = (n: number): string => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+const FUTURE = isoInDays(60);
+const PAST = isoInDays(-60);
+
 // Minimal but shape-faithful @search response: metadata_fields flatten destinatari/materie to
 // plain string arrays; non-Bando items (File/Link) appear when the filter is missing and must
 // be skipped.
@@ -18,7 +24,7 @@ export const searchFixture = JSON.stringify({
       "@type": "Bando",
       title: "Bando recupero alimentare 2025",
       description: "Con 1.000.000 euro di risorse per persone in condizione di povertà.",
-      scadenza_bando: "2025-09-30T10:00:00+00:00",
+      scadenza_bando: `${FUTURE}T10:00:00+00:00`,
       bando_state: ["inProgress", "In corso"],
       destinatari: ["Enti del Terzo settore"],
       materie: ["Diritti e sociale"],
@@ -28,7 +34,7 @@ export const searchFixture = JSON.stringify({
       "@type": "Bando",
       title: "Bando interventi per adolescenti",
       description: "600.000 euro per progetti rivolti a preadolescenti e adolescenti.",
-      scadenza_bando: "2024-10-03T11:00:00+00:00",
+      scadenza_bando: `${PAST}T11:00:00+00:00`,
       bando_state: ["closed", "Chiuso"],
       destinatari: ["Enti pubblici"],
       materie: ["Diritti e sociale"],
@@ -44,13 +50,24 @@ describe("er-sociale listing parser", () => {
     expect(items[0]).toMatchObject({
       title: "Bando recupero alimentare 2025",
       url: "https://sociale.example/bandi/2025/bando-alimentare",
-      deadline: "2025-09-30",
+      deadline: FUTURE,
       status: "aperto",
       area: "Emilia-Romagna",
       geoScope: "regionale",
       beneficiaries: "Enti del Terzo settore",
     });
-    expect(items[1]).toMatchObject({ status: "chiuso", deadline: "2024-10-03" });
+    // Past deadline wins over bando_state: "scaduto", not "chiuso".
+    expect(items[1]).toMatchObject({ status: "scaduto", deadline: PAST });
+  });
+
+  it("marks a past application deadline 'scaduto' even when bando_state is still In corso", () => {
+    const inCorsoButExpired = JSON.stringify({
+      items: [{
+        "@id": "https://sociale.example/bandi/x", "@type": "Bando", title: "X",
+        scadenza_bando: `${PAST}T10:00:00+00:00`, bando_state: ["inProgress", "In corso"],
+      }],
+    });
+    expect((parseErSociale(inCorsoButExpired)[0] as Record<string, unknown>).status).toBe("scaduto");
   });
 
   it("derives eligibleTypes with the broad ETS family (D.Lgs 117/2017)", () => {
@@ -168,6 +185,8 @@ describe("er-sociale end-to-end (listing + detail, LLM never called)", () => {
     expect(g.openingDate).toBe("2025-08-01");
     expect(g.contactInfo).toContain("Bussadori");
     expect(g.attachments?.[0]?.url).toBe("https://sociale.example/allegato.pdf");
-    expect(db.scrapeLogs.some((l) => l.phase === "detail" && l.updated === 2)).toBe(true);
+    // Only the still-open grant gets a detail fetch; the past-deadline one is "scaduto" and
+    // findGrantsNeedingDetail skips it — so exactly one detail update.
+    expect(db.scrapeLogs.some((l) => l.phase === "detail" && l.updated === 1)).toBe(true);
   });
 });

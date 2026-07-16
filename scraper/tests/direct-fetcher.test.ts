@@ -30,6 +30,19 @@ describe("DirectFetcher", () => {
     expect(pages[0]!.url).toBe("https://esempio.it/@search?b_size=100");
   });
 
+  it("substitutes the {today} token with the current ISO date (dynamic server-side filters)", async () => {
+    const { fetchImpl, requests } = mockFetch([mockResponse(200, "ok")]);
+    const src: SourceConfig = {
+      ...source,
+      scrapeConfig: { listUrl: "https://esempio.it/@search?scadenza.query={today}&scadenza.range=min" },
+    };
+    const now = () => new Date("2026-07-16T09:00:00Z");
+    const pages = await new DirectFetcher({ fetchImpl, now }).fetchPages(src);
+    const expected = "https://esempio.it/@search?scadenza.query=2026-07-16&scadenza.range=min";
+    expect(requests[0]!.url).toBe(expected);
+    expect(pages[0]!.url).toBe(expected);
+  });
+
   it("retries once on a 5xx then succeeds", async () => {
     const { fetchImpl, requests } = mockFetch([mockResponse(503, {}), mockResponse(200, "ok")]);
     const pages = await new DirectFetcher({ fetchImpl, ...noWait }).fetchPages(source);

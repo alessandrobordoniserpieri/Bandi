@@ -87,11 +87,19 @@ function amountFrom(text: string): string | null {
   return /([\d][\d.,]*)\s*(?:euro|€)/i.exec(text)?.[1] ?? null;
 }
 
-// bando_state is ["inProgress","In corso"] / ["open","Attivo"] / ["closed","Chiuso"].
-function statusFrom(v: unknown): "aperto" | "chiuso" | null {
-  const token = Array.isArray(v) ? v[0] : null;
-  if (token === "inProgress" || token === "open") return "aperto";
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Status reflects whether one can still APPLY, not just the procedure lifecycle: a bando can be
+// bando_state "In corso" (inProgress) while its application deadline has passed (it's in the
+// esiti/results phase). A past scadenza therefore wins as "scaduto" regardless of bando_state
+// (["inProgress","In corso"] / ["open","Attivo"] / ["closed","Chiuso"]).
+function statusFrom(bandoState: unknown, deadline: string | null, today: string): "aperto" | "chiuso" | "scaduto" | null {
+  if (deadline && deadline < today) return "scaduto";
+  const token = Array.isArray(bandoState) ? bandoState[0] : null;
   if (token === "closed") return "chiuso";
+  if (token === "inProgress" || token === "open") return "aperto";
   return null;
 }
 
@@ -102,6 +110,7 @@ export function parseErSociale(raw: string): unknown[] {
   try { data = JSON.parse(raw); } catch { return []; }
   const items = (data as { items?: unknown[] } | null)?.items;
   if (!Array.isArray(items)) return [];
+  const today = todayIso();
   const out: unknown[] = [];
   for (const item of items) {
     if (typeof item !== "object" || item === null) continue;
@@ -112,12 +121,13 @@ export function parseErSociale(raw: string): unknown[] {
     if (!title || !url) continue;
     const description = typeof o.description === "string" ? o.description : "";
     const destinatari = tokens(o.destinatari);
+    const deadline = isoDay(o.scadenza_bando);
     out.push({
       title,
       url,
       summary: description || null,
-      deadline: isoDay(o.scadenza_bando),
-      status: statusFrom(o.bando_state),
+      deadline,
+      status: statusFrom(o.bando_state, deadline, today),
       amount: amountFrom(description),
       area: "Emilia-Romagna",
       geoScope: "regionale",
