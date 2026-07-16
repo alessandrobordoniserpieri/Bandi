@@ -541,16 +541,61 @@ main {
 .detail-body .detail-section { padding: 1.25rem 0; }
 
 .detail-prose {
-  margin: 0;
+  margin: 0.9rem 0 0;
   max-width: 68ch;
   font-size: 0.875rem;
   color: var(--text-secondary);
   line-height: 1.7;
   text-wrap: pretty;
-  /* Source text (e.g. a bando's full body) carries real paragraph breaks as \n; without this the
-     browser collapses them and a multi-section document reads as one unbroken wall of text. */
-  white-space: pre-line;
 }
+.detail-prose:first-child { margin-top: 0; }
+
+.detail-prose-heading {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.detail-prose-heading:first-child { margin-top: 0; }
+
+.detail-prose-subheading {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.detail-prose-subheading:first-child { margin-top: 0; }
+
+.detail-prose-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.25rem;
+  max-width: 68ch;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.detail-prose-list li { margin: 0.25rem 0; }
+
+/* Requirements text can run to thousands of characters — collapse it behind a fade + toggle
+   instead of dumping everything on the page (ExpandableProse measures real overflow via JS). */
+.detail-prose-wrap { position: relative; }
+.detail-prose-clamp { overflow: hidden; }
+.detail-prose-wrap[data-collapsed="true"] .detail-prose-clamp {
+  position: relative;
+  mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent 100%);
+}
+.detail-prose-toggle {
+  margin-top: 0.6rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+}
+.detail-prose-toggle:hover { text-decoration: underline; }
 
 .detail-fields {
   display: grid;

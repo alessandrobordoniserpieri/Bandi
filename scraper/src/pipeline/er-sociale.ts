@@ -166,15 +166,56 @@ export function parseErSociale(raw: string): unknown[] {
 // generous ceiling with no observed truncation, not a tuned "safe" cap on real content.
 const REQUIREMENTS_MAX_CHARS = 20_000;
 
-// Volto rich text ("slate"): { blocks: {id: {plaintext}}, blocks_layout: {items: [ordered ids]} }.
+type SlateNode = { type?: string; text?: string; children?: SlateNode[] };
+
+function inlineText(node: SlateNode): string {
+  if (typeof node.text === "string") return node.text;
+  return (node.children ?? []).map(inlineText).join("");
+}
+
+// This source styles subsection labels ("1 Residenzialità temporanea...") as an ordinary
+// paragraph wrapped ENTIRELY in one bold run, not as a real heading block (verified live:
+// value === [{type:"p", children:[{text:""},{type:"strong",children:[{text:"..."}]},{text:""}]}]).
+// A paragraph that's only PARTLY bold (e.g. "...disponibili, ai sensi dell'art. 55...") must NOT
+// match, so this requires the bold run to be the paragraph's one and only non-empty child.
+function isFullyBoldParagraph(node: SlateNode): boolean {
+  const runs = (node.children ?? []).filter((c) => inlineText(c).trim() !== "");
+  return runs.length === 1 && runs[0]?.type === "strong";
+}
+
+// Volto rich text ("slate"): { blocks: {id: {plaintext, value}}, blocks_layout: {items: [ordered
+// ids]} }. block.value[0].type carries real structure (h2/h3 headings, ul/ol lists, bold-only
+// "subsection" paragraphs — see isFullyBoldParagraph) that plaintext alone throws away, flattening
+// a structured bando into one indistinguishable wall of text. Encode that structure as a light
+// heading/bullet markup ("## "/"### "/"- " line prefixes) the UI (Prose component) renders as real
+// elements — fixtures/sources with no `value` field fall through to the old plain-line behavior.
 function slateText(v: unknown): string | null {
   const o = v as {
-    blocks?: Record<string, { plaintext?: string } | undefined>;
+    blocks?: Record<string, { plaintext?: string; value?: SlateNode[] } | undefined>;
     blocks_layout?: { items?: string[] };
   } | null;
   if (!o?.blocks) return null;
   const order = o.blocks_layout?.items ?? Object.keys(o.blocks);
-  const text = order.map((k) => o.blocks?.[k]?.plaintext ?? "").filter(Boolean).join("\n").trim();
+  const lines: string[] = [];
+  for (const id of order) {
+    const block = o.blocks?.[id];
+    const plaintext = (block?.plaintext ?? "").trim();
+    if (!plaintext) continue;
+    const node = block?.value?.[0];
+    if (node?.type === "h1" || node?.type === "h2") {
+      lines.push(`## ${plaintext}`);
+    } else if (node?.type === "h3" || (node?.type === "p" && isFullyBoldParagraph(node))) {
+      lines.push(`### ${plaintext}`);
+    } else if (node?.type === "ul" || node?.type === "ol") {
+      for (const item of node.children ?? []) {
+        const t = inlineText(item).trim();
+        if (t) lines.push(`- ${t}`);
+      }
+    } else {
+      lines.push(plaintext);
+    }
+  }
+  const text = lines.join("\n").trim();
   return text || null;
 }
 

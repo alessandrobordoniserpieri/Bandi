@@ -189,6 +189,60 @@ describe("er-sociale detail parser", () => {
     });
     expect((await parseDetailErSociale(fixtureWithBreakdown, NO_LLM))!.amount).toBe(1371182.26);
   });
+
+  it("encodes headings, bold-only subsection labels and bullet lists as light markup (verified live shape)", async () => {
+    const fixtureWithStructure = JSON.stringify({
+      "@id": "https://sociale.example/bandi/y", "@type": "Bando", title: "Avviso", description: "",
+      text: {
+        blocks: {
+          heading: {
+            plaintext: "Finalità",
+            value: [{ type: "h2", children: [{ text: "Finalità" }] }],
+          },
+          subheading: {
+            plaintext: "Ripartizione territoriale:",
+            value: [{ type: "h3", children: [{ text: "Ripartizione territoriale:" }] }],
+          },
+          boldLabel: {
+            // Real shape: the WHOLE paragraph is one bold run flanked by empty text nodes.
+            plaintext: " 1 Residenzialità temporanea ",
+            value: [{ type: "p", children: [
+              { text: "" },
+              { type: "strong", children: [{ text: "1 Residenzialità temporanea" }] },
+              { text: "" },
+            ] }],
+          },
+          partiallyBold: {
+            // Only PART of the sentence is bold — must stay a plain paragraph, not a heading.
+            plaintext: "Enti del Terzo Settore possono partecipare.",
+            value: [{ type: "p", children: [
+              { text: "Enti del " },
+              { type: "strong", children: [{ text: "Terzo Settore" }] },
+              { text: " possono partecipare." },
+            ] }],
+          },
+          list: {
+            plaintext: "primo punto; secondo punto",
+            value: [{ type: "ul", children: [
+              { type: "li", children: [{ text: "primo punto" }] },
+              { type: "li", children: [{ text: "secondo punto" }] },
+            ] }],
+          },
+        },
+        blocks_layout: { items: ["heading", "subheading", "boldLabel", "partiallyBold", "list"] },
+      },
+    });
+    const d = (await parseDetailErSociale(fixtureWithStructure, NO_LLM))!;
+    const lines = d.requirements!.split("\n");
+    expect(lines).toEqual([
+      "## Finalità",
+      "### Ripartizione territoriale:",
+      "### 1 Residenzialità temporanea",
+      "Enti del Terzo Settore possono partecipare.",
+      "- primo punto",
+      "- secondo punto",
+    ]);
+  });
 });
 
 describe("er-sociale end-to-end (listing + detail, LLM never called)", () => {

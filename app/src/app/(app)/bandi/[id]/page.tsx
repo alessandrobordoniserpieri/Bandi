@@ -14,6 +14,7 @@ import { HistoryBadge } from "@/components/grants/history-badge";
 import { ScoreBreakdown } from "@/components/grants/score-breakdown";
 import { DocumentChecklist } from "@/components/grants/document-checklist";
 import { FileText } from "lucide-react";
+import { ExpandableProse } from "@/components/grants/expandable-prose";
 
 const FUNDING_TYPE_LABELS: Record<string, string> = {
   fondo_perduto: "Fondo perduto",
@@ -93,7 +94,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       {grant.summary && (
         <section className="detail-section">
           <h2>Sintesi</h2>
-          <p className="detail-prose">{grant.summary}</p>
+          <ExpandableProse text={grant.summary} />
         </section>
       )}
 
@@ -112,31 +113,31 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       {grant.requirements && (
         <section className="detail-section">
           <h2>Requisiti</h2>
-          <p className="detail-prose">{grant.requirements}</p>
+          <ExpandableProse text={grant.requirements} />
         </section>
       )}
       {grant.beneficiaries && (
         <section className="detail-section">
           <h2>Destinatari</h2>
-          <p className="detail-prose">{grant.beneficiaries}</p>
+          <ExpandableProse text={grant.beneficiaries} />
         </section>
       )}
       {grant.eligibleExpenses && (
         <section className="detail-section">
           <h2>Spese ammissibili</h2>
-          <p className="detail-prose">{grant.eligibleExpenses}</p>
+          <ExpandableProse text={grant.eligibleExpenses} />
         </section>
       )}
       {grant.applicationMethod && (
         <section className="detail-section">
           <h2>Modalità di presentazione</h2>
-          <p className="detail-prose">{grant.applicationMethod}</p>
+          <ExpandableProse text={grant.applicationMethod} />
         </section>
       )}
       {grant.contactInfo && (
         <section className="detail-section">
           <h2>Contatti</h2>
-          <p className="detail-prose">{grant.contactInfo}</p>
+          <ExpandableProse text={grant.contactInfo} />
         </section>
       )}
       {grant.openingDate && (
