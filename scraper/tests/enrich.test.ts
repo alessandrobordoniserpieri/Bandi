@@ -23,6 +23,21 @@ describe("parseItalianAmount", () => {
   it("parses 'Euro 900.000' → 900000", () => expect(parseItalianAmount("Euro 900.000")).toBe(900000));
   it("parses '794.263,35 EUR' → 794263.35", () => expect(parseItalianAmount("794.263,35 EUR")).toBe(794263.35));
   it("returns null for junk", () => expect(parseItalianAmount("boh")).toBeNull());
+
+  // A total stated in prose, followed by a breakdown ("di cui:", "Ripartizione:"), makes the
+  // whole-string parse above fail (extra non-numeric text) even though a clean total is present.
+  // Real cases: sportesalute's "Risorse: Euro 400.000,00, di cui: Linea 1 - ...; Linea 2 - ...";
+  // ER Sociale's "...ammontano a euro 1.371.182,26. Ripartizione territoriale: ...".
+  it("pulls the first (total) figure out of 'Euro N, di cui: ...' breakdown text", () =>
+    expect(parseItalianAmount(
+      "Euro 400.000,00, di cui: Linea 1 - Euro 100.000,00; Linea 2 - Euro 300.000,00",
+    )).toBe(400000));
+  it("pulls the first (total) figure out of 'ammontano a euro N. Ripartizione: ...' text", () =>
+    expect(parseItalianAmount(
+      "Le risorse complessivamente destinate ammontano a euro 1.371.182,26. Ripartizione territoriale: Raggruppamento Ovest: euro 843.522,70; Raggruppamento Est: euro 527.659,58.",
+    )).toBe(1371182.26));
+  it("still returns null when no currency-adjacent figure exists in free text", () =>
+    expect(parseItalianAmount("Nel 2027 arriveranno altri fondi per il settore.")).toBeNull());
 });
 
 describe("enrich", () => {

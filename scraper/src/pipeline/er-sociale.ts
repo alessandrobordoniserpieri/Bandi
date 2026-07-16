@@ -81,12 +81,6 @@ function deriveTags(materie: string[], text: string): string[] {
   return [...out].filter((t) => TAG_SET.has(t));
 }
 
-// Best-effort amount from free text ("Con 1.000.000 euro di risorse…"): kept as the raw numeric
-// string — coerce's numOrNull parses it via parseItalianAmount downstream.
-function amountFrom(text: string): string | null {
-  return /([\d][\d.,]*)\s*(?:euro|€)/i.exec(text)?.[1] ?? null;
-}
-
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -128,7 +122,10 @@ export function parseErSociale(raw: string): unknown[] {
       summary: description || null,
       deadline,
       status: statusFrom(o.bando_state, deadline, today),
-      amount: amountFrom(description),
+      // Raw text, not a pre-extracted number: coerce()'s numOrNull runs it through the shared
+      // parseItalianAmount (enrich.ts), which pulls the first currency-adjacent figure — the
+      // same logic parseDetailErSociale calls directly below, kept in one place on purpose.
+      amount: description || null,
       area: "Emilia-Romagna",
       geoScope: "regionale",
       beneficiaries: destinatari.join(", ") || null,
@@ -183,7 +180,6 @@ export function parseDetailErSociale(raw: string): DetailGrant | null {
   const description = typeof o.description === "string" ? o.description : "";
   const destinatari = tokens(o.destinatari);
   const text = slateText(o.text);
-  const amountRaw = amountFrom(`${description} ${text ?? ""}`);
 
   return {
     summary: description || null,
@@ -191,7 +187,9 @@ export function parseDetailErSociale(raw: string): DetailGrant | null {
     beneficiaries: destinatari.join(", ") || null,
     openingDate: isoDay(o.apertura_bando),
     fundingType: null,
-    amount: amountRaw ? parseItalianAmount(amountRaw) : null,
+    // parseItalianAmount pulls the first currency-adjacent figure out of free text — the source
+    // often states a TOTAL before a territorial/line-item breakdown (see enrich.ts for why).
+    amount: parseItalianAmount(`${description} ${text ?? ""}`),
     minAmount: null,
     maxAmount: null,
     cofundingPercentage: null,

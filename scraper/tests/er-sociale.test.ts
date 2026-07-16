@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { resolveArchetype } from "../src/pipeline/archetypes";
 import { parseErSociale, parseDetailErSociale } from "../src/pipeline/er-sociale";
 import { runPipeline } from "../src/pipeline/run";
+import { extractGrants } from "../src/pipeline/extract-grants";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import type { PageFetcher, RawPage, SourceConfig } from "../src/pipeline/types";
 import type { LLMProvider } from "../src/providers/types";
@@ -85,10 +86,20 @@ describe("er-sociale listing parser", () => {
     expect(items[1]!.tags).toEqual(expect.arrayContaining(["welfare", "giovani"]));
   });
 
-  it("extracts a best-effort amount string from the description", () => {
+  it("passes the raw description through as amount (extraction happens downstream in coerce)", () => {
     const items = parseErSociale(searchFixture) as Array<Record<string, unknown>>;
-    expect(items[0]!.amount).toBe("1.000.000");
-    expect(items[1]!.amount).toBe("600.000");
+    expect(items[0]!.amount).toBe("Con 1.000.000 euro di risorse per persone in condizione di povertà.");
+  });
+
+  it("extractGrants (via coerce's parseItalianAmount) turns the description into a final number", async () => {
+    const llm: LLMProvider = { name: "boom", extract: async () => { throw new Error("must not be called"); } };
+    const out = await extractGrants(
+      { sourceId: "s1", url: "https://sociale.example/@search", html: searchFixture },
+      { llm, db: new InMemoryGrantsDb() },
+      resolveArchetype("er-sociale"),
+    );
+    expect(out.find((g) => g.title.includes("alimentare"))?.amount).toBe(1000000);
+    expect(out.find((g) => g.title.includes("adolescenti"))?.amount).toBe(600000);
   });
 
   it("returns [] on malformed or unexpected JSON (LLM fallback contract)", () => {
@@ -155,6 +166,24 @@ describe("er-sociale detail parser", () => {
   it("returns null on malformed JSON or a non-Bando object", () => {
     expect(parseDetailErSociale("boh")).toBeNull();
     expect(parseDetailErSociale('{"@type":"Document"}')).toBeNull();
+  });
+
+  it("picks the TOTAL, not the sum of a territorial breakdown, when the source states both", () => {
+    // Real shape (Regione Emilia-Romagna, verified live): a stated total followed by a
+    // territorial split. The bug this guards against: an order-sensitive regex or a
+    // whole-string-must-be-a-number parser would return null here instead of the total.
+    const fixtureWithBreakdown = JSON.stringify({
+      "@id": "https://sociale.example/bandi/x", "@type": "Bando", title: "Avviso",
+      description: "",
+      text: {
+        blocks: { a: {
+          plaintext: "Le risorse complessivamente destinate ammontano a euro 1.371.182,26. "
+            + "Ripartizione territoriale: Raggruppamento Ovest: euro 843.522,70; Raggruppamento Est: euro 527.659,58.",
+        } },
+        blocks_layout: { items: ["a"] },
+      },
+    });
+    expect(parseDetailErSociale(fixtureWithBreakdown)!.amount).toBe(1371182.26);
   });
 });
 
