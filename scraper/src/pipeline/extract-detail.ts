@@ -107,5 +107,7 @@ export async function extractDetail(
     deadline: deadlineRaw && ISO_DATE.test(deadlineRaw) ? deadlineRaw : null,
     eligibleTypes: stringArray(o.eligibleTypes).filter((t) => LEGAL_TYPE_SET.has(t)),
     tags: stringArray(o.tags).filter((t) => TAG_SET.has(t)),
+    // The LLM path never invents attachment URLs; only code parsers (parseDetail) supply them.
+    attachments: [],
   };
 }

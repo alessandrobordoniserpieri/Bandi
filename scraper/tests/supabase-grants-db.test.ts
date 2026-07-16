@@ -34,6 +34,13 @@ describe("grantToInsertRow", () => {
   it("keeps an explicit status", () => {
     expect(grantToInsertRow({ ...grant, status: "chiuso" }).status).toBe("chiuso");
   });
+  it("maps attachments to the jsonb column on insert and patch", () => {
+    const attachments = [{ title: "Bando.pdf", url: "https://x/b.pdf", mimeType: "application/pdf" }];
+    expect(grantToInsertRow({ ...grant, attachments }).attachments).toEqual(attachments);
+    // Grants without attachments write an empty array, never undefined/null.
+    expect(grantToInsertRow(grant).attachments).toEqual([]);
+    expect(patchToUpdateRow({ attachments }).attachments).toEqual(attachments);
+  });
 });
 
 describe("patchToUpdateRow", () => {

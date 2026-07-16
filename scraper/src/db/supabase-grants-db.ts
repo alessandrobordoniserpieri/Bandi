@@ -1,6 +1,6 @@
 // scraper/src/db/supabase-grants-db.ts
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ExtractedGrant, GrantsDb, ScrapeLogEntry, SourceConfig, StoredGrant } from "../pipeline/types";
+import type { ExtractedGrant, GrantAttachment, GrantsDb, ScrapeLogEntry, SourceConfig, StoredGrant } from "../pipeline/types";
 import type { GeoScope, Complexity, GrantStatus, FundingType } from "../pipeline/vocab";
 
 const DEFAULT_STATUS: GrantStatus = "aperto";
@@ -34,6 +34,7 @@ export function grantToInsertRow(grant: ExtractedGrant): GrantInsertRow {
     eligible_expenses: grant.eligibleExpenses,
     application_method: grant.applicationMethod,
     contact_info: grant.contactInfo,
+    attachments: grant.attachments ?? [],
   };
 }
 
@@ -48,6 +49,7 @@ const COLUMN_OF: Record<keyof ExtractedGrant, string> = {
   minAmount: "min_amount", maxAmount: "max_amount",
   cofundingPercentage: "cofunding_percentage", eligibleExpenses: "eligible_expenses",
   applicationMethod: "application_method", contactInfo: "contact_info",
+  attachments: "attachments",
 };
 
 export function patchToUpdateRow(patch: Partial<ExtractedGrant>): GrantInsertRow {
@@ -88,6 +90,7 @@ export function rowToStoredGrant(row: Record<string, unknown>): StoredGrant {
     eligibleExpenses: (row.eligible_expenses as string | null) ?? null,
     applicationMethod: (row.application_method as string | null) ?? null,
     contactInfo: (row.contact_info as string | null) ?? null,
+    attachments: (row.attachments as GrantAttachment[] | null) ?? [],
   };
 }
 

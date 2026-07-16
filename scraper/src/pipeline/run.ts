@@ -141,6 +141,7 @@ export async function runPipeline(
             if (detail.deadline) patch.deadline = detail.deadline;
             if (detail.eligibleTypes.length) patch.eligibleTypes = detail.eligibleTypes;
             if (detail.tags.length) patch.tags = detail.tags;
+            if (detail.attachments.length) patch.attachments = detail.attachments;
 
             await deps.db.markDetailFetched(grant.id, patch);
             detailEnriched++;

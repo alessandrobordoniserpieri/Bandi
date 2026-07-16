@@ -53,6 +53,10 @@ export interface SourceConfig { id: string; name: string; url: string; scrapeCon
 
 export interface RawPage { sourceId: string; url: string; html: string; }
 
+// Attachment metadata collected by code-based detail parsers (e.g. er-sociale via Plone API).
+// Only metadata: binaries stay on the source site (Storage mirroring is a possible later step).
+export interface GrantAttachment { title: string; url: string; mimeType: string | null; }
+
 export interface ExtractedGrant {
   title: string;
   url: string;
@@ -80,6 +84,8 @@ export interface ExtractedGrant {
   eligibleExpenses: string | null;
   applicationMethod: string | null;
   contactInfo: string | null;
+  // Optional: only code-based detail parsers populate it (LLM detail returns []).
+  attachments?: GrantAttachment[];
 }
 
 export interface DetailGrant {
@@ -98,6 +104,7 @@ export interface DetailGrant {
   deadline: string | null;
   eligibleTypes: string[];
   tags: string[];
+  attachments: GrantAttachment[];
 }
 
 export interface ScrapeLogEntry {
