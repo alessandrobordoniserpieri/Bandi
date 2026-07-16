@@ -38,6 +38,10 @@ export interface Archetype {
   // (same shape the LLM would) straight from the HTML, so extractGrants can skip the LLM entirely.
   // Returning [] (e.g. the page was redesigned) makes extractGrants fall back to the LLM path.
   parse?: (html: string) => unknown[];
+  // Optional deterministic code parser for the DETAIL page (same spirit as parse for the
+  // listing): given the raw body of a grant's own page, returns the DetailGrant or null.
+  // When present, the detail phase never calls the LLM for this archetype.
+  parseDetail?: (html: string) => DetailGrant | null;
   // The listing-page extraction. "full" pulls all 16 fields; "listing-light" pulls only title/url/
   // deadline and leaves the rest to the detail phase.
   listing: { schema: JsonSchema; instructions: string };

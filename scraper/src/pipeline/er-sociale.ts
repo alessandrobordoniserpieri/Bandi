@@ -5,9 +5,10 @@
 // as clean JSON, and each grant's own URL returns the full object (detail phase) — so this
 // archetype calls the LLM in neither phase. Design:
 // docs/superpowers/specs/2026-07-16-er-sociale-api-direct-fetch-design.md
-import type { Archetype } from "./types";
+import type { Archetype, DetailGrant, GrantAttachment } from "./types";
 import type { JsonSchema } from "../providers/types";
 import { TAG_SET, LEGAL_TYPE_SET } from "./vocab";
+import { parseItalianAmount } from "./enrich";
 
 // "2025-09-30T10:00:00+00:00" (or TZ-less "2025-08-01T08:00:00") → "2025-09-30"; else null.
 function isoDay(v: unknown): string | null {
@@ -128,6 +129,72 @@ export function parseErSociale(raw: string): unknown[] {
   return out;
 }
 
+const REQUIREMENTS_MAX_CHARS = 5_000;
+
+// Volto rich text ("slate"): { blocks: {id: {plaintext}}, blocks_layout: {items: [ordered ids]} }.
+function slateText(v: unknown): string | null {
+  const o = v as {
+    blocks?: Record<string, { plaintext?: string } | undefined>;
+    blocks_layout?: { items?: string[] };
+  } | null;
+  if (!o?.blocks) return null;
+  const order = o.blocks_layout?.items ?? Object.keys(o.blocks);
+  const text = order.map((k) => o.blocks?.[k]?.plaintext ?? "").filter(Boolean).join("\n").trim();
+  return text || null;
+}
+
+// approfondimento: [{children: [{title, url, mime_type, …}]}] — the grant's PDF attachments.
+// Metadata only; children missing title or url are dropped, never half-mapped.
+function attachmentsFrom(o: Record<string, unknown>): GrantAttachment[] {
+  const out: GrantAttachment[] = [];
+  if (!Array.isArray(o.approfondimento)) return out;
+  for (const section of o.approfondimento) {
+    const children = (section as { children?: unknown[] } | null)?.children;
+    if (!Array.isArray(children)) continue;
+    for (const child of children) {
+      const c = child as Record<string, unknown>;
+      if (typeof c.url !== "string" || typeof c.title !== "string") continue;
+      out.push({ title: c.title, url: c.url, mimeType: typeof c.mime_type === "string" ? c.mime_type : null });
+    }
+  }
+  return out;
+}
+
+// DETAIL path: map the grant's own API object to a DetailGrant — no LLM. Returns null on
+// anything unexpected, which the pipeline counts as detailSkipped (retried next run).
+export function parseDetailErSociale(raw: string): DetailGrant | null {
+  let data: unknown;
+  try { data = JSON.parse(raw); } catch { return null; }
+  if (typeof data !== "object" || data === null) return null;
+  const o = data as Record<string, unknown>;
+  if (o["@type"] !== "Bando") return null;
+
+  const title = typeof o.title === "string" ? o.title : "";
+  const description = typeof o.description === "string" ? o.description : "";
+  const destinatari = tokens(o.destinatari);
+  const text = slateText(o.text);
+  const amountRaw = amountFrom(`${description} ${text ?? ""}`);
+
+  return {
+    summary: description || null,
+    requirements: text ? text.slice(0, REQUIREMENTS_MAX_CHARS) : null,
+    beneficiaries: destinatari.join(", ") || null,
+    openingDate: isoDay(o.apertura_bando),
+    fundingType: null,
+    amount: amountRaw ? parseItalianAmount(amountRaw) : null,
+    minAmount: null,
+    maxAmount: null,
+    cofundingPercentage: null,
+    eligibleExpenses: null,
+    applicationMethod: null,
+    contactInfo: slateText(o.riferimenti),
+    deadline: isoDay(o.scadenza_bando),
+    eligibleTypes: deriveEligibleTypes(destinatari),
+    tags: deriveTags(tokens(o.materie), `${title} ${description}`),
+    attachments: attachmentsFrom(o),
+  };
+}
+
 // LLM fallback (used only if parse() returns [], e.g. the API shape changed): the body is the
 // raw @search JSON, so the instructions explain that shape instead of an HTML page.
 const ER_SOCIALE_SCHEMA: JsonSchema = {
@@ -154,6 +221,7 @@ const ER_SOCIALE_INSTRUCTIONS = [
 export const ER_SOCIALE_ARCHETYPE: Archetype = {
   name: "er-sociale",
   parse: parseErSociale,             // primary path — no LLM
+  parseDetail: parseDetailErSociale, // detail via the grant's own API JSON — no LLM
   sanitize: (html) => html,          // the body is JSON, not HTML — nothing to sanitize
   chunkSize: 35_000,
   overlap: 2_000,

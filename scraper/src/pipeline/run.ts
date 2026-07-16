@@ -122,7 +122,11 @@ export async function runPipeline(
             const page = pages[0];
             if (!page?.html) { detailSkipped++; return; }
 
-            const detail = await extractDetail(page.html, deps.llm);
+            // Code-based detail parser when the archetype provides one (API sources); LLM
+            // extraction otherwise — existing sources keep today's behavior.
+            const detail = archetype.parseDetail
+              ? archetype.parseDetail(page.html)
+              : await extractDetail(page.html, deps.llm);
             if (!detail) { detailSkipped++; return; }
 
             const patch: Partial<StoredGrant> = {};
