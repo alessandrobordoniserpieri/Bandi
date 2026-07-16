@@ -5,12 +5,15 @@ import type { JsonSchema } from "../providers/types";
 // Per-source scraping hints stored in grant_sources.scrape_config (jsonb). All optional:
 // listUrl overrides the source url for the listing page; maxPages caps pagination (MVP: 1);
 // waitFor is passed to the fetcher (CSS selector or ms) to wait before capturing HTML;
-// archetype selects the extraction strategy from the registry (default "full").
+// archetype selects the extraction strategy from the registry (default "full");
+// fetchMode selects the fetch path: "direct" = plain HTTP (API/static sources, no Chrome),
+// anything else/absent = Browserless rendering (the default).
 export interface ScrapeConfig {
   listUrl?: string;
   maxPages?: number;
   waitFor?: string;
   archetype?: string;
+  fetchMode?: string;
 }
 
 // An extraction strategy for a family of sites. The pipeline nucleus (coerce, vocabulary
