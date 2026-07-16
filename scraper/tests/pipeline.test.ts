@@ -3,7 +3,7 @@ import { runPipeline } from "../src/pipeline/run";
 import { FakeLLMProvider } from "../src/providers/fake";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import { FixtureFetcher } from "./helpers/fixtures";
-import type { RawPage, SourceConfig } from "../src/pipeline/types";
+import type { PageFetcher, RawPage, SourceConfig } from "../src/pipeline/types";
 import type { Budget } from "../src/pipeline/budget";
 import { createBudget } from "../src/pipeline/budget";
 
@@ -70,6 +70,35 @@ describe("runPipeline", () => {
     ]));
     const [r1] = await runPipeline(sources, { ...deps, llm: llm2 });
     expect(r1).toMatchObject({ updated: 1, skipped: 1 });
+  });
+
+  it("forwards scrapeConfig (minus listUrl) to the detail-phase fetch", async () => {
+    // listUrl points at the LISTING endpoint: if it leaked into the detail-phase SourceConfig,
+    // url-resolution inside the fetchers (scrapeConfig.listUrl ?? url) would re-fetch the
+    // listing instead of the grant page. fetchMode instead MUST survive, or per-source
+    // dispatch silently falls back to Browserless in the detail phase.
+    const calls: SourceConfig[] = [];
+    let n = 0;
+    const recording: PageFetcher = {
+      async fetchPages(s: SourceConfig): Promise<RawPage[]> {
+        calls.push(s);
+        n++;
+        return [{ sourceId: s.id, url: s.scrapeConfig?.listUrl ?? s.url, html: n === 1 ? "HTML_S1" : "DETAIL" }];
+      },
+    };
+    const src: SourceConfig = {
+      id: "s1", name: "Fonte 1", url: "https://a/list",
+      scrapeConfig: { fetchMode: "direct", listUrl: "https://a/api", maxPages: 1 },
+    };
+    const llm = new FakeLLMProvider(new Map<string, unknown>([
+      ["HTML_S1", [{ title: "Bando A", url: "https://a/bando-1" }]],
+    ]));
+    await runPipeline([src], { llm, fetcher: recording, db: new InMemoryGrantsDb(), detailThrottleMs: 0, sleep: noSleep });
+
+    const detailCall = calls.find((c) => c.url === "https://a/bando-1");
+    expect(detailCall).toBeDefined();
+    expect(detailCall!.scrapeConfig?.fetchMode).toBe("direct");
+    expect(detailCall!.scrapeConfig?.listUrl).toBeUndefined();
   });
 
   it("skips all sources and reports truncation when the budget is already exhausted", async () => {

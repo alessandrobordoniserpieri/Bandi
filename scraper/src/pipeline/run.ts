@@ -110,8 +110,14 @@ export async function runPipeline(
           items,
           async (item) => {
             const grant = needDetail.find((g) => g.id === item.id)!;
+            // Forward the source's scrapeConfig so per-source fetch dispatch (fetchMode)
+            // survives in the detail phase — but drop listUrl: it points at the LISTING
+            // endpoint and would override the grant's own url inside the fetchers.
+            const detailScrapeConfig = source.scrapeConfig ? { ...source.scrapeConfig } : undefined;
+            if (detailScrapeConfig) delete detailScrapeConfig.listUrl;
             const pages = await deps.fetcher.fetchPages({
               id: source.id, name: source.name, url: grant.url,
+              ...(detailScrapeConfig ? { scrapeConfig: detailScrapeConfig } : {}),
             });
             const page = pages[0];
             if (!page?.html) { detailSkipped++; return; }
