@@ -7,3 +7,17 @@ node_modules/
 .next/
 dist/
 .vercel/
+
+# Tool-generated local state — not project source, must not be committed.
+# ruflo/claude-flow (MCP swarm/agent orchestrator, installed globally for the user)
+.claude-flow/
+.swarm/
+agentdb.rvf
+agentdb.rvf.lock
+ruvector.db
+.claude/proven-config.json
+.claude/.proven-config-version
+# graphify skill output (knowledge-graph cache/report — regenerate on demand, don't commit)
+graphify-out/
+# impeccable skill's UI-critique session notes
+.impeccable/
