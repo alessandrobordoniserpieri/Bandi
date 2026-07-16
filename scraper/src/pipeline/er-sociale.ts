@@ -162,7 +162,9 @@ export function parseErSociale(raw: string): unknown[] {
   return out;
 }
 
-const REQUIREMENTS_MAX_CHARS = 5_000;
+// Real bandi checked (24 live samples, 2026-07-16) run 673-10,955 chars full text; 20k is a
+// generous ceiling with no observed truncation, not a tuned "safe" cap on real content.
+const REQUIREMENTS_MAX_CHARS = 20_000;
 
 // Volto rich text ("slate"): { blocks: {id: {plaintext}}, blocks_layout: {items: [ordered ids]} }.
 function slateText(v: unknown): string | null {
