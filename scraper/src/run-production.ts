@@ -4,6 +4,8 @@ import type { ExtractedGrant, GrantsDb, PipelineResult, ScrapeLogEntry, StoredGr
 import { getProvider } from "./providers";
 import { throttleProvider } from "./providers/throttle-provider";
 import { BrowserlessFetcher } from "./pipeline/browserless-fetcher";
+import { DirectFetcher } from "./pipeline/direct-fetcher";
+import { CompositeFetcher } from "./pipeline/composite-fetcher";
 import { SupabaseGrantsDb } from "./db/supabase-grants-db";
 import { loadEnabledSources } from "./sources";
 import { runPipeline } from "./pipeline/run";
@@ -75,7 +77,12 @@ export async function runProductionScrape(
   // detail phase. Default 5s ≈ 12 req/min. Tune via LLM_THROTTLE_MS.
   const throttleMs = Number(env.LLM_THROTTLE_MS ?? "5000");
   const llm = throttleProvider(getProvider(env), Number.isFinite(throttleMs) ? throttleMs : 5000);
-  const fetcher = new BrowserlessFetcher({ apiKey: env.BROWSERLESS_API_KEY!, baseUrl: env.BROWSERLESS_URL });
+  // Per-source dispatch: scrape_config.fetchMode "direct" → plain HTTP (API/static sources),
+  // default → Browserless. One instance serves the whole run, listing and detail phases alike.
+  const fetcher = new CompositeFetcher(
+    new BrowserlessFetcher({ apiKey: env.BROWSERLESS_API_KEY!, baseUrl: env.BROWSERLESS_URL }),
+    new DirectFetcher(),
+  );
   const db: GrantsDb = options.dryRun ? new DryRunGrantsDb(client) : new SupabaseGrantsDb(client);
 
   let sources = await loadEnabledSources(client);
