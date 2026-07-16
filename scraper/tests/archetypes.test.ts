@@ -110,6 +110,75 @@ describe("sportesalute archetype", () => {
   });
 });
 
+describe("sportesalute: beneficiaries -> eligibleTypes, title -> tags", () => {
+  // A single-card fixture with a parameterized "Destinatari" (beneficiaries) field, so each test
+  // can drive deriveEligibleTypes with a specific free-text value without touching the other fields.
+  const cardWith = (title: string, destinatari: string) =>
+    `<html><body><main><div class="listabandi cards">
+      <div class="sppb-addon-image-layouts" data-date="01/09/2026">
+        <h5 class="title_card">${title}</h5>
+        <span class="label regione-bando">Lazio</span>
+        <p><strong>Termine di presentazione domanda:</strong> 01/09/2026<br>
+           <strong>Destinatari:</strong> ${destinatari}<br>
+           <strong>Risorse:</strong> Euro 50.000</p>
+        <p><a href="https://ente.it/b1" class="button fit">Scopri di più</a></p>
+      </div>
+    </div></main></body></html>`;
+
+  function parseOne(html: string): Record<string, unknown> {
+    const items = resolveArchetype("sportesalute").parse!(html) as Array<Record<string, unknown>>;
+    expect(items).toHaveLength(1);
+    return items[0]!;
+  }
+
+  it("'altri soggetti' always yields [], even alongside restrictive categories", () => {
+    expect(parseOne(cardWith("Bando", "Organismi sportivi, Altri soggetti")).eligibleTypes).toEqual([]);
+  });
+
+  it("maps each dominant beneficiary category to its LEGAL_TYPES group", () => {
+    expect(parseOne(cardWith("Bando", "Organismi sportivi")).eligibleTypes).toEqual([
+      "EPS - Ente di Promozione Sportiva", "FSN - Federazione Sportiva Nazionale",
+      "DSA - Disciplina Sportiva Associata", "AB - Associazione Benemerita",
+      "Comitato territoriale EPS/FSN",
+    ]);
+    expect(parseOne(cardWith("Bando", "Società e associazioni sportive")).eligibleTypes).toEqual([
+      "ASD - Associazione Sportiva Dilettantistica", "SSD - Società Sportiva Dilettantistica",
+      "SSD a r.l. - Società Sportiva Dilettantistica a responsabilità limitata",
+      "ASD/SSD iscritta RASD",
+    ]);
+    expect(parseOne(cardWith("Bando", "Enti del Terzo Settore")).eligibleTypes).toEqual([
+      "APS - Associazione di Promozione Sociale", "ODV - Organizzazione di Volontariato",
+      "ETS - Ente del Terzo Settore", "Rete associativa ETS", "ONLUS", "ONG / OSC",
+    ]);
+    expect(parseOne(cardWith("Bando", "Imprese")).eligibleTypes).toEqual([
+      "Impresa", "PMI", "Start-up innovativa", "Società benefit",
+    ]);
+  });
+
+  it("unions multiple restrictive categories on the same grant, deduplicated", () => {
+    const types = parseOne(cardWith("Bando", "Imprese, Enti del Terzo Settore")).eligibleTypes as string[];
+    expect(types).toContain("Impresa");
+    expect(types).toContain("ETS - Ente del Terzo Settore");
+    expect(new Set(types).size).toBe(types.length);
+  });
+
+  it("null/unmatched beneficiaries yields [] (safe default, no invented restriction)", () => {
+    expect(parseOne(cardWith("Bando", "")).eligibleTypes).toEqual([]);
+    expect(parseOne(cardWith("Bando", "Persone fisiche")).eligibleTypes).toEqual([]);
+  });
+
+  it("derives tags from the title, always including 'sport'", () => {
+    expect(parseOne(cardWith("Concessione impianto sportivo comunale", "Imprese")).tags)
+      .toEqual(expect.arrayContaining(["sport", "impianti sportivi"]));
+    expect(parseOne(cardWith("Centri estivi per minori", "Imprese")).tags)
+      .toEqual(expect.arrayContaining(["sport", "centri estivi", "minori"]));
+  });
+
+  it("title matching nothing extra still yields tags: ['sport']", () => {
+    expect(parseOne(cardWith("Bando generico", "Imprese")).tags).toEqual(["sport"]);
+  });
+});
+
 describe("archetype fields", () => {
   it("full carries all 16 fields, detail optional; listing-light is minimal, detail required", () => {
     const full = resolveArchetype("full");

@@ -114,17 +114,84 @@ function isoFromItalianDate(s: string): string | null {
   return `${m[3]}-${m[2]!.padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
 }
 
+// beneficiaries → eligibleTypes: keyword rules tested as substrings against the whole beneficiaries
+// string (not a comma-split — free-text tails like "Micro, Piccole e Medie imprese del territorio di
+// Parma, Piacenza..." use commas mid-phrase, so splitting on them would produce garbage atoms).
+// "Altri soggetti" means "anyone else too" — when present the grant is de facto open to everyone,
+// so it short-circuits to [] regardless of what other categories are listed alongside it (design
+// doc: docs/superpowers/specs/2026-07-16-sportesalute-vocab-transcoding-design.md).
+const ALTRI_SOGGETTI_RE = /altri soggetti/i;
+
+const ELIGIBLE_TYPE_RULES: ReadonlyArray<{ re: RegExp; types: readonly string[] }> = [
+  { re: /organismi sportivi/i, types: [
+    "EPS - Ente di Promozione Sportiva", "FSN - Federazione Sportiva Nazionale",
+    "DSA - Disciplina Sportiva Associata", "AB - Associazione Benemerita",
+    "Comitato territoriale EPS/FSN",
+  ] },
+  { re: /società e associazioni sportive|associazioni sportive/i, types: [
+    "ASD - Associazione Sportiva Dilettantistica", "SSD - Società Sportiva Dilettantistica",
+    "SSD a r.l. - Società Sportiva Dilettantistica a responsabilità limitata",
+    "ASD/SSD iscritta RASD",
+  ] },
+  { re: /enti del terzo settore|terzo settore/i, types: [
+    "APS - Associazione di Promozione Sociale", "ODV - Organizzazione di Volontariato",
+    "ETS - Ente del Terzo Settore", "Rete associativa ETS", "ONLUS", "ONG / OSC",
+  ] },
+  { re: /imprese|impresa/i, types: ["Impresa", "PMI", "Start-up innovativa", "Società benefit"] },
+  { re: /comuni|comune/i, types: ["Comune", "Unione di Comuni"] },
+  { re: /regioni|regione/i, types: ["Regione"] },
+  { re: /provinc|città metropolitan/i, types: ["Provincia / Città Metropolitana"] },
+  { re: /enti pubblici|ente pubblico/i, types: ["Ente pubblico"] },
+];
+
+function deriveEligibleTypes(beneficiaries: string | null): string[] {
+  if (!beneficiaries || ALTRI_SOGGETTI_RE.test(beneficiaries)) return [];
+  const out = new Set<string>();
+  for (const rule of ELIGIBLE_TYPE_RULES) {
+    if (rule.re.test(beneficiaries)) for (const t of rule.types) out.add(t);
+  }
+  return [...out];
+}
+
+// title → tags: same keyword-substring approach, tested against the card title. "sport" is always
+// included (the entire source is Sport e Salute), so — unlike eligibleTypes — this never returns [].
+const TAG_RULES: ReadonlyArray<{ re: RegExp; tag: string }> = [
+  { re: /impiant[oi] sportiv|palestr|palazzett|piscin|campo (da calcio|di bocce)|struttura sportiva|centro sportivo|complesso sportivo/i, tag: "impianti sportivi" },
+  { re: /scuola|scolastic/i, tag: "scuola" },
+  { re: /minori/i, tag: "minori" },
+  { re: /giovani/i, tag: "giovani" },
+  { re: /turis|ricreativ/i, tag: "turismo" },
+  { re: /centri estivi|centro estivo/i, tag: "centri estivi" },
+  { re: /disabil/i, tag: "disabilità" },
+  { re: /anzian/i, tag: "anziani" },
+  { re: /volontariat/i, tag: "volontariato" },
+];
+
+function deriveTags(title: string): string[] {
+  const out = new Set<string>(["sport"]);
+  for (const rule of TAG_RULES) {
+    if (rule.re.test(title)) out.add(rule.tag);
+  }
+  return [...out];
+}
+
 // PRIMARY path: parse each card straight into a raw grant item — no LLM. amount stays a string
-// ("Euro 900.000"); coerce's numOrNull parses it via parseItalianAmount downstream.
+// ("Euro 900.000"); coerce's numOrNull parses it via parseItalianAmount downstream. eligibleTypes/
+// tags are derived here too; coerce() validates both against LEGAL_TYPE_SET/TAG_SET unchanged.
 function parseSportesalute(raw: string): unknown[] {
-  return extractSesCards(raw).map((c) => ({
-    title: c.title,
-    url: c.url,
-    deadline: isoFromItalianDate(fieldAfter(c.info, "Termine di presentazione domanda:")),
-    amount: fieldAfter(c.info, "Risorse:") || null,
-    beneficiaries: fieldAfter(c.info, "Destinatari:") || null,
-    area: c.region || null,
-  }));
+  return extractSesCards(raw).map((c) => {
+    const beneficiaries = fieldAfter(c.info, "Destinatari:") || null;
+    return {
+      title: c.title,
+      url: c.url,
+      deadline: isoFromItalianDate(fieldAfter(c.info, "Termine di presentazione domanda:")),
+      amount: fieldAfter(c.info, "Risorse:") || null,
+      beneficiaries,
+      area: c.region || null,
+      eligibleTypes: deriveEligibleTypes(beneficiaries),
+      tags: deriveTags(c.title),
+    };
+  });
 }
 
 // FALLBACK sanitize (used only if parse() returns []): compact each card into one <li> for the LLM.
