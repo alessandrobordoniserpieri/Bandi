@@ -24,7 +24,7 @@ describe("resolveArchetype", () => {
   });
 
   it("registers the known archetypes", () => {
-    expect(Object.keys(ARCHETYPES).sort()).toEqual(["full", "listing-light", "sportesalute"]);
+    expect(Object.keys(ARCHETYPES).sort()).toEqual(["er-sociale", "full", "listing-light", "sportesalute"]);
   });
 });
 
