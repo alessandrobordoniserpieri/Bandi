@@ -45,5 +45,5 @@ export function mockFetch(responses: HttpResponse[]): {
 export const noWaitRetry = { retry: { sleep: async () => {} } };
 
 export function bodyOf(req: RecordedRequest): Record<string, unknown> {
-  return JSON.parse(req.init.body) as Record<string, unknown>;
+  return JSON.parse(req.init.body ?? "null") as Record<string, unknown>;
 }

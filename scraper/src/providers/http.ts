@@ -14,7 +14,8 @@ export interface HttpResponse {
 export interface HttpRequest {
   method: string;
   headers: Record<string, string>;
-  body: string;
+  // Absent for GET requests (undici rejects a GET carrying a body, even an empty string).
+  body?: string;
   signal?: unknown;
 }
 
