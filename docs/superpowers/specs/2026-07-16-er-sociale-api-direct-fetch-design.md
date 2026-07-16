@@ -141,13 +141,33 @@ cambiano.
 I 25 GET di dettaglio passano dal `DirectFetcher` (grazie al fix §4), sono throttled e
 budget-aware come oggi, e **non consumano quota Gemini**.
 
-### 7. Gemini: niente in v1
+### 7. Gemini: quasi zero, escalation mirata solo per l'importo
 
-I campi strutturati coprono il necessario per il matching. Ciò che resta solo nel testo libero
-(spese ammissibili, modalità di domanda, cofinanziamento) è estraibile in un eventuale passaggio
-successivo dando a Gemini **solo il plaintext già estratto** (3-10KB), mai l'HTML/JSON grezzo.
-Decisione rimandata a dopo l'ispezione della preview: se i campi codice bastano, questa fonte
-resta a zero chiamate LLM.
+**Aggiornato dopo verifica su tutti i 25 bandi archiviati** (2026-07-16): i campi strutturati
+coprono il matching, ma l'importo totale vive nel testo libero del corpo del bando, dove spesso
+compaiono ANCHE cifre non pertinenti (limiti di spesa, soglie minime/massime di progetto) prima
+del totale vero — un semplice "prima cifra vicino a euro" sbaglia (bug reale trovato: "200 euro"
+invece di "390.000 euro").
+
+Risoluzione a 3 livelli, dal più economico:
+1. `description` (breve, 1-3 frasi) → `parseItalianAmount` generico, rischio basso.
+2. Corpo lungo (`text`) → `extractTotalFromProse`, **ancorato** a frasi-segnale ("ammontano",
+   "complessivamente", "somma complessiva", "messe a bando", "a disposizione", "destinate") —
+   verificato dal vivo, **niente stem generico su "complessiv\*"**: il testo reale usa
+   "complessivo" anche per soglie per-progetto ("valore minimo complessivo dei progetti... euro
+   10.000,00"), che uno stem largo prenderebbe per sbaglio.
+3. Solo se (1) e (2) non trovano nulla → **chiamata LLM mirata**, un solo campo, solo il
+   plaintext (poche KB, mai HTML/JSON grezzo), schema minimo, istruzioni esplicite di ignorare
+   limiti di spesa/soglie/ripartizioni.
+
+Risultato sui 25 bandi reali: **20/25 risolti deterministicamente** (gratis), **5/25** con
+escalation (bandi che genuinamente non dichiarano un totale complessivo, solo soglie per
+progetto — corretto deferire, non indovinare).
+
+`Archetype.parseDetail` è diventato asincrono e riceve l'`LLMProvider`, proprio per abilitare
+questo pattern: un parser di codice può scalare UN campo specifico all'AI come ultima risorsa,
+senza dover scegliere in blocco tra "tutto codice" e "tutto LLM" (`extractDetail` generico).
+Pattern pensato per essere riusabile da futuri archetipi, non un caso singolo.
 
 ### 8. Allegati PDF: metadati subito, binari dopo
 
