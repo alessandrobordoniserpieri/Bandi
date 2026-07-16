@@ -26,8 +26,11 @@ headless e non manda header custom; la navigazione diretta all'endpoint restitui
 
 ### 1. `DirectFetcher` — nuovo `PageFetcher` senza Chrome
 
-HTTP GET semplice con `Accept: application/json, text/html;q=0.9` (funziona sia per API JSON sia
-per eventuali future pagine statiche). Riusa le convenzioni di `providers/http.ts`: `defaultFetch`,
+HTTP GET semplice con `Accept: application/json` **puro** (verificato in implementazione: la
+negoziazione Plone instrada un header composto `application/json, text/html;q=0.9` sulla
+traversal HTML, che risponde 404 su `@search`; senza header risponde 500 — se in futuro una
+fonte statica HTML avrà bisogno del fetch diretto, l'header diventerà configurabile allora).
+Riusa le convenzioni di `providers/http.ts`: `defaultFetch`,
 timeout 35s, `withRetry` su 429/5xx, `ProviderError` con `retryable`. Il corpo della risposta
 (JSON o HTML) diventa `RawPage.html`, senza toccare il contratto esistente.
 

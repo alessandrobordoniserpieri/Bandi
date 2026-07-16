@@ -10,10 +10,13 @@ export interface DirectFetcherConfig {
   retry?: RetryOptions;
 }
 
-// Plain HTTP fetcher for sources that are JSON APIs or static pages: no Chrome rendering, no
-// Browserless quota, no external service in the path. The Accept header prefers JSON (Plone's
-// @search answers 500 without it) while still accepting HTML for static pages. Selected
-// per-source via scrape_config.fetchMode === "direct" (see CompositeFetcher).
+// Plain HTTP fetcher for sources that are JSON APIs: no Chrome rendering, no Browserless
+// quota, no external service in the path. The Accept header is PURE application/json —
+// verified empirically that Plone's negotiation routes a compound value
+// ("application/json, text/html;q=0.9") to the HTML traversal, which 404s on @search, while
+// no header at all yields a 500. If a static-HTML source ever needs direct fetch, make the
+// header configurable then. Selected per-source via scrape_config.fetchMode === "direct"
+// (see CompositeFetcher).
 export class DirectFetcher implements PageFetcher {
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
@@ -33,7 +36,7 @@ export class DirectFetcher implements PageFetcher {
         try {
           res = await this.fetchImpl(url, {
             method: "GET",
-            headers: { accept: "application/json, text/html;q=0.9" },
+            headers: { accept: "application/json" },
             signal: AbortSignal.timeout(this.timeoutMs),
           });
         } catch (cause) {

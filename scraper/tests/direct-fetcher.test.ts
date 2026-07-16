@@ -8,13 +8,16 @@ const source: SourceConfig = { id: "s1", name: "Fonte API", url: "https://esempi
 const noWait = { retry: { sleep: async () => {} } };
 
 describe("DirectFetcher", () => {
-  it("GETs the url with a JSON-preferring Accept header, returning one RawPage", async () => {
+  it("GETs the url with a pure application/json Accept header, returning one RawPage", async () => {
     const { fetchImpl, requests } = mockFetch([mockResponse(200, '{"items":[]}')]);
     const pages = await new DirectFetcher({ fetchImpl }).fetchPages(source);
 
     expect(requests[0]!.url).toBe("https://esempio.it/pagina");
     expect(requests[0]!.init.method).toBe("GET");
-    expect(requests[0]!.init.headers.accept).toBe("application/json, text/html;q=0.9");
+    // Pure application/json: verified empirically that Plone's content negotiation routes a
+    // compound header ("application/json, text/html;q=0.9") to the HTML traversal, which 404s
+    // on @search. If a static-HTML source ever needs direct fetch, make this configurable then.
+    expect(requests[0]!.init.headers.accept).toBe("application/json");
     expect(requests[0]!.init.body).toBeUndefined();
     expect(pages).toEqual([{ sourceId: "s1", url: "https://esempio.it/pagina", html: '{"items":[]}' }]);
   });
