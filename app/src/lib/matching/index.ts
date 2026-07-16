@@ -20,7 +20,7 @@ export {
 } from "./constants";
 export type {
   GeoScope, ComplexityLevel, CapacityLevel, ProviderKind, GrantStatus, FundingType, ProjectOutcome,
-  Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant,
+  Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant, Attachment,
   DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult,
   EconomicLevel, EconomicCoherence, EconomicIndicator,
   HistoryBadge, HistoryBadgeKind,

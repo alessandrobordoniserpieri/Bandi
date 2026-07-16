@@ -46,6 +46,7 @@ export type Database = {
           last_error: string | null
           last_run_at: string | null
           name: string
+          priority: Database["public"]["Enums"]["source_priority"]
           scrape_config: Json
           url: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           last_error?: string | null
           last_run_at?: string | null
           name: string
+          priority?: Database["public"]["Enums"]["source_priority"]
           scrape_config?: Json
           url: string
         }
@@ -66,6 +68,7 @@ export type Database = {
           last_error?: string | null
           last_run_at?: string | null
           name?: string
+          priority?: Database["public"]["Enums"]["source_priority"]
           scrape_config?: Json
           url?: string
         }
@@ -76,6 +79,7 @@ export type Database = {
           amount: number | null
           application_method: string | null
           area: string | null
+          attachments: Json
           beneficiaries: string | null
           cofunding_percentage: number | null
           cofunding_required: number | null
@@ -111,6 +115,7 @@ export type Database = {
           amount?: number | null
           application_method?: string | null
           area?: string | null
+          attachments?: Json
           beneficiaries?: string | null
           cofunding_percentage?: number | null
           cofunding_required?: number | null
@@ -146,6 +151,7 @@ export type Database = {
           amount?: number | null
           application_method?: string | null
           area?: string | null
+          attachments?: Json
           beneficiaries?: string | null
           cofunding_percentage?: number | null
           cofunding_required?: number | null
@@ -193,6 +199,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      grants_preview: {
+        Row: {
+          amount: number | null
+          area: string | null
+          attachments: Json | null
+          beneficiaries: string | null
+          contact_info: string | null
+          deadline: string | null
+          eligible_types: string[] | null
+          geo_scope: string | null
+          id: number
+          inserted_at: string
+          opening_date: string | null
+          status: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string
+          url: string
+        }
+        Insert: {
+          amount?: number | null
+          area?: string | null
+          attachments?: Json | null
+          beneficiaries?: string | null
+          contact_info?: string | null
+          deadline?: string | null
+          eligible_types?: string[] | null
+          geo_scope?: string | null
+          id?: number
+          inserted_at?: string
+          opening_date?: string | null
+          status?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          url: string
+        }
+        Update: {
+          amount?: number | null
+          area?: string | null
+          attachments?: Json | null
+          beneficiaries?: string | null
+          contact_info?: string | null
+          deadline?: string | null
+          eligible_types?: string[] | null
+          geo_scope?: string | null
+          id?: number
+          inserted_at?: string
+          opening_date?: string | null
+          status?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          url?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -388,6 +451,41 @@ export type Database = {
           },
         ]
       }
+      scrape_debug: {
+        Row: {
+          clean_html: string | null
+          created_at: string | null
+          id: string
+          raw_html: string | null
+          source_id: string | null
+          url: string
+        }
+        Insert: {
+          clean_html?: string | null
+          created_at?: string | null
+          id?: string
+          raw_html?: string | null
+          source_id?: string | null
+          url: string
+        }
+        Update: {
+          clean_html?: string | null
+          created_at?: string | null
+          id?: string
+          raw_html?: string | null
+          source_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scrape_debug_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "grant_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scrape_logs: {
         Row: {
           detail_errors: string[]
@@ -470,7 +568,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      sources_overview: {
+        Row: {
+          archetype: string | null
+          enabled: boolean | null
+          fetch_mode: string | null
+          last_error: string | null
+          last_run_at: string | null
+          name: string | null
+          priority: Database["public"]["Enums"]["source_priority"] | null
+        }
+        Insert: {
+          archetype?: never
+          enabled?: boolean | null
+          fetch_mode?: never
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string | null
+          priority?: Database["public"]["Enums"]["source_priority"] | null
+        }
+        Update: {
+          archetype?: never
+          enabled?: boolean | null
+          fetch_mode?: never
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string | null
+          priority?: Database["public"]["Enums"]["source_priority"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       expire_grants: { Args: never; Returns: undefined }
@@ -481,6 +608,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      trigger_scrape: { Args: never; Returns: undefined }
     }
     Enums: {
       alert_frequency: "weekly" | "off"
@@ -506,6 +634,7 @@ export type Database = {
         | "candidato"
         | "finanziato"
         | "non_ammesso"
+      source_priority: "high" | "medium" | "low"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -659,6 +788,7 @@ export const Constants = {
         "finanziato",
         "non_ammesso",
       ],
+      source_priority: ["high", "medium", "low"],
     },
   },
 } as const

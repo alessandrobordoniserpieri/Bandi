@@ -60,6 +60,10 @@ export interface EntityProfile {
   cofundingCapacity: number | null;// §7 — % the entity can co-fund
 }
 
+// A downloadable file attached to a grant (bando e modulistica, allegati). Metadata only — the
+// binary stays on the source site; url points there directly.
+export interface Attachment { title: string; url: string; mimeType: string | null; }
+
 // The 16 extracted fields (design §4.2).
 export interface Grant {
   id: string;
@@ -88,6 +92,8 @@ export interface Grant {
   eligibleExpenses: string | null;
   applicationMethod: string | null;
   contactInfo: string | null;
+  // Optional: most sources have none; only code-based detail parsers populate it.
+  attachments?: Attachment[];
 }
 
 export interface DimensionScore {

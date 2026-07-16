@@ -11,7 +11,7 @@ function row(overrides: Partial<GrantRowWithProvider> = {}): GrantRowWithProvide
     summary: null, requirements: null, beneficiaries: null,
     cofunding_percentage: null, opening_date: null, funding_type: null,
     min_amount: null, max_amount: null, eligible_expenses: null,
-    application_method: null, contact_info: null,
+    application_method: null, contact_info: null, attachments: [],
     detail_fetched_at: null, detail_fetch_attempts: 0,
     url: "https://example.it/bando", source_id: null, raw: null, import_mode: "scraper",
     discovered_at: "2026-07-01T00:00:00Z", created_at: "2026-07-01T00:00:00Z",
@@ -58,5 +58,26 @@ describe("mapGrantRow", () => {
     expect(grant.area).toBeNull();
     expect(grant.geoScope).toBeNull();
     expect(grant.complexity).toBeNull();
+  });
+
+  it("maps valid attachment entries and drops malformed ones (never crashes on bad jsonb)", () => {
+    const { grant } = mapGrantRow(row({
+      attachments: [
+        { title: "Bando.pdf", url: "https://x/b.pdf", mimeType: "application/pdf" },
+        { title: "Senza url" },
+        { url: "https://x/senza-titolo.pdf" },
+        "una stringa qualsiasi",
+        null,
+        { title: "Senza mimeType", url: "https://x/c.pdf" },
+      ],
+    }));
+    expect(grant.attachments).toEqual([
+      { title: "Bando.pdf", url: "https://x/b.pdf", mimeType: "application/pdf" },
+      { title: "Senza mimeType", url: "https://x/c.pdf", mimeType: null },
+    ]);
+  });
+
+  it("defaults attachments to [] when the column is null or not an array", () => {
+    expect(mapGrantRow(row({ attachments: null })).grant.attachments).toEqual([]);
   });
 });

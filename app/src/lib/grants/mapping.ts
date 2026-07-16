@@ -1,4 +1,4 @@
-import type { Grant, ProviderKind } from "@/lib/matching";
+import type { Attachment, Grant, ProviderKind } from "@/lib/matching";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type GrantRow = Tables<"grants">;
@@ -35,6 +35,22 @@ export function mapGrantRow(row: GrantRowWithProvider): GrantView {
     eligibleExpenses: row.eligible_expenses,
     applicationMethod: row.application_method,
     contactInfo: row.contact_info,
+    attachments: parseAttachments(row.attachments),
   };
   return { grant, providerName: row.provider?.name ?? null };
+}
+
+// row.attachments is jsonb (typed as `Json` — string | number | boolean | null | object | array).
+// Narrow it defensively rather than casting: a malformed row must degrade to [], never crash the
+// detail page.
+function parseAttachments(raw: GrantRow["attachments"]): Attachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Attachment[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const { title, url, mimeType } = item as Record<string, unknown>;
+    if (typeof title !== "string" || typeof url !== "string") continue;
+    out.push({ title, url, mimeType: typeof mimeType === "string" ? mimeType : null });
+  }
+  return out;
 }

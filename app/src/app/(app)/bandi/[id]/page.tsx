@@ -13,6 +13,7 @@ import { AmountBadge } from "@/components/grants/amount-badge";
 import { HistoryBadge } from "@/components/grants/history-badge";
 import { ScoreBreakdown } from "@/components/grants/score-breakdown";
 import { DocumentChecklist } from "@/components/grants/document-checklist";
+import { FileText } from "lucide-react";
 
 const FUNDING_TYPE_LABELS: Record<string, string> = {
   fondo_perduto: "Fondo perduto",
@@ -141,7 +142,24 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       {grant.openingDate && (
         <section className="detail-section">
           <h2>Data di apertura</h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{grant.openingDate}</p>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+            {new Date(grant.openingDate).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </section>
+      )}
+      {grant.attachments && grant.attachments.length > 0 && (
+        <section className="detail-section">
+          <h2>Allegati</h2>
+          <ul className="detail-attachments">
+            {grant.attachments.map((a) => (
+              <li key={a.url}>
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className="detail-attachment-link">
+                  <FileText size={16} className="detail-attachment-icon" aria-hidden="true" />
+                  <span className="detail-attachment-title">{a.title}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
