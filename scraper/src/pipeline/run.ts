@@ -122,10 +122,11 @@ export async function runPipeline(
             const page = pages[0];
             if (!page?.html) { detailSkipped++; return; }
 
-            // Code-based detail parser when the archetype provides one (API sources); LLM
-            // extraction otherwise — existing sources keep today's behavior.
+            // Code-first detail parser when the archetype provides one (may itself escalate a
+            // single field to a targeted LLM call, see types.ts); general-purpose LLM extraction
+            // otherwise — existing sources keep today's behavior.
             const detail = archetype.parseDetail
-              ? archetype.parseDetail(page.html)
+              ? await archetype.parseDetail(page.html, deps.llm)
               : await extractDetail(page.html, deps.llm);
             if (!detail) { detailSkipped++; return; }
 

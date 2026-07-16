@@ -1,6 +1,6 @@
 // scraper/src/pipeline/types.ts
 import type { GeoScope, Complexity, GrantStatus, FundingType } from "./vocab";
-import type { JsonSchema } from "../providers/types";
+import type { JsonSchema, LLMProvider } from "../providers/types";
 
 // Per-source scraping hints stored in grant_sources.scrape_config (jsonb). All optional:
 // listUrl overrides the source url for the listing page; maxPages caps pagination (MVP: 1);
@@ -38,10 +38,13 @@ export interface Archetype {
   // (same shape the LLM would) straight from the HTML, so extractGrants can skip the LLM entirely.
   // Returning [] (e.g. the page was redesigned) makes extractGrants fall back to the LLM path.
   parse?: (html: string) => unknown[];
-  // Optional deterministic code parser for the DETAIL page (same spirit as parse for the
-  // listing): given the raw body of a grant's own page, returns the DetailGrant or null.
-  // When present, the detail phase never calls the LLM for this archetype.
-  parseDetail?: (html: string) => DetailGrant | null;
+  // Optional code-first parser for the DETAIL page (same spirit as parse for the listing): given
+  // the raw body of a grant's own page, returns the DetailGrant or null. Async and receives the
+  // LLMProvider so an implementation can escalate ONE narrowly-scoped field to a targeted LLM
+  // call as a last resort (see er-sociale.ts's amount resolution) instead of choosing between
+  // "100% code" and "100% LLM" — most fields still resolve deterministically; the general-purpose
+  // extractDetail (all fields, one big schema) is not called when parseDetail is present.
+  parseDetail?: (html: string, llm: LLMProvider) => Promise<DetailGrant | null>;
   // The listing-page extraction. "full" pulls all 16 fields; "listing-light" pulls only title/url/
   // deadline and leaves the rest to the detail phase.
   listing: { schema: JsonSchema; instructions: string };

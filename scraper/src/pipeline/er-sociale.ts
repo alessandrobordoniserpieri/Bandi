@@ -2,11 +2,14 @@
 // Archetype "er-sociale": Regione Emilia-Romagna "Sociale" bandi via the official Plone REST
 // API. The human listing page is a ~12MB Volto app the LLM extracts almost nothing from; the
 // @search endpoint (scrape_config.listUrl, fetched with fetchMode "direct") returns every Bando
-// as clean JSON, and each grant's own URL returns the full object (detail phase) — so this
-// archetype calls the LLM in neither phase. Design:
+// as clean JSON, and each grant's own URL returns the full object (detail phase). Listing and
+// eligibility/tag transcoding are 100% code, zero LLM. The total funding amount is the one field
+// that lives in free prose: extractTotalFromProse (below) resolves it deterministically for the
+// phrasing this source actually uses (verified live); a targeted, single-field LLM call is the
+// last resort ONLY when that finds nothing — never the general-purpose extractDetail. Design:
 // docs/superpowers/specs/2026-07-16-er-sociale-api-direct-fetch-design.md
 import type { Archetype, DetailGrant, GrantAttachment } from "./types";
-import type { JsonSchema } from "../providers/types";
+import type { JsonSchema, LLMProvider } from "../providers/types";
 import { TAG_SET, LEGAL_TYPE_SET } from "./vocab";
 import { parseItalianAmount } from "./enrich";
 
@@ -79,6 +82,29 @@ function deriveTags(materie: string[], text: string): string[] {
   }
   for (const rule of TEXT_TAG_RULES) if (rule.re.test(text)) out.add(rule.tag);
   return [...out].filter((t) => TAG_SET.has(t));
+}
+
+// Free text often mentions OTHER unrelated euro figures before the real total (expense caps,
+// min/max per-project thresholds — see the 2023 "reti associative" bando: "limite massimo di 200
+// euro per le spese in contanti" appears before the real "390.000 euro" total). A bare "first
+// mention" grabs the wrong one. Verified against 5 real ER Sociale bandi (2023-2026): the total is
+// reliably introduced by "ammontano"/"complessivamente"/"messe a bando"/"a disposizione"/
+// "destinate" in the SAME sentence — so only trust a figure anchored to one of those. Split on
+// ". " + uppercase (not a bare "."), so Italian-formatted numbers ("20.000") never get split.
+// "complessiv*" is intentionally NOT stemmed to a bare prefix: real bandi also use "complessivo"
+// for a PER-PROJECT threshold ("Il valore minimo complessivo dei progetti... euro 10.000,00"),
+// which is not the bando's total. "complessivamente"/"somma complessiva" are specific enough to
+// avoid that false positive while still covering both phrasings actually seen live.
+const TOTAL_SIGNAL_RE = /ammontano|complessivamente|somma complessiva|messe a bando|a disposizione|destinate/i;
+
+export function extractTotalFromProse(text: string): number | null {
+  for (const sentence of text.split(/\.\s+(?=[A-ZÀ-Ú])/)) {
+    if (TOTAL_SIGNAL_RE.test(sentence)) {
+      const n = parseItalianAmount(sentence);
+      if (n != null) return n;
+    }
+  }
+  return null;
 }
 
 function todayIso(): string {
@@ -167,9 +193,39 @@ function attachmentsFrom(o: Record<string, unknown>): GrantAttachment[] {
   return out;
 }
 
-// DETAIL path: map the grant's own API object to a DetailGrant — no LLM. Returns null on
-// anything unexpected, which the pipeline counts as detailSkipped (retried next run).
-export function parseDetailErSociale(raw: string): DetailGrant | null {
+const AMOUNT_ONLY_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: { totalAmount: { type: "string", nullable: true } },
+  required: [],
+};
+
+const AMOUNT_ONLY_INSTRUCTIONS = [
+  "Il testo è la descrizione completa di un bando di finanziamento pubblico italiano.",
+  "Estrai SOLO l'importo TOTALE complessivamente disponibile per il bando (il fondo nel suo insieme).",
+  "IGNORA: limiti di spesa per singola voce (es. 'limite di 200 euro per le spese in contanti'), soglie minime o massime per singolo progetto (es. 'importo minimo 20.000 euro', 'contributo massimo 50.000 euro'), percentuali di cofinanziamento.",
+  "Se il testo non indica un unico importo totale complessivo chiaro, restituisci null. Non sommare cifre né indovinare.",
+].join(" ");
+
+// Last resort: reached only when NEITHER deterministic pass (below) finds a total — rare (0/5
+// real bandi checked needed it). One narrowly-scoped field, one plaintext body (a few KB, not the
+// raw page), never the general-purpose extractDetail schema. Never throws: any failure (provider
+// error, unusable response) is null, same as the deterministic path — retried fresh next run.
+async function escalateAmountToLLM(text: string, llm: LLMProvider): Promise<number | null> {
+  if (!text) return null;
+  try {
+    let out: unknown = await llm.extract({ html: text, schema: AMOUNT_ONLY_SCHEMA, instructions: AMOUNT_ONLY_INSTRUCTIONS });
+    if (typeof out === "string") { try { out = JSON.parse(out); } catch { return null; } }
+    const totalAmount = (out as { totalAmount?: unknown } | null)?.totalAmount;
+    return typeof totalAmount === "string" ? parseItalianAmount(totalAmount) : null;
+  } catch {
+    return null;
+  }
+}
+
+// DETAIL path: map the grant's own API object to a DetailGrant. Returns null on anything
+// unexpected (malformed JSON, non-Bando), which the pipeline counts as detailSkipped (retried
+// next run).
+export async function parseDetailErSociale(raw: string, llm: LLMProvider): Promise<DetailGrant | null> {
   let data: unknown;
   try { data = JSON.parse(raw); } catch { return null; }
   if (typeof data !== "object" || data === null) return null;
@@ -181,15 +237,24 @@ export function parseDetailErSociale(raw: string): DetailGrant | null {
   const destinatari = tokens(o.destinatari);
   const text = slateText(o.text);
 
+  // Three-tier amount resolution, cheapest/safest first:
+  // 1. The short description (1-3 sentences, e.g. "Con 1.000.000 euro di risorse...") — low risk
+  //    of unrelated euro mentions, so the generic first-mention parser is safe.
+  // 2. The long body text, anchored to total-signaling language ONLY (extractTotalFromProse):
+  //    the body often ALSO states unrelated figures (expense caps, per-project thresholds) that
+  //    a bare first-mention would wrongly pick — this is the bug this two-tier split fixes.
+  // 3. A targeted LLM call, only when neither deterministic pass found anything.
+  const amount = parseItalianAmount(description)
+    ?? extractTotalFromProse(text ?? "")
+    ?? await escalateAmountToLLM(`${description} ${text ?? ""}`.trim(), llm);
+
   return {
     summary: description || null,
     requirements: text ? text.slice(0, REQUIREMENTS_MAX_CHARS) : null,
     beneficiaries: destinatari.join(", ") || null,
     openingDate: isoDay(o.apertura_bando),
     fundingType: null,
-    // parseItalianAmount pulls the first currency-adjacent figure out of free text — the source
-    // often states a TOTAL before a territorial/line-item breakdown (see enrich.ts for why).
-    amount: parseItalianAmount(`${description} ${text ?? ""}`),
+    amount,
     minAmount: null,
     maxAmount: null,
     cofundingPercentage: null,
@@ -229,7 +294,7 @@ const ER_SOCIALE_INSTRUCTIONS = [
 export const ER_SOCIALE_ARCHETYPE: Archetype = {
   name: "er-sociale",
   parse: parseErSociale,             // primary path — no LLM
-  parseDetail: parseDetailErSociale, // detail via the grant's own API JSON — no LLM
+  parseDetail: parseDetailErSociale, // detail via the grant's own API JSON — LLM only as last resort
   sanitize: (html) => html,          // the body is JSON, not HTML — nothing to sanitize
   chunkSize: 35_000,
   overlap: 2_000,

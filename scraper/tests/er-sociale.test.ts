@@ -1,11 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { resolveArchetype } from "../src/pipeline/archetypes";
-import { parseErSociale, parseDetailErSociale } from "../src/pipeline/er-sociale";
+import { parseErSociale, parseDetailErSociale, extractTotalFromProse } from "../src/pipeline/er-sociale";
+import { FakeLLMProvider } from "../src/providers/fake";
 import { runPipeline } from "../src/pipeline/run";
 import { extractGrants } from "../src/pipeline/extract-grants";
 import { InMemoryGrantsDb } from "./helpers/memory-db";
 import type { PageFetcher, RawPage, SourceConfig } from "../src/pipeline/types";
 import type { LLMProvider } from "../src/providers/types";
+
+// For tests asserting the deterministic path never escalates.
+const NO_LLM: LLMProvider = { name: "boom", extract: async () => { throw new Error("must not be called"); } };
 
 // ISO date N days from now, so status assertions (which compare the deadline to "today") don't
 // rot: item0 uses a FUTURE deadline (still applicable), item1 a PAST one (expired).
@@ -146,8 +150,8 @@ export const detailFixture = JSON.stringify({
 });
 
 describe("er-sociale detail parser", () => {
-  it("maps the full Bando object to a DetailGrant without any LLM", () => {
-    const d = parseDetailErSociale(detailFixture)!;
+  it("maps the full Bando object to a DetailGrant without any LLM", async () => {
+    const d = (await parseDetailErSociale(detailFixture, NO_LLM))!;
     expect(d.openingDate).toBe("2025-08-01");
     expect(d.deadline).toBe("2025-09-30");
     expect(d.contactInfo).toContain("Bussadori");
@@ -163,12 +167,12 @@ describe("er-sociale detail parser", () => {
     ]);
   });
 
-  it("returns null on malformed JSON or a non-Bando object", () => {
-    expect(parseDetailErSociale("boh")).toBeNull();
-    expect(parseDetailErSociale('{"@type":"Document"}')).toBeNull();
+  it("returns null on malformed JSON or a non-Bando object", async () => {
+    expect(await parseDetailErSociale("boh", NO_LLM)).toBeNull();
+    expect(await parseDetailErSociale('{"@type":"Document"}', NO_LLM)).toBeNull();
   });
 
-  it("picks the TOTAL, not the sum of a territorial breakdown, when the source states both", () => {
+  it("picks the TOTAL, not the sum of a territorial breakdown, when the source states both", async () => {
     // Real shape (Regione Emilia-Romagna, verified live): a stated total followed by a
     // territorial split. The bug this guards against: an order-sensitive regex or a
     // whole-string-must-be-a-number parser would return null here instead of the total.
@@ -183,7 +187,7 @@ describe("er-sociale detail parser", () => {
         blocks_layout: { items: ["a"] },
       },
     });
-    expect(parseDetailErSociale(fixtureWithBreakdown)!.amount).toBe(1371182.26);
+    expect((await parseDetailErSociale(fixtureWithBreakdown, NO_LLM))!.amount).toBe(1371182.26);
   });
 });
 
@@ -217,5 +221,75 @@ describe("er-sociale end-to-end (listing + detail, LLM never called)", () => {
     // Only the still-open grant gets a detail fetch; the past-deadline one is "scaduto" and
     // findGrantsNeedingDetail skips it — so exactly one detail update.
     expect(db.scrapeLogs.some((l) => l.phase === "detail" && l.updated === 1)).toBe(true);
+  });
+});
+
+describe("extractTotalFromProse (sentence-anchored total extraction)", () => {
+  it("picks the total-signal sentence over an earlier unrelated euro mention", () => {
+    const text = "Il Bando prevede il limite massimo di 200 euro per le spese in contanti. "
+      + "Le risorse complessivamente a disposizione ammontano a 390.000 euro.";
+    expect(extractTotalFromProse(text)).toBe(390000);
+  });
+
+  it("does not split 'N.NNN' Italian-formatted numbers into false sentence boundaries", () => {
+    const text = "I progetti dovranno essere di importo pari o superiore a 20.000 euro. "
+      + "Le risorse messe a bando ammontano complessivamente a 1.000.000,00 euro. Altri dettagli.";
+    expect(extractTotalFromProse(text)).toBe(1000000);
+  });
+
+  it("returns null when no total-signaling phrase is present anywhere (no guessing)", () => {
+    expect(extractTotalFromProse("Il contributo massimo per progetto è di 50.000 euro.")).toBeNull();
+  });
+
+  it("recognizes 'somma complessiva' (real ER phrasing, verified live) without matching unrelated 'complessivo'", () => {
+    // Real case (2024, "rilevanza locale"): the total uses "complessiva" (adjective), which
+    // "complessivamente" (adverb) alone doesn't cover. But "complessivo" ALSO appears elsewhere in
+    // real bandi describing a PER-PROJECT threshold ("Il valore minimo complessivo dei progetti...
+    // non potrà essere inferiore a euro 10.000,00") — broadening to a bare "complessiv" stem would
+    // wrongly match that. "somma complessiva" is specific enough to avoid it.
+    const text = "Il Bando è approvato per una somma complessiva di euro 2.692.033,10 - di cui euro 1.419.356,30 alle Fondazioni. "
+      + "Il valore minimo complessivo dei progetti non potrà essere inferiore a euro 10.000,00.";
+    expect(extractTotalFromProse(text)).toBe(2692033.1);
+  });
+
+  it("returns null for text with no currency mentions at all", () => {
+    expect(extractTotalFromProse("Il bando è rivolto a enti del terzo settore.")).toBeNull();
+  });
+});
+
+describe("er-sociale detail parser: LLM escalation for an unclear total", () => {
+  const AMBIGUOUS_TEXT = "Il contributo massimo per progetto è di 50.000 euro. Nessun totale complessivo indicato qui.";
+
+  const ambiguousFixture = JSON.stringify({
+    "@id": "https://sociale.example/bandi/y", "@type": "Bando", title: "Y",
+    description: "",
+    text: { blocks: { a: { plaintext: AMBIGUOUS_TEXT } }, blocks_layout: { items: ["a"] } },
+  });
+
+  it("escalates to a targeted LLM call when no total-signal sentence is found in free text", async () => {
+    const llm = new FakeLLMProvider(new Map<string, unknown>([
+      [AMBIGUOUS_TEXT, { totalAmount: "220.000" }],
+    ]));
+    const d = await parseDetailErSociale(ambiguousFixture, llm);
+    expect(d!.amount).toBe(220000);
+  });
+
+  it("does NOT call the LLM when a total-signal sentence already resolves the amount", async () => {
+    const d = await parseDetailErSociale(detailFixture, NO_LLM);
+    expect(d!.amount).toBe(1000000);
+  });
+
+  it("returns null (not a thrown error) when the LLM returns no usable total", async () => {
+    const llm = new FakeLLMProvider(new Map<string, unknown>([
+      [AMBIGUOUS_TEXT, { totalAmount: null }],
+    ]));
+    const d = await parseDetailErSociale(ambiguousFixture, llm);
+    expect(d!.amount).toBeNull();
+  });
+
+  it("returns null (not a thrown error) when the LLM call itself fails", async () => {
+    const llm = { name: "boom", extract: async () => { throw new Error("provider down"); } };
+    const d = await parseDetailErSociale(ambiguousFixture, llm);
+    expect(d!.amount).toBeNull();
   });
 });
