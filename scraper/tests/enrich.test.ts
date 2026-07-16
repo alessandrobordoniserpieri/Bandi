@@ -18,6 +18,10 @@ describe("parseItalianAmount", () => {
   it("parses '1.000.000 €' → 1000000", () => expect(parseItalianAmount("1.000.000 €")).toBe(1000000));
   it("parses '50.000' → 50000", () => expect(parseItalianAmount("50.000")).toBe(50000));
   it("parses '€ 20.000,50' → 20000.5", () => expect(parseItalianAmount("€ 20.000,50")).toBe(20000.5));
+  // Spelled-out currency (Sport e Salute cards say "Risorse: Euro 900.000"): the word must be
+  // stripped like the symbol, or Number() sees letters and the amount is silently dropped.
+  it("parses 'Euro 900.000' → 900000", () => expect(parseItalianAmount("Euro 900.000")).toBe(900000));
+  it("parses '794.263,35 EUR' → 794263.35", () => expect(parseItalianAmount("794.263,35 EUR")).toBe(794263.35));
   it("returns null for junk", () => expect(parseItalianAmount("boh")).toBeNull());
 });
 

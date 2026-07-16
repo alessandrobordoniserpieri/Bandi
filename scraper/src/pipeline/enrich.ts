@@ -9,7 +9,9 @@ const REGIONS = new Set([
 ]);
 
 export function parseItalianAmount(raw: string): number | null {
-  const cleaned = raw.replace(/[€\s]/g, "");
+  // Strip a spelled-out currency ("Euro 900.000", "900.000 EUR") as well as the symbol/spaces,
+  // otherwise the leftover letters make Number() return NaN and the amount is silently dropped.
+  const cleaned = raw.replace(/euro|eur/gi, "").replace(/[€\s]/g, "");
   if (cleaned === "" || !/[0-9]/.test(cleaned)) return null;
   // Italian format: '.' thousands, ',' decimals.
   const normalized = cleaned.replace(/\./g, "").replace(",", ".");
