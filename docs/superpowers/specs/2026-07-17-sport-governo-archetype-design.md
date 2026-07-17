@@ -132,13 +132,22 @@ Ignorati deliberatamente (§ Non-goals): `faq`, `form`, `backoffice`, `reporting
 
 `amount` e `cofundingPercentage` risolti da `escalateEconomicsToLLM` (nuovo modulo condiviso,
 sostituisce l'attuale `escalateAmountToLLM` locale a er-sociale — vedi ADR-009 per il
-ragionamento completo su scope ed esclusioni). Livello deterministico 1 per `amount`: pattern
-già osservati in questa fonte differiscono da er-sociale ("finanziata con **50 milioni di
-euro**" vs "le risorse ammontano a"), le frasi-segnale vanno **ricalibrate e verificate sui 22
-bandi reali** prima di scrivere il regex finale (stessa rigidità usata per er-sociale: verifica
-dal vivo, non frasi indovinate). Livello deterministico per `cofundingPercentage`: regex "N%"
-ancorata a "cofinanziamento/compartecipazione/quota" (visto in chiaro: "quota di
-compartecipazione del 15%").
+ragionamento completo su scope ed esclusioni).
+
+**Solo in fase di dettaglio**, e con **un solo** livello deterministico (non due, a differenza di
+er-sociale): questa fonte non ha un campo `description` breve e sicuro distinto dal corpo lungo
+(er-sociale sì: `description` è un riassunto di 1-3 frasi, `text` è il corpo lungo dove vivono le
+cifre-esca) — qui `description` **è** il corpo intero, esattamente rischioso quanto il `text`
+lungo di er-sociale (es. "di cui € 30.000.000" accanto al vero totale "100 milioni"). Un parse
+non ancorato a frase sull'intero `description` in fase di listing o come "tier 1" riaprirebbe
+esattamente il bug che l'ancoraggio a frase di er-sociale previene — quindi **niente estrazione
+di `amount` in fase di listing** (resta `null`, risolto solo dal dettaglio) e un solo livello
+deterministico in dettaglio: `extractAnchoredAmount` ancorato a frasi-segnale proprie di questa
+fonte, diverse da er-sociale ("finanziata con **50 milioni di euro**" vs "le risorse ammontano
+a") — **ricalibrate e verificate sui 22 bandi reali** prima di scrivere il regex finale (stessa
+rigidità usata per er-sociale: verifica dal vivo, non frasi indovinate). Livello deterministico
+per `cofundingPercentage`: regex "N%" ancorata a "cofinanziamento/compartecipazione/quota" (visto
+in chiaro: "quota di compartecipazione del 15%").
 
 ## Alternative scartate
 
