@@ -12,6 +12,7 @@ import type { Archetype, DetailGrant, GrantAttachment } from "./types";
 import type { JsonSchema, LLMProvider } from "../providers/types";
 import { TAG_SET, LEGAL_TYPE_SET } from "./vocab";
 import { parseItalianAmount } from "./enrich";
+import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "./economics";
 
 // "2025-09-30T10:00:00+00:00" (or TZ-less "2025-08-01T08:00:00") → "2025-09-30"; else null.
 function isoDay(v: unknown): string | null {
@@ -98,13 +99,7 @@ function deriveTags(materie: string[], text: string): string[] {
 const TOTAL_SIGNAL_RE = /ammontano|complessivamente|somma complessiva|messe a bando|a disposizione|destinate/i;
 
 export function extractTotalFromProse(text: string): number | null {
-  for (const sentence of text.split(/\.\s+(?=[A-ZÀ-Ú])/)) {
-    if (TOTAL_SIGNAL_RE.test(sentence)) {
-      const n = parseItalianAmount(sentence);
-      if (n != null) return n;
-    }
-  }
-  return null;
+  return extractAnchoredAmount(text, TOTAL_SIGNAL_RE);
 }
 
 function todayIso(): string {
@@ -236,35 +231,6 @@ function attachmentsFrom(o: Record<string, unknown>): GrantAttachment[] {
   return out;
 }
 
-const AMOUNT_ONLY_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: { totalAmount: { type: "string", nullable: true } },
-  required: [],
-};
-
-const AMOUNT_ONLY_INSTRUCTIONS = [
-  "Il testo è la descrizione completa di un bando di finanziamento pubblico italiano.",
-  "Estrai SOLO l'importo TOTALE complessivamente disponibile per il bando (il fondo nel suo insieme).",
-  "IGNORA: limiti di spesa per singola voce (es. 'limite di 200 euro per le spese in contanti'), soglie minime o massime per singolo progetto (es. 'importo minimo 20.000 euro', 'contributo massimo 50.000 euro'), percentuali di cofinanziamento.",
-  "Se il testo non indica un unico importo totale complessivo chiaro, restituisci null. Non sommare cifre né indovinare.",
-].join(" ");
-
-// Last resort: reached only when NEITHER deterministic pass (below) finds a total — rare (0/5
-// real bandi checked needed it). One narrowly-scoped field, one plaintext body (a few KB, not the
-// raw page), never the general-purpose extractDetail schema. Never throws: any failure (provider
-// error, unusable response) is null, same as the deterministic path — retried fresh next run.
-async function escalateAmountToLLM(text: string, llm: LLMProvider): Promise<number | null> {
-  if (!text) return null;
-  try {
-    let out: unknown = await llm.extract({ html: text, schema: AMOUNT_ONLY_SCHEMA, instructions: AMOUNT_ONLY_INSTRUCTIONS });
-    if (typeof out === "string") { try { out = JSON.parse(out); } catch { return null; } }
-    const totalAmount = (out as { totalAmount?: unknown } | null)?.totalAmount;
-    return typeof totalAmount === "string" ? parseItalianAmount(totalAmount) : null;
-  } catch {
-    return null;
-  }
-}
-
 // DETAIL path: map the grant's own API object to a DetailGrant. Returns null on anything
 // unexpected (malformed JSON, non-Bando), which the pipeline counts as detailSkipped (retried
 // next run).
@@ -280,16 +246,23 @@ export async function parseDetailErSociale(raw: string, llm: LLMProvider): Promi
   const destinatari = tokens(o.destinatari);
   const text = slateText(o.text);
 
-  // Three-tier amount resolution, cheapest/safest first:
+  // Amount resolution, cheapest/safest first:
   // 1. The short description (1-3 sentences, e.g. "Con 1.000.000 euro di risorse...") — low risk
   //    of unrelated euro mentions, so the generic first-mention parser is safe.
   // 2. The long body text, anchored to total-signaling language ONLY (extractTotalFromProse):
   //    the body often ALSO states unrelated figures (expense caps, per-project thresholds) that
   //    a bare first-mention would wrongly pick — this is the bug this two-tier split fixes.
-  // 3. A targeted LLM call, only when neither deterministic pass found anything.
-  const amount = parseItalianAmount(description)
-    ?? extractTotalFromProse(text ?? "")
-    ?? await escalateAmountToLLM(`${description} ${text ?? ""}`.trim(), llm);
+  // 3. A targeted LLM call, only when neither deterministic pass found anything (shared with
+  //    sport-governo — see ADR-009). cofundingPercentage rides along: resolved deterministically
+  //    first, filled from the same escalation call only if still unresolved.
+  const combinedText = `${description} ${text ?? ""}`.trim();
+  let amount = parseItalianAmount(description) ?? extractTotalFromProse(text ?? "");
+  let cofundingPercentage = extractAnchoredPercentage(combinedText, COFUNDING_SIGNAL_RE);
+  if (amount == null) {
+    const escalated = await escalateEconomicsToLLM(combinedText, llm);
+    amount = escalated.amount;
+    if (cofundingPercentage == null) cofundingPercentage = escalated.cofundingPercentage;
+  }
 
   return {
     summary: description || null,
@@ -300,7 +273,7 @@ export async function parseDetailErSociale(raw: string, llm: LLMProvider): Promi
     amount,
     minAmount: null,
     maxAmount: null,
-    cofundingPercentage: null,
+    cofundingPercentage,
     eligibleExpenses: null,
     applicationMethod: null,
     contactInfo: slateText(o.riferimenti),

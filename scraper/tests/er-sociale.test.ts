@@ -190,6 +190,20 @@ describe("er-sociale detail parser", () => {
     expect((await parseDetailErSociale(fixtureWithBreakdown, NO_LLM))!.amount).toBe(1371182.26);
   });
 
+  it("resolves cofundingPercentage deterministically when the text states it", async () => {
+    const fixture = JSON.stringify({
+      "@id": "https://sociale.example/bandi/z", "@type": "Bando", title: "Z",
+      description: "",
+      text: {
+        blocks: { a: { plaintext: "Le risorse messe a bando ammontano a 500.000 euro. È prevista una quota di cofinanziamento pari al 20% a carico del soggetto proponente." } },
+        blocks_layout: { items: ["a"] },
+      },
+    });
+    const d = (await parseDetailErSociale(fixture, NO_LLM))!;
+    expect(d.amount).toBe(500000);
+    expect(d.cofundingPercentage).toBe(20);
+  });
+
   it("encodes headings, bold-only subsection labels and bullet lists as light markup (verified live shape)", async () => {
     const fixtureWithStructure = JSON.stringify({
       "@id": "https://sociale.example/bandi/y", "@type": "Bando", title: "Avviso", description: "",
