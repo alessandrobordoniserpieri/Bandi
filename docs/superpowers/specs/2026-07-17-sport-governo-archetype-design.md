@@ -169,10 +169,17 @@ in chiaro: "quota di compartecipazione del 15%").
 - Campi di dettaglio non legati al matching: `faq`, `form` (definizione dei campi del modulo di
   candidatura), `backoffice`, `reporting*`, `payments`, `anticipation`, `privacy`, `config`.
 - Paginazione: non serve con 22 item in un'unica risposta.
-- Filtro per data allo scrape: i bandi scaduti (es. edizioni 2023/2024) restano ingeriti e
-  marcati `scaduto`, stessa convenzione di piattaforma — solo il bando con `dest: ["pf"]` (ADR-010)
-  viene scartato, mai per scadenza.
 - Attivazione dello scheduler in produzione senza ok esplicito — stesso protocollo di er-sociale.
+
+## Aggiornamento 2026-07-17 — policy "solo bandi aperti" (ADR-011)
+
+La bozza iniziale (§Non-goals) prevedeva di ingerire anche i bandi scaduti marcandoli `scaduto`,
+"stessa convenzione di piattaforma". Quella convenzione è stata **cambiata** con ADR-011: si
+ingeriscono solo i bandi **nuovi e ancora aperti**; un bando mai visto ma già scaduto non entra.
+Il filtro NON è specifico di questo archetipo — vive in `decide()` (dedup.ts) e vale per tutti.
+Conseguenza per questa fonte: dei 21 bandi mappabili (22 meno il `pf`-only di ADR-010), in
+produzione ne entrano solo i 2 attualmente aperti; i 19 già scaduti non vengono importati. Lo
+scarto per `dest: ["pf"]` (ADR-010) resta, ortogonale a questo.
 
 ## Testing
 
