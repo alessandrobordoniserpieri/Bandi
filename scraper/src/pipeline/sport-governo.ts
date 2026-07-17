@@ -4,6 +4,9 @@
 // embed a <script id="__NEXT_DATA__"> JSON blob with the full data, no headless Chrome needed.
 // Design: docs/superpowers/specs/2026-07-17-sport-governo-archetype-design.md
 import { LEGAL_TYPE_SET, TAG_SET } from "./vocab";
+import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "./economics";
+import type { Archetype, DetailGrant, GrantAttachment } from "./types";
+import type { JsonSchema, LLMProvider } from "../providers/types";
 
 // Strips tags to EMPTY (not a space): real Quill HTML here always carries its own whitespace at
 // real word boundaries ("...Giovani,\n    <strong>Andrea Abodi</strong>,..."), but an inline tag
@@ -183,10 +186,6 @@ export function parseSportGoverno(raw: string): unknown[] {
   return out;
 }
 
-import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "./economics";
-import type { DetailGrant, GrantAttachment } from "./types";
-import type { LLMProvider } from "../providers/types";
-
 // Real phrasing observed live (2026-07-17), distinct from er-sociale's own signal words: totals
 // here are introduced by "finanziata con"/"stanziato"/"dotazione di"/"ammontano a"/"finanziamento
 // complessivo" — verified against all 22 real notices before writing this regex.
@@ -261,3 +260,39 @@ export async function parseDetailSportGoverno(raw: string, llm: LLMProvider): Pr
     attachments: attachmentsFrom(notice.attachments),
   };
 }
+
+// LLM fallback (used only if parse() returns [], e.g. the site's data shape changed): the body is
+// the raw page HTML including the __NEXT_DATA__ script tag, so the instructions explain that shape.
+const SPORT_GOVERNO_SCHEMA: JsonSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      url: { type: "string" },
+      deadline: { type: "string", nullable: true },
+      summary: { type: "string", nullable: true },
+    },
+    required: ["title", "url"],
+  },
+};
+
+const SPORT_GOVERNO_INSTRUCTIONS = [
+  "Il contenuto è la pagina HTML di un sito Next.js del Dipartimento per lo Sport (Governo italiano): contiene uno script con id \"__NEXT_DATA__\" il cui JSON ha props.pageProps.notices, un array di bandi.",
+  "Per ogni bando estrai: title, url (costruiscila come https://avvisibandi.sport.governo.it/bandi/<_id> usando il campo _id), deadline (da schedule.compilazione.end, solo la data YYYY-MM-DD), summary (da description, testo semplice senza tag HTML).",
+  "Usa null per i campi mancanti. Non inventare valori.",
+].join(" ");
+
+export const SPORT_GOVERNO_ARCHETYPE: Archetype = {
+  name: "sport-governo",
+  parse: parseSportGoverno,             // primary path — no LLM
+  parseDetail: parseDetailSportGoverno, // detail via the notice's own page JSON — LLM only for amount/cofunding escalation
+  sanitize: (html) => html,             // parsed via __NEXT_DATA__ extraction; nothing to sanitize
+  chunkSize: 35_000,
+  overlap: 2_000,
+  boundaryTags: [],                     // no clean HTML boundary in a JSON-embedded-in-HTML page; whitespace fallback is fine
+  urlSnapping: false,                   // URLs are constructed from _id, always canonical
+  listing: { schema: SPORT_GOVERNO_SCHEMA, instructions: SPORT_GOVERNO_INSTRUCTIONS },
+  detailRequired: false,
+  detailEnabled: true,
+};

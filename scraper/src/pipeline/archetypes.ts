@@ -4,6 +4,7 @@ import type { JsonSchema } from "../providers/types";
 import { sanitizeHtml } from "./sanitize-html";
 import { FULL_ARCHETYPE } from "./extract-grants";
 import { ER_SOCIALE_ARCHETYPE } from "./er-sociale";
+import { SPORT_GOVERNO_ARCHETYPE } from "./sport-governo";
 
 // Archetype "listing-light" (B): the listing page has only a title + link per grant, so extraction
 // there is deliberately minimal (title, url, deadline). Everything else — amount, requirements,
@@ -249,6 +250,7 @@ export const ARCHETYPES: Record<string, Archetype> = {
   [LISTING_LIGHT_ARCHETYPE.name]: LISTING_LIGHT_ARCHETYPE,
   [SPORTESALUTE_ARCHETYPE.name]: SPORTESALUTE_ARCHETYPE,
   [ER_SOCIALE_ARCHETYPE.name]: ER_SOCIALE_ARCHETYPE,
+  [SPORT_GOVERNO_ARCHETYPE.name]: SPORT_GOVERNO_ARCHETYPE,
 };
 
 export const DEFAULT_ARCHETYPE = FULL_ARCHETYPE;
