@@ -24,10 +24,27 @@ const AMOUNT_IN_TEXT_RE = new RegExp(
   `(?:(?:euro|€)\\s*(${AMOUNT_TOKEN}))|(?:(${AMOUNT_TOKEN})\\s*(?:euro|€))`, "i",
 );
 
+// Some sources spell out large totals ("50 milioni di euro", "pari ad euro 100 milioni") instead
+// of digits. Expand "N milion[ei]" (optionally followed by "di euro"/"euro") to its digit form
+// BEFORE the rest of this function runs, so the existing digit-based parsing handles it unchanged.
+// Verified against avvisibandi.sport.governo.it (2026-07-17): every real occurrence in that corpus
+// names a euro total this way; no other unit is ever spelled out as "milioni" in this domain, so
+// forcing "euro" onto the expansion is safe. Intentionally does NOT handle "mila" (thousands) —
+// no real bando in the checked corpus spells out a TOTAL that way (only per-project caps like
+// "700mila euro", which the signal-anchored callers already exclude by sentence, not by this fn).
+const MILLIONS_RE = /([0-9]+(?:[.,][0-9]+)?)\s*milion[ei]\s*(?:di\s+)?(?:euro|€)?/gi;
+function expandSpelledOutMillions(s: string): string {
+  return s.replace(MILLIONS_RE, (match, num: string) => {
+    const n = Number(num.replace(",", "."));
+    return Number.isFinite(n) ? `${Math.round(n * 1_000_000)} euro` : match;
+  });
+}
+
 export function parseItalianAmount(raw: string): number | null {
+  const expanded = expandSpelledOutMillions(raw);
   // Strip a spelled-out currency ("Euro 900.000", "900.000 EUR") as well as the symbol/spaces,
   // otherwise the leftover letters make Number() return NaN and the amount is silently dropped.
-  const cleaned = raw.replace(/euro|eur/gi, "").replace(/[€\s]/g, "");
+  const cleaned = expanded.replace(/euro|eur/gi, "").replace(/[€\s]/g, "");
   if (cleaned !== "" && /[0-9]/.test(cleaned)) {
     const n = toNumber(cleaned);
     if (n != null) return n;
@@ -35,7 +52,7 @@ export function parseItalianAmount(raw: string): number | null {
   // Fallback for free text carrying a TOTAL followed by a breakdown tail ("di cui: ...",
   // "Ripartizione: ...") — the whole-string parse above fails on the extra prose even though a
   // clean total figure is present. Pull just the first currency-adjacent figure instead.
-  const m = AMOUNT_IN_TEXT_RE.exec(raw);
+  const m = AMOUNT_IN_TEXT_RE.exec(expanded);
   const digits = m?.[1] ?? m?.[2];
   return digits ? toNumber(digits) : null;
 }

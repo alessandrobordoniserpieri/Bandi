@@ -40,6 +40,34 @@ describe("parseItalianAmount", () => {
     expect(parseItalianAmount("Nel 2027 arriveranno altri fondi per il settore.")).toBeNull());
 });
 
+describe("parseItalianAmount — spelled-out millions (avvisibandi.sport.governo.it, verified live 2026-07-17)", () => {
+  it("expands 'N milioni di euro' embedded in a sentence", () => {
+    const text = "L'iniziativa è finanziata con 50 milioni di euro a valere sul Fondo per lo Sviluppo e la Coesione.";
+    expect(parseItalianAmount(text)).toBe(50_000_000);
+  });
+
+  it("expands 'euro N milioni' (euro BEFORE the number, milioni after)", () => {
+    const text = "è stato stanziato un finanziamento complessivo pari ad euro 100 milioni, di cui € 30.000.000 per nuovi impianti.";
+    expect(parseItalianAmount(text)).toBe(100_000_000);
+  });
+
+  it("expands 'oltre N milioni di euro'", () => {
+    expect(parseItalianAmount("Le risorse destinate per il 2024 ammontano a oltre 5 milioni di euro.")).toBe(5_000_000);
+  });
+
+  it("expands a decimal million value", () => {
+    expect(parseItalianAmount("Sono stanziati 2,5 milioni di euro per il programma.")).toBe(2_500_000);
+  });
+
+  it("still parses a whole-string digit amount unchanged (regression)", () => {
+    expect(parseItalianAmount("1.371.182,26")).toBe(1371182.26);
+  });
+
+  it("still parses 'N euro' embedded in a sentence unchanged (regression)", () => {
+    expect(parseItalianAmount("Le risorse complessivamente a disposizione ammontano a 390.000 euro.")).toBe(390000);
+  });
+});
+
 describe("enrich", () => {
   it("defaults status to aperto when null", () => {
     expect(enrich(g({ status: null })).status).toBe("aperto");
