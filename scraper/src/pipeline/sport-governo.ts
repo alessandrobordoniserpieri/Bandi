@@ -111,3 +111,74 @@ export function deriveTags(title: string, description: string): string[] {
   }
   return [...out].filter((t) => TAG_SET.has(t));
 }
+
+function extractNextData(raw: string): unknown | null {
+  const m = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/.exec(raw);
+  if (!m) return null;
+  try { return JSON.parse(m[1]!); } catch { return null; }
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isoDay(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  return /^(\d{4}-\d{2}-\d{2})/.exec(v)?.[1] ?? null;
+}
+
+function noticeUrl(id: string): string {
+  return `https://avvisibandi.sport.governo.it/bandi/${id}`;
+}
+
+function statusFrom(deadline: string | null, today: string): "aperto" | "chiuso" | "scaduto" | null {
+  if (!deadline) return null;
+  return deadline < today ? "scaduto" : "aperto";
+}
+
+interface RawNotice {
+  _id?: unknown; title?: unknown; description?: unknown; dest?: unknown;
+  schedule?: { compilazione?: { end?: unknown } };
+}
+
+// PRIMARY listing path: parse the homepage's embedded __NEXT_DATA__ straight into raw grant
+// items — no LLM. Returns [] on anything unexpected, which makes extractGrants fall back to the
+// LLM path (same contract as every other code-parsed archetype).
+export function parseSportGoverno(raw: string): unknown[] {
+  const data = extractNextData(raw) as { props?: { pageProps?: { notices?: unknown[] } } } | null;
+  const notices = data?.props?.pageProps?.notices;
+  if (!Array.isArray(notices)) return [];
+  const today = todayIso();
+  const out: unknown[] = [];
+  for (const item of notices) {
+    if (typeof item !== "object" || item === null) continue;
+    const n = item as RawNotice;
+    const id = typeof n._id === "string" ? n._id : null;
+    const title = typeof n.title === "string" ? n.title : null;
+    if (!id || !title) continue;
+    const description = typeof n.description === "string" ? n.description : "";
+    const dest = Array.isArray(n.dest) ? n.dest.filter((d): d is string => typeof d === "string") : [];
+    if (shouldSkipNotice(dest)) continue;
+    const deadline = isoDay(n.schedule?.compilazione?.end);
+    const summary = htmlToLightMarkup(description) || null;
+    out.push({
+      title,
+      url: noticeUrl(id),
+      summary,
+      deadline,
+      status: statusFrom(deadline, today),
+      // Unlike er-sociale/sportesalute, this source has no separate SHORT summary field safe to
+      // parse whole — `description` IS the full body prose, exactly as red-herring-prone as
+      // er-sociale's `text` (e.g. "di cui € 30.000.000" next to the real "100 milioni" total).
+      // Passing it raw here would hand coerce()'s unguarded numOrNull the same red-herring risk
+      // er-sociale's sentence-anchoring was built to prevent. Leave amount to the detail phase,
+      // which resolves it safely via extractAnchoredAmount (see parseDetailSportGoverno).
+      amount: null,
+      area: null,
+      geoScope: "nazionale",
+      eligibleTypes: deriveEligibleTypes(dest),
+      tags: deriveTags(title, description),
+    });
+  }
+  return out;
+}

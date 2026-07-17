@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { htmlToLightMarkup, deriveEligibleTypes, shouldSkipNotice, deriveTags } from "../src/pipeline/sport-governo";
+import { htmlToLightMarkup, deriveEligibleTypes, shouldSkipNotice, deriveTags, parseSportGoverno } from "../src/pipeline/sport-governo";
 
 describe("htmlToLightMarkup", () => {
   it("transcribes a real Oratori-bando description (verified live, avvisibandi.sport.governo.it 2026-07-17)", () => {
@@ -127,5 +127,73 @@ describe("deriveTags", () => {
 
   it("adds 'famiglie' when the text mentions it", () => {
     expect(deriveTags("Fondo dote per la Famiglia", "")).toContain("famiglie");
+  });
+});
+
+// Real shape (avvisibandi.sport.governo.it, verified live 2026-07-17): the homepage embeds
+// __NEXT_DATA__ with props.pageProps.notices[]. IDs/dest/titles below are the REAL values for 3 of
+// the 22 real notices (descriptions trimmed for fixture readability, structure unchanged).
+function nextDataHtml(notices: unknown[]): string {
+  const data = { props: { pageProps: { notices, posts: [] } }, page: "/", query: {} };
+  return `<!doctype html><html><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(data)}</script></body></html>`;
+}
+
+describe("parseSportGoverno (listing)", () => {
+  it("maps real notices to raw grant items, skipping the pf-only one", () => {
+    const html = nextDataHtml([
+      {
+        _id: "699d5d516166f9f16884719b", title: "Sport e Periferie 2026",
+        description: "<p>Al riguardo, è stato stanziato un finanziamento complessivo pari ad euro 100 milioni.</p>",
+        image: "https://avvisibandi.sport.governo.it/api/static/notices/699d5d516166f9f16884719b/image.png",
+        dest: ["pa"],
+        schedule: { compilazione: { start: "2026-06-04T10:00:00.000Z", end: "2026-06-25T10:00:00.000Z" } },
+      },
+      {
+        _id: "687e0a24ef7a47aa396ddbd1", title: "Fondo dote per la Famiglia - Candidatura BENEFICIARI",
+        description: "<p>Candidatura riservata alle famiglie.</p>",
+        image: "https://avvisibandi.sport.governo.it/api/static/notices/687e0a24ef7a47aa396ddbd1/image.png",
+        dest: ["pf"],
+        schedule: { compilazione: { start: "2025-01-01T00:00:00.000Z", end: "2025-02-01T00:00:00.000Z" } },
+      },
+      {
+        _id: "696fa4cd7ab13ae68a3df7c5", title: "Avviso per la selezione di interventi infrastrutturali destinati agli ORATORI",
+        description: "<p>Riservato a Diocesi e Istituti Religiosi.</p>",
+        image: "https://avvisibandi.sport.governo.it/api/static/notices/696fa4cd7ab13ae68a3df7c5/image.png",
+        dest: ["diocesi", "istituti_religiosi"],
+        schedule: { compilazione: { start: "2026-07-16T10:00:00.000Z", end: "2026-10-16T10:00:00.000Z" } },
+      },
+    ]);
+
+    const items = parseSportGoverno(html) as Array<Record<string, unknown>>;
+
+    expect(items).toHaveLength(2); // the pf-only notice is skipped
+    const periferie = items.find((i) => i.title === "Sport e Periferie 2026")!;
+    expect(periferie.url).toBe("https://avvisibandi.sport.governo.it/bandi/699d5d516166f9f16884719b");
+    expect(periferie.deadline).toBe("2026-06-25");
+    expect(periferie.eligibleTypes).toEqual(["Ente pubblico"]);
+    expect(periferie.geoScope).toBe("nazionale");
+    expect(periferie.area).toBeNull();
+    expect((periferie.summary as string)).toContain("finanziamento complessivo");
+
+    const oratori = items.find((i) => (i.title as string).includes("ORATORI"))!;
+    expect(oratori.eligibleTypes).toEqual(["Ente ecclesiastico civilmente riconosciuto"]);
+  });
+
+  it("returns [] on malformed input (no __NEXT_DATA__ marker)", () => {
+    expect(parseSportGoverno("<html><body>not the right page</body></html>")).toEqual([]);
+  });
+
+  it("returns [] on malformed __NEXT_DATA__ JSON", () => {
+    expect(parseSportGoverno('<script id="__NEXT_DATA__" type="application/json">{not json</script>')).toEqual([]);
+  });
+
+  it("derives status from schedule.compilazione.end vs today", () => {
+    const past = nextDataHtml([{
+      _id: "past1", title: "Bando scaduto", description: "<p>Testo.</p>",
+      image: "", dest: ["pa"],
+      schedule: { compilazione: { start: "2020-01-01T00:00:00.000Z", end: "2020-02-01T00:00:00.000Z" } },
+    }]);
+    const [item] = parseSportGoverno(past) as Array<Record<string, unknown>>;
+    expect(item!.status).toBe("scaduto");
   });
 });
