@@ -59,8 +59,9 @@ JSON è malformato → fallback LLM come da contratto esistente di ogni archetip
 | `beneficiaries` | `dest` (etichette leggibili)   | join ", " |
 
 **Regola di scarto (ADR-010)**: se `dest.length > 0` e `deriveEligibleTypes(dest).length === 0`
-(nessuna categoria mappata — es. solo diocesi/istituti religiosi), il bando **non viene
-emesso**. Se `dest` è vuoto (nessuna categorizzazione, non "categorizzato come non nostro"), il
+(nessuna categoria mappata — sui 22 bandi reali, solo `dest: ["pf"]`/persona fisica), il bando
+**non viene emesso**. Se `dest` è vuoto (nessuna categorizzazione, non "categorizzato come non
+nostro"), il
 bando resta — stesso principio di "nessuna restrizione inventata" già in uso.
 
 Config archetipo: `sanitize` = identità (non è HTML da sanificare, è JSON incorporato),
@@ -82,7 +83,11 @@ Match esatto sui token (non case-insensitive su prosa libera, sono enum puliti):
 | `pa` | Ente pubblico |
 | `company` | Impresa |
 | `ats` | Raggruppamento temporaneo / ATS |
-| `pf`, `diocesi`, `istituti_religiosi`, `societa_vita_apostolica`, `provincia_vita_apostolica`, `provincia_istituto_religioso`, `parrocchia`, `enti_ecclesiali`, `ets_oratori`, `enti_altre_confessioni` | nessun equivalente, non mappati |
+| `diocesi`, `istituti_religiosi`, `societa_vita_apostolica`, `provincia_vita_apostolica`, `provincia_istituto_religioso` | Ente ecclesiastico civilmente riconosciuto (esiste già in `LEGAL_TYPES` — dioceti/istituti religiosi/società di vita apostolica sono legalmente enti ecclesiastici civilmente riconosciuti ex Concordato 1985; **correzione 2026-07-17**: la bozza iniziale li dava per non mappabili, era un errore, vedi ADR-010) |
+| `parrocchia`, `ets_oratori` | Parrocchia / Oratorio |
+| `enti_ecclesiali` | Ente religioso |
+| `enti_altre_confessioni` | Ente religioso (confessioni non cattoliche — stesso tipo generico, non essendoci una categoria dedicata) |
+| `pf` | nessun equivalente (persona fisica — candidatura individuale, non di un ente; unico caso reale che attiva lo scarto ADR-010 sui 22 bandi verificati) |
 
 **`tags`**: `"sport"` sempre (fonte interamente sportiva, come `sportesalute`) + regole keyword
 su titolo+descrizione: periferie→`periferie`, impiant\* sportiv\*→`impianti sportivi`,
@@ -143,8 +148,8 @@ compartecipazione del 15%").
 - **Archetipo generico `full` (Browserless + LLM)**: butterebbe via un JSON pulito e gratuito per
   pagare token su qualcosa di deterministico, e perderebbe la precisione della mappatura
   `dest → eligibleTypes` (l'LLM dovrebbe indovinarla dal prosa). Scartata.
-- **Ingerire i bandi solo-religiosi con `eligibleTypes: []`**: vedi ADR-010 — collide con la
-  semantica esistente di `[]` come "aperto a tutti". Scartata.
+- **Ingerire i bandi con `dest` non mappabile (es. `pf`) lasciando `eligibleTypes: []`**: vedi
+  ADR-010 — collide con la semantica esistente di `[]` come "aperto a tutti". Scartata.
 - **Far estrarre all'LLM anche `fundingType`/`minAmount`/`maxAmount`/`eligibleExpenses`/
   `applicationMethod`**: vedi ADR-009 — `min`/`max` sono le cifre-esca che l'estrazione
   dell'`amount` deve evitare, gli altri sono solo display. Scartata.
@@ -156,8 +161,8 @@ compartecipazione del 15%").
   candidatura), `backoffice`, `reporting*`, `payments`, `anticipation`, `privacy`, `config`.
 - Paginazione: non serve con 22 item in un'unica risposta.
 - Filtro per data allo scrape: i bandi scaduti (es. edizioni 2023/2024) restano ingeriti e
-  marcati `scaduto`, stessa convenzione di piattaforma — solo i bandi solo-religiosi (ADR-010)
-  vengono scartati, mai per scadenza.
+  marcati `scaduto`, stessa convenzione di piattaforma — solo il bando con `dest: ["pf"]` (ADR-010)
+  viene scartato, mai per scadenza.
 - Attivazione dello scheduler in produzione senza ok esplicito — stesso protocollo di er-sociale.
 
 ## Testing
