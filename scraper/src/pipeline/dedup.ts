@@ -58,13 +58,37 @@ export function diffGrant(incoming: ExtractedGrant, existing: ExtractedGrant): P
 export type Decision =
   | { action: "insert" } | { action: "skip" } | { action: "update"; patch: Partial<ExtractedGrant> };
 
-export function decide(incoming: ExtractedGrant, existing: ExtractedGrant | null): Decision {
-  if (existing == null) return { action: "insert" };
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// A grant we've never stored is only worth ingesting while applications are still open. A brand-new
+// listing that's ALREADY expired is not back-filled — we never tracked it, so importing its history
+// is noise. Robust across archetypes: an explicit scaduto/chiuso status OR a deadline already in the
+// past both count (the latter catches the generic LLM archetype, which may leave status "aperto"
+// despite a past deadline). A null deadline can't be proven expired (rolling/always-open) → not
+// expired. This gate applies ONLY to inserts; grants already in the system expire in place via the
+// update path (status flips to scaduto, row kept) and the daily expire_grants() cron.
+function isExpiredAtIngest(g: ExtractedGrant, today: string): boolean {
+  if (g.status === "scaduto" || g.status === "chiuso") return true;
+  return g.deadline != null && g.deadline < today;
+}
+
+export function decide(
+  incoming: ExtractedGrant,
+  existing: ExtractedGrant | null,
+  today: string = todayIso(),
+): Decision {
+  if (existing == null) {
+    return isExpiredAtIngest(incoming, today) ? { action: "skip" } : { action: "insert" };
+  }
 
   const expired = existing.status === "scaduto" || existing.status === "chiuso";
   if (expired) {
     const newEdition = incoming.deadline != null && incoming.deadline !== existing.deadline;
-    return newEdition ? { action: "insert" } : { action: "skip" };
+    if (!newEdition) return { action: "skip" };
+    // A new edition is still only worth inserting if that edition is itself still open.
+    return isExpiredAtIngest(incoming, today) ? { action: "skip" } : { action: "insert" };
   }
 
   const patch = diffGrant(incoming, existing);

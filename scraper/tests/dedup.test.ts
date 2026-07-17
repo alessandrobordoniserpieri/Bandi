@@ -98,3 +98,50 @@ describe("diffGrant / decide", () => {
     expect(diffGrant(incoming, existing)).toEqual({});
   });
 });
+
+// Policy (ADR): only NEW, still-open grants are ingested. A brand-new listing that is ALREADY
+// expired is not back-filled — we never tracked it, so its history is not ours to import. Grants
+// already in the system expire IN PLACE (the update path flips their status; the row stays).
+describe("decide — skip expired grants at ingest time (only-new policy)", () => {
+  const TODAY = "2026-07-17";
+
+  it("skips inserting a brand-new grant explicitly marked scaduto", () => {
+    expect(decide(g({ status: "scaduto", deadline: "2026-01-01" }), null, TODAY)).toEqual({ action: "skip" });
+  });
+
+  it("skips inserting a brand-new grant explicitly marked chiuso", () => {
+    expect(decide(g({ status: "chiuso", deadline: "2026-01-01" }), null, TODAY)).toEqual({ action: "skip" });
+  });
+
+  it("skips a brand-new grant whose deadline is in the past even if status still says aperto (generic-archetype gap)", () => {
+    expect(decide(g({ status: "aperto", deadline: "2026-06-30" }), null, TODAY)).toEqual({ action: "skip" });
+  });
+
+  it("still inserts a brand-new grant with a future deadline", () => {
+    expect(decide(g({ status: "aperto", deadline: "2026-12-31" }), null, TODAY)).toEqual({ action: "insert" });
+  });
+
+  it("still inserts a brand-new grant with no deadline (cannot prove it's expired — e.g. rolling)", () => {
+    expect(decide(g({ status: "aperto", deadline: null }), null, TODAY)).toEqual({ action: "insert" });
+  });
+
+  it("does NOT skip an already-stored grant that has since expired: the update path keeps it in place", () => {
+    // existing is active in the DB (status aperto), the re-scrape now reports it expired → the row
+    // is UPDATED to scaduto, never dropped. "Quando uno scade lo teniamo a sistema."
+    const incoming = g({ status: "scaduto", deadline: "2026-06-30" });
+    const existing = g({ status: "aperto", deadline: "2026-06-30" });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "update", patch: { status: "scaduto" } });
+  });
+
+  it("skips a NEW EDITION of an expired grant when that edition is itself already expired", () => {
+    const incoming = g({ status: "scaduto", deadline: "2026-05-01" });
+    const existing = g({ status: "scaduto", deadline: "2025-05-01" });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "skip" });
+  });
+
+  it("still inserts a NEW EDITION of an expired grant when that edition is still open", () => {
+    const incoming = g({ status: "aperto", deadline: "2027-05-01" });
+    const existing = g({ status: "scaduto", deadline: "2026-05-01" });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "insert" });
+  });
+});

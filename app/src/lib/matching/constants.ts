@@ -173,9 +173,14 @@ export const LEGAL_TYPE_TO_GROUP: Record<string, LegalGroup | null> = {
   "Comitato": "TERZO_SETT",
   "Comitato organizzatore": "TERZO_SETT",
   "Pro Loco": "TERZO_SETT",
-  "Ente ecclesiastico civilmente riconosciuto": "TERZO_SETT",
-  "Parrocchia / Oratorio": "TERZO_SETT",
-  "Ente religioso": "TERZO_SETT",
+  // Religious/ecclesiastical entities: NO group on purpose. A diocese/parish is not automatically
+  // third-sector (it only becomes an ETS if registered at RUNTS). Grouping them under TERZO_SETT
+  // gave a false half-point affinity in scoreLegalForm — an APS/ODV would half-match a bando
+  // reserved to dioceses, and vice-versa. With null, the EXACT-type match still scores full
+  // (a diocese ↔ a diocese-only bando), but there's no spurious cross-affinity with lay ETS.
+  "Ente ecclesiastico civilmente riconosciuto": null,
+  "Parrocchia / Oratorio": null,
+  "Ente religioso": null,
   "Comune": "ENTI_PUBBL",
   "Unione di Comuni": "ENTI_PUBBL",
   "Provincia / Città Metropolitana": "ENTI_PUBBL",

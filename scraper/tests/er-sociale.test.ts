@@ -281,13 +281,15 @@ describe("er-sociale end-to-end (listing + detail, LLM never called)", () => {
 
     expect(result!.errors).toEqual([]);
     expect(result!.detailErrors).toEqual([]);
-    expect(db.grants).toHaveLength(2);
+    // Only the still-open grant is ingested: the second fixture item has a PAST deadline, so the
+    // only-new ingest policy (decide/isExpiredAtIngest) skips it — a brand-new-but-already-expired
+    // listing is never back-filled.
+    expect(db.grants).toHaveLength(1);
     const g = db.grants.find((x) => x.url.includes("bando-alimentare"))!;
     expect(g.openingDate).toBe("2025-08-01");
     expect(g.contactInfo).toContain("Bussadori");
     expect(g.attachments?.[0]?.url).toBe("https://sociale.example/allegato.pdf");
-    // Only the still-open grant gets a detail fetch; the past-deadline one is "scaduto" and
-    // findGrantsNeedingDetail skips it — so exactly one detail update.
+    // The single still-open grant gets its detail fetched — exactly one detail update.
     expect(db.scrapeLogs.some((l) => l.phase === "detail" && l.updated === 1)).toBe(true);
   });
 });
