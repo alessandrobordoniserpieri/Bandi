@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE } from "../src/pipeline/economics";
+import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "../src/pipeline/economics";
+import { FakeLLMProvider } from "../src/providers/fake";
+import type { LLMProvider } from "../src/providers/types";
 
 const TOTAL_SIGNAL_RE = /ammontano|complessivamente|somma complessiva|messe a bando|a disposizione|destinate/i;
 
@@ -43,5 +45,39 @@ describe("extractAnchoredPercentage", () => {
 
   it("returns null when no percentage is present at all", () => {
     expect(extractAnchoredPercentage("Il bando è rivolto a enti pubblici.", COFUNDING_SIGNAL_RE)).toBeNull();
+  });
+});
+
+describe("escalateEconomicsToLLM", () => {
+  it("resolves both amount and cofundingPercentage from one call", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([
+      [TEXT, { totalAmount: "220.000", cofundingPercentage: "20" }],
+    ]));
+    const result = await escalateEconomicsToLLM(TEXT, llm);
+    expect(result).toEqual({ amount: 220000, cofundingPercentage: 20 });
+  });
+
+  it("tolerates a response missing cofundingPercentage (older-shaped fixture)", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[TEXT, { totalAmount: "220.000" }]]));
+    const result = await escalateEconomicsToLLM(TEXT, llm);
+    expect(result).toEqual({ amount: 220000, cofundingPercentage: null });
+  });
+
+  it("returns nulls, not a thrown error, when the LLM returns nothing usable", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[TEXT, { totalAmount: null, cofundingPercentage: null }]]));
+    expect(await escalateEconomicsToLLM(TEXT, llm)).toEqual({ amount: null, cofundingPercentage: null });
+  });
+
+  it("returns nulls, not a thrown error, when the LLM call itself fails", async () => {
+    const llm: LLMProvider = { name: "boom", extract: async () => { throw new Error("provider down"); } };
+    expect(await escalateEconomicsToLLM("qualunque testo", llm)).toEqual({ amount: null, cofundingPercentage: null });
+  });
+
+  it("returns nulls immediately for empty text, without calling the provider", async () => {
+    const llm: LLMProvider = { name: "boom", extract: async () => { throw new Error("must not be called"); } };
+    expect(await escalateEconomicsToLLM("", llm)).toEqual({ amount: null, cofundingPercentage: null });
   });
 });
