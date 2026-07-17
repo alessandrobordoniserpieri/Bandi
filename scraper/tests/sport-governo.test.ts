@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { htmlToLightMarkup } from "../src/pipeline/sport-governo";
+import { htmlToLightMarkup, deriveEligibleTypes, shouldSkipNotice, deriveTags } from "../src/pipeline/sport-governo";
 
 describe("htmlToLightMarkup", () => {
   it("transcribes a real Oratori-bando description (verified live, avvisibandi.sport.governo.it 2026-07-17)", () => {
@@ -48,5 +48,84 @@ describe("htmlToLightMarkup", () => {
 
   it("returns an empty string for empty input", () => {
     expect(htmlToLightMarkup("")).toBe("");
+  });
+});
+
+describe("deriveEligibleTypes (dest -> LEGAL_TYPES, verified against 22 real notices 2026-07-17)", () => {
+  it("maps sport-organization tokens", () => {
+    expect(deriveEligibleTypes(["asd", "ssd"])).toEqual(
+      expect.arrayContaining(["ASD - Associazione Sportiva Dilettantistica", "SSD - Società Sportiva Dilettantistica"]),
+    );
+  });
+
+  it("maps eps/fed/dsa to the promozione-sportiva family", () => {
+    const types = deriveEligibleTypes(["eps", "fed", "dsa"]);
+    expect(types).toEqual(expect.arrayContaining([
+      "EPS - Ente di Promozione Sportiva", "FSN - Federazione Sportiva Nazionale", "DSA - Disciplina Sportiva Associata",
+    ]));
+  });
+
+  it("maps pa/company/ats/onlus directly", () => {
+    expect(deriveEligibleTypes(["pa"])).toEqual(["Ente pubblico"]);
+    expect(deriveEligibleTypes(["company"])).toEqual(["Impresa"]);
+    expect(deriveEligibleTypes(["ats"])).toEqual(["Raggruppamento temporaneo / ATS"]);
+    expect(deriveEligibleTypes(["onlus"])).toEqual(["ONLUS"]);
+  });
+
+  it("maps 'ets' to the broad ETS family WITHOUT duplicating ONLUS (a separate token here)", () => {
+    const types = deriveEligibleTypes(["ets"]);
+    expect(types).toContain("ETS - Ente del Terzo Settore");
+    expect(types).toContain("Cooperativa sociale tipo A");
+    expect(types).not.toContain("ONLUS");
+  });
+
+  it("maps religious/ecclesiastical dest tokens to real LEGAL_TYPES entries (corrects the initial wrong assumption — see ADR-010)", () => {
+    expect(deriveEligibleTypes(["diocesi", "istituti_religiosi", "societa_vita_apostolica"]))
+      .toEqual(["Ente ecclesiastico civilmente riconosciuto"]);
+    expect(deriveEligibleTypes(["parrocchia", "ets_oratori"])).toEqual(["Parrocchia / Oratorio"]);
+    expect(deriveEligibleTypes(["enti_ecclesiali"])).toEqual(["Ente religioso"]);
+    expect(deriveEligibleTypes(["enti_altre_confessioni"])).toEqual(["Ente religioso"]);
+  });
+
+  it("returns [] for 'pf' (persona fisica — no organization equivalent)", () => {
+    expect(deriveEligibleTypes(["pf"])).toEqual([]);
+  });
+
+  it("de-duplicates when multiple dest tokens map to the same type", () => {
+    const types = deriveEligibleTypes(["parrocchia", "ets_oratori"]);
+    expect(types).toEqual(["Parrocchia / Oratorio"]); // not duplicated
+  });
+});
+
+describe("shouldSkipNotice (ADR-010)", () => {
+  it("skips when dest is non-empty but maps to nothing (real case: dest: ['pf'])", () => {
+    expect(shouldSkipNotice(["pf"])).toBe(true);
+  });
+
+  it("does NOT skip when dest is empty (no restriction stated, not 'restricted to something we lack')", () => {
+    expect(shouldSkipNotice([])).toBe(false);
+  });
+
+  it("does NOT skip when at least one dest token maps to a real type", () => {
+    expect(shouldSkipNotice(["pf", "asd"])).toBe(false);
+    expect(shouldSkipNotice(["diocesi"])).toBe(false); // maps to "Ente ecclesiastico civilmente riconosciuto"
+  });
+});
+
+describe("deriveTags", () => {
+  it("always includes 'sport' (the whole source is sport-related)", () => {
+    expect(deriveTags("Bando qualsiasi", "descrizione qualsiasi")).toContain("sport");
+  });
+
+  it("adds 'periferie' when the title mentions it", () => {
+    expect(deriveTags("Sport e Periferie 2026", "")).toContain("periferie");
+  });
+
+  it("adds 'impianti sportivi' from title or description keywords", () => {
+    expect(deriveTags("Fondo Perduto Impianti Sportivi - 2024", "")).toContain("impianti sportivi");
+  });
+
+  it("adds 'famiglie' when the text mentions it", () => {
+    expect(deriveTags("Fondo dote per la Famiglia", "")).toContain("famiglie");
   });
 });
