@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { htmlToLightMarkup, deriveEligibleTypes, shouldSkipNotice, deriveTags, parseSportGoverno } from "../src/pipeline/sport-governo";
+import { htmlToLightMarkup, deriveEligibleTypes, shouldSkipNotice, deriveTags, parseSportGoverno, parseDetailSportGoverno } from "../src/pipeline/sport-governo";
+import { FakeLLMProvider } from "../src/providers/fake";
+import type { LLMProvider as LLMProviderType } from "../src/providers/types";
 
 describe("htmlToLightMarkup", () => {
   it("transcribes a real Oratori-bando description (verified live, avvisibandi.sport.governo.it 2026-07-17)", () => {
@@ -195,5 +197,71 @@ describe("parseSportGoverno (listing)", () => {
     }]);
     const [item] = parseSportGoverno(past) as Array<Record<string, unknown>>;
     expect(item!.status).toBe("scaduto");
+  });
+});
+
+const NO_LLM: LLMProviderType = { name: "boom", extract: async () => { throw new Error("must not be called"); } };
+
+function detailNextDataHtml(notice: Record<string, unknown>): string {
+  const data = { props: { pageProps: { notice } }, page: "/bandi/[noticeId]", query: { noticeId: notice._id } };
+  return `<!doctype html><html><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(data)}</script></body></html>`;
+}
+
+describe("parseDetailSportGoverno", () => {
+  it("maps a real notice detail object (verified live shape, avvisibandi.sport.governo.it 2026-07-17)", async () => {
+    const html = detailNextDataHtml({
+      _id: "699d5d516166f9f16884719b",
+      title: "Sport e Periferie 2026",
+      code: "C82B7746C3",
+      description: "<p>Al riguardo, è stato stanziato un finanziamento complessivo pari ad euro 100 milioni. "
+        + "È, in ogni caso, prevista una quota di cofinanziamento a carico del Comune richiedente pari ad almeno il 15% del contributo.</p>",
+      dest: ["pa"],
+      schedule: { compilazione: { end: "2026-06-25T10:00:00.000Z" } },
+      attachments: [{ name: "Testo Avviso Pubblico Sport e Periferie 2026", url: "https://avvisibandi.web.coninet.it/api/static/notices/699d5d516166f9f16884719b/attachments/x.pdf", _id: "6a15959ec3a3f49a9cdf50cb" }],
+    });
+
+    const d = (await parseDetailSportGoverno(html, NO_LLM))!;
+
+    expect(d.deadline).toBe("2026-06-25");
+    expect(d.eligibleTypes).toEqual(["Ente pubblico"]);
+    expect(d.amount).toBe(100_000_000);
+    expect(d.cofundingPercentage).toBe(15);
+    expect(d.attachments).toEqual([
+      { title: "Testo Avviso Pubblico Sport e Periferie 2026", url: "https://avvisibandi.web.coninet.it/api/static/notices/699d5d516166f9f16884719b/attachments/x.pdf", mimeType: null },
+    ]);
+    expect(d.requirements).toContain("Codice: C82B7746C3");
+    expect(d.requirements).toContain("finanziamento complessivo");
+  });
+
+  it("omits the 'Codice:' line when code is absent", async () => {
+    const html = detailNextDataHtml({
+      _id: "x", title: "T", description: "<p>Testo.</p>", dest: ["pa"],
+      schedule: { compilazione: { end: "2026-01-01T00:00:00.000Z" } }, attachments: [],
+    });
+    const d = (await parseDetailSportGoverno(html, NO_LLM))!;
+    expect(d.requirements).not.toContain("Codice:");
+  });
+
+  it("drops attachments missing a name or url, never half-mapped", async () => {
+    const html = detailNextDataHtml({
+      _id: "x", title: "T", description: "<p>Testo.</p>", dest: ["pa"],
+      schedule: {}, attachments: [{ name: "senza url" }, { url: "https://x/senza-nome.pdf" }, { name: "ok", url: "https://x/ok.pdf" }],
+    });
+    const d = (await parseDetailSportGoverno(html, NO_LLM))!;
+    expect(d.attachments).toEqual([{ title: "ok", url: "https://x/ok.pdf", mimeType: null }]);
+  });
+
+  it("returns null on malformed input", async () => {
+    expect(await parseDetailSportGoverno("<html>not the right page</html>", NO_LLM)).toBeNull();
+  });
+
+  it("escalates to the shared LLM helper when amount is unresolved deterministically", async () => {
+    const AMBIGUOUS = "Contributo variabile in base ai ricavi. Nessun totale dichiarato qui.";
+    const html = detailNextDataHtml({
+      _id: "x", title: "T", description: `<p>${AMBIGUOUS}</p>`, dest: ["company"], schedule: {}, attachments: [],
+    });
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[AMBIGUOUS, { totalAmount: "75.000", cofundingPercentage: null }]]));
+    const d = (await parseDetailSportGoverno(html, llm))!;
+    expect(d.amount).toBe(75000);
   });
 });

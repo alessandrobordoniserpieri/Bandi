@@ -182,3 +182,82 @@ export function parseSportGoverno(raw: string): unknown[] {
   }
   return out;
 }
+
+import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "./economics";
+import type { DetailGrant, GrantAttachment } from "./types";
+import type { LLMProvider } from "../providers/types";
+
+// Real phrasing observed live (2026-07-17), distinct from er-sociale's own signal words: totals
+// here are introduced by "finanziata con"/"stanziato"/"dotazione di"/"ammontano a"/"finanziamento
+// complessivo" — verified against all 22 real notices before writing this regex.
+const SPORT_GOVERNO_TOTAL_SIGNAL_RE = /finanziat[ao] con|stanziat[oi]|stanziamento|ammontano a|dotazione di|finanziamento complessivo/i;
+
+function attachmentsFrom(raw: unknown): GrantAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GrantAttachment[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const a = item as Record<string, unknown>;
+    if (typeof a.name !== "string" || typeof a.url !== "string") continue;
+    out.push({ title: a.name, url: a.url, mimeType: null });
+  }
+  return out;
+}
+
+interface RawNoticeDetail extends RawNotice {
+  code?: unknown;
+  attachments?: unknown;
+}
+
+// DETAIL path: map the notice's own page object to a DetailGrant. Returns null on anything
+// unexpected (malformed JSON, missing notice), counted as detailSkipped and retried next run.
+export async function parseDetailSportGoverno(raw: string, llm: LLMProvider): Promise<DetailGrant | null> {
+  const data = extractNextData(raw) as { props?: { pageProps?: { notice?: unknown } } } | null;
+  const n = data?.props?.pageProps?.notice;
+  if (typeof n !== "object" || n === null) return null;
+  const notice = n as RawNoticeDetail;
+
+  const title = typeof notice.title === "string" ? notice.title : "";
+  const description = typeof notice.description === "string" ? notice.description : "";
+  const dest = Array.isArray(notice.dest) ? notice.dest.filter((d): d is string => typeof d === "string") : [];
+  const code = typeof notice.code === "string" ? notice.code : null;
+  const markup = htmlToLightMarkup(description);
+  const withCode = code ? `Codice: ${code}\n${markup}` : markup;
+
+  // Unlike er-sociale (which has a separate short `description` safe to whole-string-parse before
+  // falling back to sentence-anchoring on the longer `text` body), sport-governo has only ONE
+  // `description` field that IS the full body — applying an unguarded whole-text parse to it would
+  // reopen exactly the red-herring bug class er-sociale's sentence-anchoring exists to prevent
+  // (e.g. "di cui € 30.000.000" appearing right next to the real "100 milioni" total, or an
+  // unrelated per-project cap earlier in the text). So there is only ONE deterministic tier here:
+  // sentence-anchored, same as er-sociale's second tier.
+  const combinedText = markup;
+  let amount = extractAnchoredAmount(combinedText, SPORT_GOVERNO_TOTAL_SIGNAL_RE);
+  let cofundingPercentage = extractAnchoredPercentage(combinedText, COFUNDING_SIGNAL_RE);
+  if (amount == null) {
+    const escalated = await escalateEconomicsToLLM(combinedText, llm);
+    amount = escalated.amount;
+    if (cofundingPercentage == null) cofundingPercentage = escalated.cofundingPercentage;
+  }
+
+  const deadline = isoDay(notice.schedule?.compilazione?.end);
+
+  return {
+    summary: withCode || null,
+    requirements: withCode || null,
+    beneficiaries: dest.join(", ") || null,
+    openingDate: null,
+    fundingType: null,
+    amount,
+    minAmount: null,
+    maxAmount: null,
+    cofundingPercentage,
+    eligibleExpenses: null,
+    applicationMethod: null,
+    contactInfo: null,
+    deadline,
+    eligibleTypes: deriveEligibleTypes(dest),
+    tags: deriveTags(title, description),
+    attachments: attachmentsFrom(notice.attachments),
+  };
+}
