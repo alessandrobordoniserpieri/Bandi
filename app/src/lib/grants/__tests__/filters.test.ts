@@ -30,7 +30,7 @@ function mg(over: {
         cofunding: { required: null, color: "grigio", label: "" },
         economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
       },
-      historyBadge: null, missingDocuments: [], actions: [],
+      historyBadge: null, missingDocuments: [], documentsKnown: false, actions: [],
     },
   } as MatchedGrant;
 }

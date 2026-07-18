@@ -54,9 +54,15 @@ describe("DocumentChecklist", () => {
     expect(html).toContain("statuto");
     expect(html).toContain("durc");
   });
-  it("shows the all-clear message when nothing is missing", () => {
-    const html = renderToStaticMarkup(<DocumentChecklist missing={[]} />);
+  it("shows the all-clear message when nothing is missing AND documents are known", () => {
+    const html = renderToStaticMarkup(<DocumentChecklist missing={[]} known={true} />);
     expect(html).toContain("Hai tutti i documenti richiesti");
+  });
+  it("shows 'non disponibili / consulta il bando' when documents are unknown (not a false all-clear)", () => {
+    const html = renderToStaticMarkup(<DocumentChecklist missing={[]} known={false} />);
+    expect(html).not.toContain("Hai tutti i documenti richiesti");
+    expect(html).toContain("non disponibili");
+    expect(html).toContain("bando");
   });
 });
 
@@ -80,7 +86,7 @@ describe("GrantCard", () => {
           cofunding: { required: null, color: "grigio", label: "n/d" },
           economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: 50000, budgetKnown: false },
         },
-        historyBadge: null, missingDocuments: [], actions: [],
+        historyBadge: null, missingDocuments: [], documentsKnown: false, actions: [],
       },
     } as unknown as MatchedGrant;
     const html = renderToStaticMarkup(<GrantCard matched={matched} />);
@@ -102,7 +108,7 @@ describe("GrantCard", () => {
           cofunding: { required: null, color: "grigio", label: "n/d" },
           economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
         },
-        historyBadge: null, missingDocuments: [], actions: [],
+        historyBadge: null, missingDocuments: [], documentsKnown: false, actions: [],
       },
     } as unknown as MatchedGrant;
     const html = renderToStaticMarkup(<GrantCard matched={matched} />);
@@ -122,7 +128,7 @@ describe("GrantCard", () => {
           cofunding: { required: null, color: "grigio", label: "n/d" },
           economic: { ratio: null, level: "da_verificare", label: "da verificare", amount: null, budgetKnown: false },
         },
-        historyBadge: null, missingDocuments: [], actions: [],
+        historyBadge: null, missingDocuments: [], documentsKnown: false, actions: [],
       },
     } as unknown as MatchedGrant;
     const html = renderToStaticMarkup(<GrantCard matched={matched} density="compact" />);

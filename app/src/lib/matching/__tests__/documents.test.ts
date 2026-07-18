@@ -21,7 +21,14 @@ describe("scoreDocuments", () => {
     const r = scoreDocuments(p({ statuto: true }), g(["statuto", "bilancio", "runts", "durc"]));
     expect(r.value).toBe(3);
   });
-  it("grant lists no documents → neutral 8", () => {
-    expect(scoreDocuments(p({}), g([])).value).toBe(8);
+  it("grant lists no documents → neutral 8, and known=false (unknown, not 'all clear')", () => {
+    const r = scoreDocuments(p({}), g([]));
+    expect(r.value).toBe(8);
+    expect(r.known).toBe(false);
+    expect(r.missing).toEqual([]);
+  });
+
+  it("grant lists documents → known=true", () => {
+    expect(scoreDocuments(p({ statuto: true }), g(["statuto"])).known).toBe(true);
   });
 });

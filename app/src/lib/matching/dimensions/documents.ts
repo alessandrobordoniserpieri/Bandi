@@ -7,15 +7,18 @@ const isKnownKey = (k: string): k is DocumentKey =>
 export function scoreDocuments(
   profile: EntityProfile,
   grant: Grant,
-): DimensionScore & { missing: string[] } {
+): DimensionScore & { missing: string[]; known: boolean } {
   const max = WEIGHTS.documents;
   const required = (grant.requiredDocuments ?? []).filter(isKnownKey);
   if (required.length === 0) {
-    return { value: NEUTRAL.documents, max, note: "il bando non specifica documenti", missing: [] };
+    // We didn't capture the grant's required documents (no source extracts the full list — it
+    // usually lives in the attached PDF). This is UNKNOWN, not "no documents required": known=false
+    // so the UI says "consulta il bando" and the verdict never promises readiness on this basis.
+    return { value: NEUTRAL.documents, max, note: "documenti richiesti non disponibili", missing: [], known: false };
   }
   const missing = required.filter((k) => !profile.documents[k]);
   const possessed = required.length - missing.length;
   const value = Math.round((possessed / required.length) * max);
   const note = missing.length ? `mancano: ${missing.join(", ")}` : "documenti completi";
-  return { value, max, note, missing };
+  return { value, max, note, missing, known: true };
 }

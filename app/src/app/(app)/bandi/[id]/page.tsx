@@ -88,7 +88,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
 
       <section className="detail-section">
         <h2>Documenti</h2>
-        <DocumentChecklist missing={match.missingDocuments} />
+        <DocumentChecklist missing={match.missingDocuments} known={match.documentsKnown} />
       </section>
 
       {grant.summary && (

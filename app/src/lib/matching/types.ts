@@ -159,5 +159,8 @@ export interface MatchResult {
   indicators: Indicators;
   historyBadge: HistoryBadge | null; // §2.8 — specific history, NOT scored
   missingDocuments: string[];
+  // Whether we actually know the grant's required documents. false = not captured (usually only in
+  // the attached PDF): the UI shows "consulta il bando" instead of a false "hai tutti i documenti".
+  documentsKnown: boolean;
   actions: string[];           // Italian
 }

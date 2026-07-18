@@ -88,4 +88,13 @@ describe("calculateMatch", () => {
       expect(r.missingDocuments).toContain("bilancio");
     }
   });
+
+  it("unknown documents (empty checklist) never upgrade a strong match to Candidabile", () => {
+    const r = calculateMatch(makeProfile(), makeGrant({ requiredDocuments: [] }));
+    expect(r.documentsKnown).toBe(false);
+    if (r.score >= 75) {
+      // Not "Candidabile": we can't confirm readiness on documents we never captured.
+      expect(r.verdict).toBe("Da preparare");
+    }
+  });
 });

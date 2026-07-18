@@ -31,7 +31,9 @@ export function calculateMatch(profile: EntityProfile, grant: Grant): MatchResul
 
   const breakdown = buildBreakdown(dims);
   const closed = isClosedGrant(grant);
-  const verdict = deriveVerdict(score, documents.missing.length === 0, closed);
+  // "Ready to apply" requires that we actually KNOW the documents AND the entity has them all —
+  // an unknown checklist must not upgrade the verdict to Candidabile.
+  const verdict = deriveVerdict(score, documents.known && documents.missing.length === 0, closed);
   const actions = buildActions(grant, breakdown, documents.missing);
 
   return {
@@ -43,6 +45,7 @@ export function calculateMatch(profile: EntityProfile, grant: Grant): MatchResul
     indicators: buildIndicators(profile, grant),
     historyBadge: matchHistory(profile.projectHistory, grant),
     missingDocuments: documents.missing,
+    documentsKnown: documents.known,
     actions,
   };
 }
