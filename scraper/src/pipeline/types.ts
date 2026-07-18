@@ -111,6 +111,10 @@ export interface DetailGrant {
   deadline: string | null;
   eligibleTypes: string[];
   tags: string[];
+  // Applicant-side documents (statuto/bilancio/runts/rasd/durc/certificazioni) derived from the
+  // detail prose. PARTIAL: empty means "not found in prose", not "none required" — the app treats
+  // an empty checklist as unknown, never as "you have everything".
+  requiredDocuments: string[];
   attachments: GrantAttachment[];
 }
 

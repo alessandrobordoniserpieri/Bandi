@@ -5,6 +5,7 @@ import type { FundingType } from "./vocab";
 import { TAG_SET, LEGAL_TYPE_SET, FUNDING_TYPES } from "./vocab";
 import { parseItalianAmount } from "./enrich";
 import { sanitizeHtml } from "./sanitize-html";
+import { deriveRequiredDocuments } from "./documents";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -89,10 +90,11 @@ export async function extractDetail(
   const deadlineRaw = stringOrNull(o.deadline);
   const openingRaw = stringOrNull(o.openingDate);
   const fundingRaw = stringOrNull(o.fundingType);
+  const requirements = stringOrNull(o.requirements);
 
   return {
     summary: stringOrNull(o.summary),
-    requirements: stringOrNull(o.requirements),
+    requirements,
     beneficiaries: stringOrNull(o.beneficiaries),
     openingDate: openingRaw && ISO_DATE.test(openingRaw) ? openingRaw : null,
     fundingType: fundingRaw && (FUNDING_TYPES as readonly string[]).includes(fundingRaw)
@@ -107,6 +109,11 @@ export async function extractDetail(
     deadline: deadlineRaw && ISO_DATE.test(deadlineRaw) ? deadlineRaw : null,
     eligibleTypes: stringArray(o.eligibleTypes).filter((t) => LEGAL_TYPE_SET.has(t)),
     tags: stringArray(o.tags).filter((t) => TAG_SET.has(t)),
+    // Derived from the same prose fields the model returned (title/summary/requirements/beneficiaries):
+    // the checklist keywords live in the requirements text, not in a dedicated schema field.
+    requiredDocuments: deriveRequiredDocuments(
+      [stringOrNull(o.summary), requirements, stringOrNull(o.beneficiaries)].filter(Boolean).join(" "),
+    ),
     // The LLM path never invents attachment URLs; only code parsers (parseDetail) supply them.
     attachments: [],
   };

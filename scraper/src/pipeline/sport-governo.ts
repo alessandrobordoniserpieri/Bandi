@@ -5,6 +5,7 @@
 // Design: docs/superpowers/specs/2026-07-17-sport-governo-archetype-design.md
 import { LEGAL_TYPE_SET, TAG_SET } from "./vocab";
 import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "./economics";
+import { deriveRequiredDocuments } from "./documents";
 import type { Archetype, DetailGrant, GrantAttachment } from "./types";
 import type { JsonSchema, LLMProvider } from "../providers/types";
 
@@ -257,6 +258,8 @@ export async function parseDetailSportGoverno(raw: string, llm: LLMProvider): Pr
     deadline,
     eligibleTypes: deriveEligibleTypes(dest),
     tags: deriveTags(title, description),
+    // From the plain-text markup, not the raw HTML — so tag names in attributes never leak in.
+    requiredDocuments: deriveRequiredDocuments(`${title} ${markup}`),
     attachments: attachmentsFrom(notice.attachments),
   };
 }

@@ -255,6 +255,20 @@ describe("parseDetailSportGoverno", () => {
     expect(await parseDetailSportGoverno("<html>not the right page</html>", NO_LLM)).toBeNull();
   });
 
+  it("derives requiredDocuments from the description prose (empty when none mentioned)", async () => {
+    const withDocs = detailNextDataHtml({
+      _id: "x", title: "T",
+      description: "<p>Le ASD/SSD iscritte al RASD devono presentare lo statuto vigente.</p>",
+      dest: ["asd", "ssd"], schedule: {}, attachments: [],
+    });
+    expect((await parseDetailSportGoverno(withDocs, NO_LLM))!.requiredDocuments.sort()).toEqual(["rasd", "statuto"]);
+    const noDocs = detailNextDataHtml({
+      _id: "y", title: "T", description: "<p>Finanziamento per nuovi impianti sportivi.</p>",
+      dest: ["pa"], schedule: {}, attachments: [],
+    });
+    expect((await parseDetailSportGoverno(noDocs, NO_LLM))!.requiredDocuments).toEqual([]);
+  });
+
   it("escalates to the shared LLM helper when amount is unresolved deterministically", async () => {
     const AMBIGUOUS = "Contributo variabile in base ai ricavi. Nessun totale dichiarato qui.";
     const html = detailNextDataHtml({

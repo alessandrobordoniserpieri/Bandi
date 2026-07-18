@@ -13,6 +13,7 @@ import type { JsonSchema, LLMProvider } from "../providers/types";
 import { TAG_SET, LEGAL_TYPE_SET } from "./vocab";
 import { parseItalianAmount } from "./enrich";
 import { extractAnchoredAmount, extractAnchoredPercentage, COFUNDING_SIGNAL_RE, escalateEconomicsToLLM } from "./economics";
+import { deriveRequiredDocuments } from "./documents";
 
 // "2025-09-30T10:00:00+00:00" (or TZ-less "2025-08-01T08:00:00") → "2025-09-30"; else null.
 function isoDay(v: unknown): string | null {
@@ -280,6 +281,7 @@ export async function parseDetailErSociale(raw: string, llm: LLMProvider): Promi
     deadline: isoDay(o.scadenza_bando),
     eligibleTypes: deriveEligibleTypes(destinatari),
     tags: deriveTags(tokens(o.materie), `${title} ${description}`),
+    requiredDocuments: deriveRequiredDocuments(combinedText),
     attachments: attachmentsFrom(o),
   };
 }

@@ -204,6 +204,16 @@ describe("er-sociale detail parser", () => {
     expect(d.cofundingPercentage).toBe(20);
   });
 
+  it("derives requiredDocuments from the detail prose (empty when none mentioned)", async () => {
+    const withDocs = JSON.stringify({
+      "@id": "https://sociale.example/bandi/d", "@type": "Bando", title: "D", description: "",
+      text: { blocks: { a: { plaintext: "Gli ETS iscritti al RUNTS devono allegare lo statuto e l'ultimo bilancio." } }, blocks_layout: { items: ["a"] } },
+    });
+    expect((await parseDetailErSociale(withDocs, NO_LLM))!.requiredDocuments.sort()).toEqual(["bilancio", "runts", "statuto"]);
+    // detailFixture's text mentions no known document → empty checklist (app shows "non disponibili").
+    expect((await parseDetailErSociale(detailFixture, NO_LLM))!.requiredDocuments).toEqual([]);
+  });
+
   it("encodes headings, bold-only subsection labels and bullet lists as light markup (verified live shape)", async () => {
     const fixtureWithStructure = JSON.stringify({
       "@id": "https://sociale.example/bandi/y", "@type": "Bando", title: "Avviso", description: "",
