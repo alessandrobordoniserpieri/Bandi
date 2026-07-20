@@ -12,7 +12,7 @@ import type { ExtractedGrant } from "../src/pipeline/types";
 
 const grant: ExtractedGrant = {
   title: "Bando A", url: "https://x/1", providerId: "p1", sourceId: "s1", deadline: "2026-12-31",
-  status: null, amount: 5000, cofundingRequired: null,
+  status: null, grantType: "bando", amount: 5000, cofundingRequired: null,
   eligibleTypes: ["ONLUS"], tags: ["sport"], area: "Roma", geoScope: "nazionale",
   complexity: null, requiredDocuments: ["statuto"], summary: null, requirements: "req", beneficiaries: null,
   openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
@@ -33,6 +33,9 @@ describe("grantToInsertRow", () => {
   });
   it("keeps an explicit status", () => {
     expect(grantToInsertRow({ ...grant, status: "chiuso" }).status).toBe("chiuso");
+  });
+  it("maps grantType to the grant_type column", () => {
+    expect(grantToInsertRow({ ...grant, grantType: "co_progettazione" }).grant_type).toBe("co_progettazione");
   });
   it("maps attachments to the jsonb column on insert and patch", () => {
     const attachments = [{ title: "Bando.pdf", url: "https://x/b.pdf", mimeType: "application/pdf" }];
@@ -70,6 +73,31 @@ describe("rowToStoredGrant", () => {
     expect(stored.eligibleTypes).toEqual([]);
     expect(stored.tags).toEqual(["sport"]);
     expect(stored.providerId).toBeNull();
+  });
+});
+
+describe("rowToStoredGrant — grant_type", () => {
+  it("maps the grant_type column back to grantType", () => {
+    const stored = rowToStoredGrant({
+      id: "g1", title: "T", url: "https://x/1", provider_id: null, source_id: null, deadline: null,
+      status: "aperto", grant_type: "co_progettazione", amount: null, cofunding_required: null,
+      eligible_types: null, tags: [], area: null, geo_scope: null, complexity: null,
+      required_documents: null, summary: null, requirements: null, beneficiaries: null,
+      opening_date: null, funding_type: null, min_amount: null, max_amount: null,
+      cofunding_percentage: null, eligible_expenses: null, application_method: null, contact_info: null,
+    });
+    expect(stored.grantType).toBe("co_progettazione");
+  });
+  it("defaults grantType to bando when the column is absent (defensive fallback)", () => {
+    const stored = rowToStoredGrant({
+      id: "g1", title: "T", url: "https://x/1", provider_id: null, source_id: null, deadline: null,
+      status: "aperto", amount: null, cofunding_required: null, eligible_types: null,
+      tags: [], area: null, geo_scope: null, complexity: null, required_documents: null,
+      summary: null, requirements: null, beneficiaries: null,
+      opening_date: null, funding_type: null, min_amount: null, max_amount: null,
+      cofunding_percentage: null, eligible_expenses: null, application_method: null, contact_info: null,
+    });
+    expect(stored.grantType).toBe("bando");
   });
 });
 
