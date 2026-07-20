@@ -13,10 +13,11 @@ const ADMIN_NOTICE_RE =
 // Checked against title + summary combined (co-progettazione language can live in either).
 // Separator between "co" and the root word is optional and can be a hyphen or a space, covering
 // "co-progettazione", "co progettazione", "coprogettazione" (and -programmazione variants).
+// Word boundary guards against false positives from substrings like "ecoprogettazione".
 // "manifestazione di interesse" is included: in the Terzo Settore domain it is almost always a
 // precursor to co-progettazione, and treating the ambiguous case as co_progettazione (visible +
 // labeled) is safer than amministrativo (an irreversible discard).
-const CO_PROGETTAZIONE_RE = /co[-\s]?progettazione|co[-\s]?programmazione|manifestazione\s+di\s+interesse/i;
+const CO_PROGETTAZIONE_RE = /\bco[-\s]?progettazione|\bco[-\s]?programmazione|manifestazione\s+di\s+interesse/i;
 
 export function classifyGrantType(title: string, summary: string | null): GrantType {
   if (ADMIN_NOTICE_RE.test(title.trim())) return "amministrativo";

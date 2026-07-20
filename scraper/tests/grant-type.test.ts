@@ -71,6 +71,10 @@ describe("classifyGrantType", () => {
     expect(classifyGrantType("Avviso di coprogrammazione territoriale", null)).toBe("co_progettazione");
   });
 
+  it("does NOT match 'coprogettazione' as a substring of an unrelated word like 'ecoprogettazione'", () => {
+    expect(classifyGrantType("Bando per progetti di ecoprogettazione dei prodotti", null)).toBe("bando");
+  });
+
   it("defaults to bando when nothing matches and summary is null", () => {
     expect(classifyGrantType("Contributo per l'acquisto di attrezzature sportive", null)).toBe("bando");
   });
