@@ -135,7 +135,10 @@ export interface ScrapeLogEntry {
   durationMs: number;
 }
 
-export interface StoredGrant extends ExtractedGrant { id: string; }
+// detailFetchedAt is DB-managed (stamped by markDetailFetched), never written by the scraper
+// itself — read-only, hence on StoredGrant rather than ExtractedGrant. Used by resolveSourceId
+// (dedup.ts) to decide whether a duplicate grant's detail-capable owner is still "up for grabs".
+export interface StoredGrant extends ExtractedGrant { id: string; detailFetchedAt: string | null; }
 
 export interface PipelineResult {
   sourceId: string;

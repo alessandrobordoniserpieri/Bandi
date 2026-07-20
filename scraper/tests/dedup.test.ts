@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeUrl, diffGrant, decide } from "../src/pipeline/dedup";
+import { normalizeUrl, diffGrant, decide, resolveSourceId } from "../src/pipeline/dedup";
 import type { ExtractedGrant } from "../src/pipeline/types";
 
 function g(over: Partial<ExtractedGrant> = {}): ExtractedGrant {
@@ -170,5 +170,54 @@ describe("decide — skip administrative notices at ingest (proroga/rettifica/er
     const incoming = g({ grantType: "amministrativo", amount: 999 });
     const existing = g({ grantType: "bando", amount: 1 });
     expect(decide(incoming, existing, TODAY)).toEqual({ action: "update", patch: { amount: 999 } });
+  });
+});
+
+// docs/superpowers/specs/2026-07-20-source-id-detail-priority-attribution.md — when two sources
+// scrape the same URL, source_id should favor whichever source can actually run the detail phase
+// (findGrantsNeedingDetail filters by source_id, so the "wrong" owner permanently starves detail
+// enrichment), not just whoever wrote last.
+describe("resolveSourceId (detail-capability-priority attribution)", () => {
+  const A = "source-a"; // existing owner
+  const B = "source-b"; // incoming
+
+  it("a detailEnabled source takes over from a non-detailEnabled owner", () => {
+    const caps = new Map([[A, false], [B, true]]);
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: null }, caps, true)).toBe(B);
+  });
+
+  it("a non-detailEnabled source never takes over from a detailEnabled owner", () => {
+    const caps = new Map([[A, true], [B, false]]);
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: null }, caps, false)).toBe(A);
+  });
+
+  it("both detailEnabled, detail not yet fetched: the race stays open, incoming can take over", () => {
+    const caps = new Map([[A, true], [B, true]]);
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: null }, caps, true)).toBe(B);
+  });
+
+  it("both detailEnabled, detail already fetched: frozen — no further reattribution", () => {
+    const caps = new Map([[A, true], [B, true]]);
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: "2026-07-01T00:00:00Z" }, caps, true)).toBe(A);
+  });
+
+  it("both non-detailEnabled: last-writer-wins, unchanged from today's behavior", () => {
+    const caps = new Map([[A, false], [B, false]]);
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: null }, caps, false)).toBe(B);
+  });
+
+  it("existing owner no longer among enabled sources (unknown capability) loses to a known detailEnabled incoming source", () => {
+    const caps = new Map([[B, true]]); // A absent — disabled/deleted since it last scraped this grant
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: null }, caps, true)).toBe(B);
+  });
+
+  it("existing owner no longer among enabled sources, incoming also not detailEnabled: no change", () => {
+    const caps = new Map([[B, false]]);
+    expect(resolveSourceId(B, { sourceId: A, detailFetchedAt: null }, caps, false)).toBe(A);
+  });
+
+  it("no existing owner (null sourceId) — incoming always takes it", () => {
+    const caps = new Map([[B, false]]);
+    expect(resolveSourceId(B, { sourceId: null, detailFetchedAt: null }, caps, false)).toBe(B);
   });
 });

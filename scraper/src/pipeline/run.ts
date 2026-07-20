@@ -47,6 +47,13 @@ export async function runPipeline(
   const budget = deps.budget ?? UNLIMITED_BUDGET;
   const worstCaseCallMs = deps.worstCaseCallMs ?? DEFAULT_WORST_CASE_CALL_MS;
 
+  // Built once from the full (already-loaded) enabled-sources list — no extra query. Used by
+  // resolveSourceId (dedup.ts) so a duplicate grant's source_id favors whichever source can
+  // actually run the detail phase. See docs/superpowers/specs/2026-07-20-source-id-detail-priority-attribution.md
+  const detailEnabledBySource = new Map(
+    sources.map((s) => [s.id, resolveArchetype(s.scrapeConfig?.archetype).detailEnabled]),
+  );
+
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i]!;
 
@@ -74,7 +81,9 @@ export async function runPipeline(
         }
         const grants = await extractGrants(page, { llm: deps.llm, db: deps.db }, archetype);
         for (const raw of grants) {
-          const outcome = await saveGrant(enrich(raw), deps.db);
+          const outcome = await saveGrant(enrich(raw), deps.db, {
+            detailEnabledBySource, incomingDetailEnabled: archetype.detailEnabled,
+          });
           result[outcome] += 1;
         }
       }
