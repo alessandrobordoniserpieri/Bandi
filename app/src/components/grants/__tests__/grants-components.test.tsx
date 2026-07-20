@@ -5,6 +5,7 @@ import { VerdictBadge } from "../verdict-badge";
 import { ScoreBreakdown } from "../score-breakdown";
 import { DocumentChecklist } from "../document-checklist";
 import { GrantCard } from "../grant-card";
+import { GrantTypeBadge } from "../grant-type-badge";
 import type { BreakdownItem } from "@/lib/matching";
 import type { MatchedGrant } from "@/lib/grants/match-list";
 
@@ -66,13 +67,25 @@ describe("DocumentChecklist", () => {
   });
 });
 
+describe("GrantTypeBadge", () => {
+  it("renders the co-progettazione label and data attribute", () => {
+    const html = renderToStaticMarkup(<GrantTypeBadge grantType="co_progettazione" />);
+    expect(html).toContain("Co-progettazione");
+    expect(html).toContain('data-grant-type="co_progettazione"');
+  });
+  it("renders nothing for an ordinary bando", () => {
+    const html = renderToStaticMarkup(<GrantTypeBadge grantType="bando" />);
+    expect(html).toBe("");
+  });
+});
+
 describe("GrantCard", () => {
   it("renders title link, provider, score and verdict", () => {
     const matched = {
       grant: {
         id: "g1", title: "Bando Sport 2026", providerId: "p", providerKind: "privato",
         deadline: "2026-12-31", status: "aperto", amount: 50000, cofundingRequired: null,
-        cofundingPercentage: null,
+        cofundingPercentage: null, grantType: "co_progettazione",
         eligibleTypes: [], tags: [], area: null, geoScope: null, complexity: null,
         requiredDocuments: [], summary: "", requirements: "", url: "https://x", beneficiaries: "",
         openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
@@ -95,6 +108,7 @@ describe("GrantCard", () => {
     expect(html).toContain("82");
     expect(html).toContain('data-verdict="Candidabile"');
     expect(html).toContain('href="/bandi/g1"');
+    expect(html).toContain("Co-progettazione");
   });
 
   it("renders the score-bar colored by verdict via data-attribute, not hardcoded style", () => {
