@@ -96,12 +96,16 @@ solo l'implementazione dietro il seam. Questa è l'unica pre-condizione, ed è g
 
 ## Ordine di sviluppo consigliato
 
-1. **V1** (spec dedicato) — singolo bando, long-context, guardrail rate-limit. **Si costruisce per
-   prima.**
-2. **V2-A** (vettori cross-bando) e **V2-B** (crediti) sono **indipendenti** tra loro e possono
-   essere fatte in qualsiasi ordine dopo V1. Suggerimento: **V2-B (crediti) prima** se la priorità
-   è monetizzare l'uso che V1 già genera; **V2-A (cross-bando) prima** se la priorità è la potenza
-   di prodotto. Entrambe riusano le fondamenta di V1 senza rifacimenti.
+1. **V1** (spec dedicato) — singolo bando, long-context, guardrail rate-limit.
+2. **V2-A (cross-bando / vettori) — scelto come priorità** (deciso 2026-07-20): l'utente è in fase
+   pre-trazione ("mi servono utenti / mi serve la feature-amo"), quindi la potenza di prodotto del
+   cross-bando viene prima della monetizzazione. Costruire i crediti per un prodotto ancora poco
+   usato sarebbe prematuro.
+3. **V2-B (crediti)** — dopo, quando l'uso reale giustifica la monetizzazione. Il seam di
+   entitlement predisposto in V1 la tiene a basso costo di innesto in qualsiasi momento.
+
+V2-A e V2-B restano tecnicamente **indipendenti** e riusano le fondamenta di V1 senza rifacimenti;
+l'ordine qui è una scelta di priorità di prodotto, non un vincolo tecnico.
 
 ## Non-goal di questo documento
 

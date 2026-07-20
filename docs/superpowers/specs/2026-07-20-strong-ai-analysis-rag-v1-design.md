@@ -91,6 +91,11 @@ Tesseract self-hosted (gratis ma fragile in serverless: bundle/memoria/rasterizz
 
 **NON si passa dall'LLM per l'OCR** (scelta esplicita dell'utente).
 
+> **Nota di onboarding (implementazione):** OCR.space richiede una API key gratuita. Al momento di
+> cablare il provider, guidare l'utente **passo-passo** su cosa serve (registrazione, dove incolla
+> la key, quale env var) — non darlo per scontato. Stessa cura per un'eventuale futura migrazione a
+> Google Cloud Vision (progetto GCP + billing).
+
 ### 5. La chat: contesto, persistenza, troncamento
 
 **Contesto (assemblato da NOI a ogni turno — l'LLM è stateless):**
