@@ -1,6 +1,7 @@
 // scraper/src/pipeline/enrich.ts
 import type { ExtractedGrant } from "./types";
 import type { GeoScope } from "./vocab";
+import { classifyGrantType } from "./grant-type";
 
 const REGIONS = new Set([
   "abruzzo","basilicata","calabria","campania","emilia-romagna","friuli-venezia giulia",
@@ -69,7 +70,8 @@ export function enrich(grant: ExtractedGrant): ExtractedGrant {
   const status = grant.status ?? "aperto";
   let geoScope = grant.geoScope;
   if (geoScope == null && grant.area) geoScope = inferGeoScope(grant.area);
-  return { ...grant, status, geoScope };
+  const grantType = classifyGrantType(grant.title, grant.summary);
+  return { ...grant, status, geoScope, grantType };
 }
 
 // exported for callers that receive raw string amounts before validation

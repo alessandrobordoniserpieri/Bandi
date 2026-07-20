@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { enrich, parseItalianAmount } from "../src/pipeline/enrich";
 import type { ExtractedGrant } from "../src/pipeline/types";
 
-function g(over: Partial<ExtractedGrant>): ExtractedGrant {
+function g(over: Partial<ExtractedGrant> = {}): ExtractedGrant {
   return {
     title: "T", url: "https://x/1", providerId: null, sourceId: null, deadline: null, status: null,
+    grantType: "bando",
     amount: null, cofundingRequired: null, eligibleTypes: [], tags: [], area: null,
     geoScope: null, complexity: null, requiredDocuments: [], summary: null,
     requirements: null, beneficiaries: null,
@@ -80,5 +81,18 @@ describe("enrich", () => {
   });
   it("does not overwrite an existing geoScope", () => {
     expect(enrich(g({ area: "Italia", geoScope: "comunale" })).geoScope).toBe("comunale");
+  });
+});
+
+describe("enrich — grant type classification", () => {
+  it("classifies a co-progettazione title as co_progettazione", () => {
+    expect(enrich(g({ title: "Avviso pubblico per la co-progettazione di servizi" })).grantType)
+      .toBe("co_progettazione");
+  });
+  it("classifies a plain bando as bando", () => {
+    expect(enrich(g({ title: "Avviso di selezione di eventi sportivi 2026" })).grantType).toBe("bando");
+  });
+  it("classifies a proroga notice as amministrativo", () => {
+    expect(enrich(g({ title: "Proroga dei termini - Avviso ORATORI 2026" })).grantType).toBe("amministrativo");
   });
 });

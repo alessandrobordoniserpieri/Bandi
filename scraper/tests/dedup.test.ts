@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { normalizeUrl, diffGrant, decide } from "../src/pipeline/dedup";
 import type { ExtractedGrant } from "../src/pipeline/types";
 
-function g(over: Partial<ExtractedGrant>): ExtractedGrant {
+function g(over: Partial<ExtractedGrant> = {}): ExtractedGrant {
   return {
     title: "T", url: "https://x/1", providerId: null, sourceId: null, deadline: null, status: "aperto",
+    grantType: "bando",
     amount: null, cofundingRequired: null, eligibleTypes: [], tags: [], area: null,
     geoScope: null, complexity: null, requiredDocuments: [], summary: null,
     requirements: null, beneficiaries: null,

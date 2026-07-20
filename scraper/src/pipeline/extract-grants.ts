@@ -140,6 +140,7 @@ function coerce(raw: unknown, sourceId: string, pageUrl: string): Omit<Extracted
 
   return {
     title, url, sourceId, deadline, status,
+    grantType: "bando",
     amount: numOrNull(o.amount),
     cofundingRequired: numOrNull(o.cofundingRequired),
     eligibleTypes: stringArray(o.eligibleTypes).filter((t) => LEGAL_TYPE_SET.has(t)),

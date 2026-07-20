@@ -1,5 +1,6 @@
 // scraper/src/pipeline/types.ts
 import type { GeoScope, Complexity, GrantStatus, FundingType } from "./vocab";
+import type { GrantType } from "./grant-type";
 import type { JsonSchema, LLMProvider } from "../providers/types";
 
 // Per-source scraping hints stored in grant_sources.scrape_config (jsonb). All optional:
@@ -71,6 +72,11 @@ export interface ExtractedGrant {
   sourceId: string | null;
   deadline: string | null;        // ISO date or null
   status: GrantStatus | null;
+  // Classified once by enrich() from title+summary. Stored value is always "bando" or
+  // "co_progettazione" — "amministrativo" causes decide() to skip the insert (see dedup.ts) and
+  // is never persisted. Deliberately excluded from dedup.ts's diff KEYS: a grant's type is fixed
+  // at first classification and never silently changed by the update path.
+  grantType: GrantType;
   amount: number | null;
   cofundingRequired: number | null;
   eligibleTypes: string[];        // validated subset of LEGAL_TYPES
