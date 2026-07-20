@@ -1,5 +1,5 @@
 import type { MatchedGrant } from "./match-list";
-import type { Verdict, GeoScope } from "@/lib/matching";
+import type { Verdict, GeoScope, GrantType } from "@/lib/matching";
 
 export type SortKey = "score" | "deadline" | "amount";
 
@@ -11,6 +11,7 @@ export interface Filters {
   maxAmount?: number;
   geoScopes?: GeoScope[];
   tags?: string[];
+  grantTypes?: GrantType[];
 }
 
 export function applyFilters(matched: MatchedGrant[], f: Filters): MatchedGrant[] {
@@ -32,6 +33,9 @@ export function applyFilters(matched: MatchedGrant[], f: Filters): MatchedGrant[
     }
     if (f.tags && f.tags.length) {
       if (!m.grant.tags.some((t) => f.tags!.includes(t))) return false;
+    }
+    if (f.grantTypes && f.grantTypes.length) {
+      if (!f.grantTypes.includes(m.grant.grantType)) return false;
     }
     return true;
   });
@@ -99,6 +103,8 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   if (geo) filters.geoScopes = geo;
   const tags = list(sp.tag);
   if (tags) filters.tags = tags;
+  const grantTypes = list(sp.tipo) as GrantType[] | undefined;
+  if (grantTypes) filters.grantTypes = grantTypes;
 
   const sortRaw = first(sp.sort) as SortKey | undefined;
   const sort: SortKey = sortRaw && SORTS.includes(sortRaw) ? sortRaw : "score";
@@ -115,6 +121,7 @@ export function serializeFilters(filters: Filters, sort: SortKey): string {
   if (filters.maxDeadlineDays != null) p.set("scadenza", String(filters.maxDeadlineDays));
   if (sort !== "score") p.set("sort", sort);
   if (filters.tags && filters.tags.length) p.set("tag", filters.tags.join(","));
+  if (filters.grantTypes && filters.grantTypes.length) p.set("tipo", filters.grantTypes.join(","));
   if (filters.verdetti && filters.verdetti.length) p.set("verdetto", filters.verdetti.join(","));
   return p.toString();
 }

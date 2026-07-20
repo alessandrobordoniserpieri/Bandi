@@ -4,11 +4,11 @@ import {
   type Filters, type SortKey,
 } from "../filters";
 import type { MatchedGrant } from "../match-list";
-import type { Verdict, GeoScope } from "@/lib/matching";
+import type { Verdict, GeoScope, GrantType } from "@/lib/matching";
 
 function mg(over: {
   id: string; score?: number; verdict?: Verdict; days?: number | null;
-  amount?: number | null; geoScope?: GeoScope | null; tags?: string[];
+  amount?: number | null; geoScope?: GeoScope | null; tags?: string[]; grantType?: GrantType;
 }): MatchedGrant {
   return {
     grant: {
@@ -20,7 +20,7 @@ function mg(over: {
       summary: "", requirements: "", url: `https://x/${over.id}`, beneficiaries: "",
       openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
       eligibleExpenses: null, applicationMethod: null, contactInfo: null,
-      grantType: "bando",
+      grantType: over.grantType ?? "bando",
     },
     providerName: null,
     match: {
@@ -60,6 +60,18 @@ describe("applyFilters", () => {
   });
   it("tags filter keeps grants sharing at least one tag", () => {
     expect(applyFilters(list, { tags: ["sport"] }).map((m) => m.grant.id)).toEqual(["a"]);
+  });
+  it("grantTypes filter keeps only the listed types (additive, like geoScopes/tags)", () => {
+    const withType = [
+      mg({ id: "a", grantType: "bando" }),
+      mg({ id: "b", grantType: "co_progettazione" }),
+    ];
+    expect(applyFilters(withType, { grantTypes: ["co_progettazione"] }).map((m) => m.grant.id))
+      .toEqual(["b"]);
+  });
+  it("empty/unset grantTypes shows everything (default)", () => {
+    const withType = [mg({ id: "a", grantType: "bando" }), mg({ id: "b", grantType: "co_progettazione" })];
+    expect(applyFilters(withType, {}).map((m) => m.grant.id)).toEqual(["a", "b"]);
   });
   it("combined filters AND across dimensions", () => {
     expect(applyFilters(list, { verdetti: ["Candidabile", "Da preparare"], maxAmount: 50000 })
@@ -102,7 +114,7 @@ describe("query-string round-trip", () => {
     const filters: Filters = {
       verdetti: ["Candidabile", "Da preparare"], onlyCandidabili: true,
       maxDeadlineDays: 30, minAmount: 1000, maxAmount: 200000,
-      geoScopes: ["regionale"], tags: ["sport", "giovani"],
+      geoScopes: ["regionale"], tags: ["sport", "giovani"], grantTypes: ["co_progettazione"],
     };
     const sort: SortKey = "deadline";
     const qs = serializeFilters(filters, sort);
