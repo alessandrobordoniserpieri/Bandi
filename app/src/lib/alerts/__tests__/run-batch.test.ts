@@ -32,6 +32,7 @@ const strongView = (id: string): GrantView => {
     requiredDocuments: [], summary: "", requirements: "", url: `https://x/${id}`, beneficiaries: "",
     openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
     eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+    grantType: "bando",
   };
   return { grant, providerName: "Fondazione Test" };
 };

@@ -94,6 +94,7 @@ export type Database = {
           eligible_types: string[]
           funding_type: Database["public"]["Enums"]["funding_type"] | null
           geo_scope: Database["public"]["Enums"]["geo_scope"] | null
+          grant_type: string
           id: string
           import_mode: string
           max_amount: number | null
@@ -130,6 +131,7 @@ export type Database = {
           eligible_types?: string[]
           funding_type?: Database["public"]["Enums"]["funding_type"] | null
           geo_scope?: Database["public"]["Enums"]["geo_scope"] | null
+          grant_type?: string
           id?: string
           import_mode?: string
           max_amount?: number | null
@@ -166,6 +168,7 @@ export type Database = {
           eligible_types?: string[]
           funding_type?: Database["public"]["Enums"]["funding_type"] | null
           geo_scope?: Database["public"]["Enums"]["geo_scope"] | null
+          grant_type?: string
           id?: string
           import_mode?: string
           max_amount?: number | null

@@ -1,13 +1,17 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { serializeFilters, type Filters, type SortKey } from "@/lib/grants/filters";
-import type { Verdict, GeoScope } from "@/lib/matching";
+import type { Verdict, GeoScope, GrantType } from "@/lib/matching";
 import type { DensityMode } from "@/lib/grants/view-density";
 import { DensityToggle } from "./density-toggle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const VERDICTS: Verdict[] = ["Candidabile", "Da preparare", "Da valutare", "Bassa priorità", "Non compatibile"];
 const GEOS: GeoScope[] = ["comunale", "provinciale", "regionale", "nazionale", "europeo"];
+const GRANT_TYPES: { value: GrantType; label: string }[] = [
+  { value: "bando", label: "Bando" },
+  { value: "co_progettazione", label: "Co-progettazione" },
+];
 
 export function FilterBar({
   filters,
@@ -31,7 +35,7 @@ export function FilterBar({
   }
 
   const hasActiveSecondaryFilters = Boolean(
-    filters.verdetti?.length || filters.geoScopes?.length ||
+    filters.verdetti?.length || filters.geoScopes?.length || filters.grantTypes?.length ||
     filters.maxDeadlineDays != null || filters.minAmount != null || filters.maxAmount != null,
   );
 
@@ -82,6 +86,19 @@ export function FilterBar({
                     go({ ...filters, geoScopes: geoScopes.length ? geoScopes : undefined }, sort);
                   }} />
                 {g}
+              </label>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>Tipo</legend>
+            {GRANT_TYPES.map(({ value, label }) => (
+              <label key={value} className="filter-chip">
+                <input type="checkbox" checked={filters.grantTypes?.includes(value) ?? false}
+                  onChange={() => {
+                    const grantTypes = toggle(filters.grantTypes, value);
+                    go({ ...filters, grantTypes: grantTypes.length ? grantTypes : undefined }, sort);
+                  }} />
+                {label}
               </label>
             ))}
           </fieldset>

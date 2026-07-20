@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { normalizeUrl, diffGrant, decide } from "../src/pipeline/dedup";
 import type { ExtractedGrant } from "../src/pipeline/types";
 
-function g(over: Partial<ExtractedGrant>): ExtractedGrant {
+function g(over: Partial<ExtractedGrant> = {}): ExtractedGrant {
   return {
     title: "T", url: "https://x/1", providerId: null, sourceId: null, deadline: null, status: "aperto",
+    grantType: "bando",
     amount: null, cofundingRequired: null, eligibleTypes: [], tags: [], area: null,
     geoScope: null, complexity: null, requiredDocuments: [], summary: null,
     requirements: null, beneficiaries: null,
@@ -143,5 +144,31 @@ describe("decide — skip expired grants at ingest time (only-new policy)", () =
     const incoming = g({ status: "aperto", deadline: "2027-05-01" });
     const existing = g({ status: "scaduto", deadline: "2026-05-01" });
     expect(decide(incoming, existing, TODAY)).toEqual({ action: "insert" });
+  });
+});
+
+describe("decide — skip administrative notices at ingest (proroga/rettifica/errata corrige/…)", () => {
+  const TODAY = "2026-07-18";
+
+  it("skips inserting a brand-new grant classified as amministrativo", () => {
+    expect(decide(g({ grantType: "amministrativo", status: "aperto", deadline: "2026-12-31" }), null, TODAY))
+      .toEqual({ action: "skip" });
+  });
+
+  it("still inserts a brand-new grant classified as co_progettazione", () => {
+    expect(decide(g({ grantType: "co_progettazione", status: "aperto", deadline: "2026-12-31" }), null, TODAY))
+      .toEqual({ action: "insert" });
+  });
+
+  it("skips a NEW EDITION of an expired grant when the new edition is amministrativo", () => {
+    const incoming = g({ grantType: "amministrativo", status: "aperto", deadline: "2027-05-01" });
+    const existing = g({ grantType: "bando", status: "scaduto", deadline: "2026-05-01" });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "skip" });
+  });
+
+  it("does not gate the update path on grantType — an active existing record updates normally", () => {
+    const incoming = g({ grantType: "amministrativo", amount: 999 });
+    const existing = g({ grantType: "bando", amount: 1 });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "update", patch: { amount: 999 } });
   });
 });

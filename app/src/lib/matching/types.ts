@@ -4,6 +4,9 @@ export type ComplexityLevel = "bassa" | "media" | "alta";
 export type CapacityLevel = "Bassa" | "Media" | "Alta";
 export type ProviderKind = "pubblico" | "privato" | "eu";
 export type GrantStatus = "aperto" | "chiuso" | "scaduto";
+// Narrower than the scraper's GrantType: "amministrativo" is a classifier outcome that causes
+// decide() to skip the insert — it is never persisted, so the app never sees it.
+export type GrantType = "bando" | "co_progettazione";
 export type FundingType = "fondo_perduto" | "prestito_agevolato" | "contributo_misto" | "garanzia" | "premio";
 export type ProjectOutcome = "finanziato" | "non_ammesso" | "in_valutazione" | "altro";
 
@@ -72,6 +75,7 @@ export interface Grant {
   providerKind: ProviderKind | null;
   deadline: string | null;         // ISO date
   status: GrantStatus;
+  grantType: GrantType;
   amount: number | null;           // €
   cofundingRequired: number | null;// € (raw from scraper)
   cofundingPercentage: number | null; // %

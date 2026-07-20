@@ -29,6 +29,7 @@ const grant: Grant = {
   requirements: "Sede in regione", url: "https://x/bando", beneficiaries: "Giovani 14-18",
   openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
   eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+  grantType: "bando",
 };
 
 const validOutput = {

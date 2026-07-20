@@ -23,7 +23,8 @@ function grant(id: string, over: Partial<Grant> = {}): Grant {
     area: null, geoScope: null, complexity: null, requiredDocuments: [],
     summary: "", requirements: "", url: `https://x/${id}`, beneficiaries: "",
     openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
-    eligibleExpenses: null, applicationMethod: null, contactInfo: null, ...over,
+    eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+    grantType: "bando", ...over,
   };
 }
 function view(g: Grant): GrantView { return { grant: g, providerName: null }; }

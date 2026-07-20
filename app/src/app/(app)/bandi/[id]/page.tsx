@@ -9,6 +9,7 @@ import { AIAnalysisPanel } from "@/components/grants/ai-analysis-panel";
 import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
 import { VerdictBadge } from "@/components/grants/verdict-badge";
+import { GrantTypeBadge } from "@/components/grants/grant-type-badge";
 import { AmountBadge } from "@/components/grants/amount-badge";
 import { HistoryBadge } from "@/components/grants/history-badge";
 import { ScoreBreakdown } from "@/components/grants/score-breakdown";
@@ -63,6 +64,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
         </div>
         <div className="detail-hero-badges">
           <VerdictBadge verdict={match.verdict} />
+          <GrantTypeBadge grantType={grant.grantType} />
           {match.historyBadge && <HistoryBadge badge={match.historyBadge} />}
         </div>
       </div>

@@ -5,6 +5,7 @@ import { DeadlineBadge } from "./deadline-badge";
 import { VerdictBadge } from "./verdict-badge";
 import { AmountBadge } from "./amount-badge";
 import { HistoryBadge } from "./history-badge";
+import { GrantTypeBadge } from "./grant-type-badge";
 
 export function GrantCard({
   matched,
@@ -52,6 +53,7 @@ export function GrantCard({
         )}
         <div className="relative flex flex-wrap items-center gap-1.5">
           <VerdictBadge verdict={match.verdict} />
+          <GrantTypeBadge grantType={grant.grantType} />
           <DeadlineBadge indicator={match.indicators.deadline} />
           {match.historyBadge && <HistoryBadge badge={match.historyBadge} />}
         </div>

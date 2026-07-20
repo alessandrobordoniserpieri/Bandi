@@ -2,6 +2,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExtractedGrant, GrantAttachment, GrantsDb, ScrapeLogEntry, SourceConfig, StoredGrant } from "../pipeline/types";
 import type { GeoScope, Complexity, GrantStatus, FundingType } from "../pipeline/vocab";
+import type { GrantType } from "../pipeline/grant-type";
 
 const DEFAULT_STATUS: GrantStatus = "aperto";
 
@@ -15,6 +16,7 @@ export function grantToInsertRow(grant: ExtractedGrant): GrantInsertRow {
     source_id: grant.sourceId,
     deadline: grant.deadline,
     status: grant.status ?? DEFAULT_STATUS,
+    grant_type: grant.grantType,
     amount: grant.amount,
     cofunding_required: grant.cofundingRequired,
     eligible_types: grant.eligibleTypes,
@@ -40,7 +42,7 @@ export function grantToInsertRow(grant: ExtractedGrant): GrantInsertRow {
 
 const COLUMN_OF: Record<keyof ExtractedGrant, string> = {
   title: "title", url: "url", providerId: "provider_id", sourceId: "source_id",
-  deadline: "deadline", status: "status", amount: "amount",
+  deadline: "deadline", status: "status", grantType: "grant_type", amount: "amount",
   cofundingRequired: "cofunding_required", eligibleTypes: "eligible_types",
   tags: "tags", area: "area", geoScope: "geo_scope", complexity: "complexity",
   requiredDocuments: "required_documents", summary: "summary", requirements: "requirements",
@@ -71,6 +73,7 @@ export function rowToStoredGrant(row: Record<string, unknown>): StoredGrant {
     sourceId: (row.source_id as string | null) ?? null,
     deadline: (row.deadline as string | null) ?? null,
     status: (row.status as GrantStatus | null) ?? null,
+    grantType: (row.grant_type as GrantType | null) ?? "bando",
     amount: (row.amount as number | null) ?? null,
     cofundingRequired: (row.cofunding_required as number | null) ?? null,
     eligibleTypes: (row.eligible_types as string[] | null) ?? [],

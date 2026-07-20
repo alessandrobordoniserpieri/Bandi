@@ -10,7 +10,8 @@ const grant = (over: Partial<Grant> = {}): Grant => ({
   eligibleTypes: [], tags: [], area: null, geoScope: null, complexity: null,
   requiredDocuments: [], summary: "", requirements: "", url: "https://x", beneficiaries: "",
   openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
-  eligibleExpenses: null, applicationMethod: null, contactInfo: null, ...over,
+  eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+  grantType: "bando", ...over,
 });
 
 const row = (over: Partial<ProjectHistoryRow> = {}): ProjectHistoryRow => ({
