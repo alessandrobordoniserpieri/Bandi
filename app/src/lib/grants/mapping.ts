@@ -1,4 +1,4 @@
-import type { Attachment, Grant, ProviderKind } from "@/lib/matching";
+import type { Attachment, Grant, GrantType, ProviderKind } from "@/lib/matching";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type GrantRow = Tables<"grants">;
@@ -15,6 +15,7 @@ export function mapGrantRow(row: GrantRowWithProvider): GrantView {
     providerKind: row.provider?.kind ?? null,
     deadline: row.deadline,
     status: row.status,
+    grantType: (row.grant_type as GrantType | undefined) ?? "bando",
     amount: row.amount,
     cofundingRequired: row.cofunding_required,
     cofundingPercentage: row.cofunding_percentage,

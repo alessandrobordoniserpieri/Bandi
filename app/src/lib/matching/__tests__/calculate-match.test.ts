@@ -36,6 +36,7 @@ function makeGrant(o: Partial<Grant> = {}): Grant {
     summary: "", requirements: "", url: "https://x", beneficiaries: "",
     openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
     eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+    grantType: "bando",
     ...o,
   };
 }

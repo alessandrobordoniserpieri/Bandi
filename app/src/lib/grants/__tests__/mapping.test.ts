@@ -8,6 +8,7 @@ function row(overrides: Partial<GrantRowWithProvider> = {}): GrantRowWithProvide
     eligible_types: ["APS - Associazione di Promozione Sociale"], tags: ["sport"],
     area: "Lombardia", geo_scope: "regionale", complexity: "media",
     required_documents: ["statuto", "bilancio"],
+    grant_type: "bando",
     summary: null, requirements: null, beneficiaries: null,
     cofunding_percentage: null, opening_date: null, funding_type: null,
     min_amount: null, max_amount: null, eligible_expenses: null,
@@ -79,5 +80,9 @@ describe("mapGrantRow", () => {
 
   it("defaults attachments to [] when the column is null or not an array", () => {
     expect(mapGrantRow(row({ attachments: null })).grant.attachments).toEqual([]);
+  });
+
+  it("maps grant_type to grantType", () => {
+    expect(mapGrantRow(row({ grant_type: "co_progettazione" })).grant.grantType).toBe("co_progettazione");
   });
 });

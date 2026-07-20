@@ -20,6 +20,7 @@ function mg(over: {
       summary: "", requirements: "", url: `https://x/${over.id}`, beneficiaries: "",
       openingDate: null, fundingType: null, minAmount: null, maxAmount: null,
       eligibleExpenses: null, applicationMethod: null, contactInfo: null,
+      grantType: "bando",
     },
     providerName: null,
     match: {
