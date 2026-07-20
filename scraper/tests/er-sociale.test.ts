@@ -111,6 +111,47 @@ describe("er-sociale listing parser", () => {
     expect(parseErSociale('{"no":"items"}')).toEqual([]);
   });
 
+  it("treats bando_state 'scheduled'/'Programmato' as 'aperto' when the deadline is still future", () => {
+    // Real token from regione.emilia-romagna.it/sport/bandi (verified live, 2026-07-20): sociale
+    // never emits it, so it previously fell through statusFrom() to null — under-representing a
+    // forthcoming/open bando as neither open nor closed.
+    const scheduled = JSON.stringify({
+      items: [{
+        "@id": "https://sociale.example/bandi/scheduled", "@type": "Bando", title: "Programmato",
+        scadenza_bando: `${FUTURE}T13:00:00+00:00`, bando_state: ["scheduled", "Programmato"],
+      }],
+    });
+    expect((parseErSociale(scheduled)[0] as Record<string, unknown>).status).toBe("aperto");
+  });
+
+  it("still marks a 'scheduled' bando 'scaduto' once its deadline is past", () => {
+    const scheduledButExpired = JSON.stringify({
+      items: [{
+        "@id": "https://sociale.example/bandi/scheduled-old", "@type": "Bando", title: "Programmato",
+        scadenza_bando: `${PAST}T13:00:00+00:00`, bando_state: ["scheduled", "Programmato"],
+      }],
+    });
+    expect((parseErSociale(scheduledButExpired)[0] as Record<string, unknown>).status).toBe("scaduto");
+  });
+
+  it("maps 'Scuole'/'Università'/'Enti di formazione' destinatari to their LEGAL_TYPES (sport/bandi source)", () => {
+    // Real destinatari tokens from regione.emilia-romagna.it/sport/bandi (verified live,
+    // 2026-07-20) that sociale never emits — LEGAL_TYPES does have matching entity types
+    // ("Istituto scolastico statale/paritario", "Università", "Ente di formazione accreditato"),
+    // so leaving them unmapped (as first guessed) would have been wrong, not "no invented rule".
+    const item = JSON.stringify({
+      items: [{
+        "@id": "https://sociale.example/bandi/scuole", "@type": "Bando", title: "Scuole",
+        scadenza_bando: `${FUTURE}T13:00:00+00:00`, bando_state: ["scheduled", "Programmato"],
+        destinatari: ["Scuole", "Università", "Enti di formazione"],
+      }],
+    });
+    const eligible = (parseErSociale(item)[0] as Record<string, unknown>).eligibleTypes as string[];
+    expect(eligible).toEqual(expect.arrayContaining([
+      "Istituto scolastico statale", "Istituto scolastico paritario", "Università", "Ente di formazione accreditato",
+    ]));
+  });
+
   it("is registered with fetch-friendly settings", () => {
     const a = resolveArchetype("er-sociale");
     expect(a.name).toBe("er-sociale");
@@ -266,6 +307,29 @@ describe("er-sociale detail parser", () => {
       "- primo punto",
       "- secondo punto",
     ]);
+  });
+
+  it("reads callout_block nodes instead of silently dropping them (real shape from sport/bandi)", async () => {
+    // Real block from regione.emilia-romagna.it/sport/bandi (verified live, 2026-07-20): an
+    // info-box UI component with no top-level `plaintext`, so the old code skipped it — dropping
+    // a real eligibility-exclusion rule.
+    const fixtureWithCallout = JSON.stringify({
+      "@id": "https://sociale.example/bandi/callout", "@type": "Bando", title: "Avviso", description: "",
+      text: {
+        blocks: {
+          intro: { plaintext: "Requisiti generali." },
+          note: {
+            "@type": "callout_block",
+            icon: "it-info-circle",
+            style: "base",
+            text: [{ type: "p", children: [{ text: "Chi ha già presentato domanda è escluso dal bando." }] }],
+          },
+        },
+        blocks_layout: { items: ["intro", "note"] },
+      },
+    });
+    const d = (await parseDetailErSociale(fixtureWithCallout, NO_LLM))!;
+    expect(d.requirements).toContain("Chi ha già presentato domanda è escluso dal bando.");
   });
 });
 
