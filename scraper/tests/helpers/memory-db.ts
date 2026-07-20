@@ -17,7 +17,7 @@ export class InMemoryGrantsDb implements GrantsDb {
     return this.grants.find((g) => g.url === url && g.status !== "scaduto") ?? null;
   }
   async insert(grant: ExtractedGrant): Promise<void> {
-    this.grants.push({ ...grant, id: `g${++this.seq}` });
+    this.grants.push({ ...grant, id: `g${++this.seq}`, detailFetchedAt: null });
   }
   async update(id: string, patch: Partial<ExtractedGrant>): Promise<void> {
     const g = this.grants.find((x) => x.id === id);
@@ -34,7 +34,9 @@ export class InMemoryGrantsDb implements GrantsDb {
   }
   async markDetailFetched(id: string, patch: Partial<ExtractedGrant>): Promise<void> {
     const g = this.grants.find((x) => x.id === id);
-    if (g) Object.assign(g, patch);
+    // Mirrors SupabaseGrantsDb.markDetailFetched: detail_fetched_at is DB-managed, always
+    // stamped "now" on this call, never something the caller passes in.
+    if (g) Object.assign(g, patch, { detailFetchedAt: new Date().toISOString() });
   }
   async findGrantsNeedingDetail(sourceId: string, _staleDays: number): Promise<StoredGrant[]> {
     return this.grants.filter(

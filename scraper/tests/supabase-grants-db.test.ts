@@ -74,6 +74,20 @@ describe("rowToStoredGrant", () => {
     expect(stored.tags).toEqual(["sport"]);
     expect(stored.providerId).toBeNull();
   });
+
+  it("maps detail_fetched_at through, for resolveSourceId's detail-priority check", () => {
+    const base = {
+      id: "g1", title: "T", url: "https://x/1", provider_id: null, source_id: null, deadline: null,
+      status: "aperto", amount: null, cofunding_required: null, eligible_types: null,
+      tags: [], area: null, geo_scope: null, complexity: null, required_documents: null,
+      summary: null, requirements: null, beneficiaries: null,
+      opening_date: null, funding_type: null, min_amount: null, max_amount: null,
+      cofunding_percentage: null, eligible_expenses: null, application_method: null, contact_info: null,
+    };
+    expect(rowToStoredGrant({ ...base, detail_fetched_at: "2026-07-01T00:00:00Z" }).detailFetchedAt)
+      .toBe("2026-07-01T00:00:00Z");
+    expect(rowToStoredGrant({ ...base, detail_fetched_at: null }).detailFetchedAt).toBeNull();
+  });
 });
 
 describe("rowToStoredGrant — grant_type", () => {

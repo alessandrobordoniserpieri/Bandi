@@ -117,6 +117,44 @@ describe("runPipeline", () => {
     expect(truncated[0]!.total).toBe(2);
   });
 
+  // docs/superpowers/specs/2026-07-20-source-id-detail-priority-attribution.md — end-to-end proof
+  // that runPipeline builds the detailEnabledBySource map from `sources` (both known, capabilities
+  // differ = Tier 1) and threads it through saveGrant/resolveSourceId. Uses sportesalute's real
+  // deterministic card parser (archetypes.test.ts's fixture shape) — no LLM matching involved.
+  it("reattributes source_id to a detailEnabled source when a non-detailEnabled aggregator scraped it first", async () => {
+    const aggregator: SourceConfig = { id: "agg", name: "Aggregatore", url: "https://agg/list", scrapeConfig: { archetype: "sportesalute" } };
+    const direct: SourceConfig = { id: "direct", name: "Fonte diretta", url: "https://direct/list" };
+    const sesCard = `<div class="sppb-addon-image-layouts" data-date="01/09/2026">
+       <h5 class="title_card">Bando condiviso</h5>
+       <span class="label regione-bando">Lazio</span>
+       <p><strong>Termine di presentazione domanda:</strong> 01/09/2026<br>
+          <strong>Destinatari:</strong> Enti del terzo settore</p>
+       <p><a href="https://shared/bando-1" class="button fit">Scopri di più</a></p>
+     </div>`;
+    const aggPage: RawPage = {
+      sourceId: "agg", url: "https://agg/list",
+      html: `<html><body><main><div class="listabandi cards">${sesCard}</div></main></body></html>`,
+    };
+    const directPage: RawPage = { sourceId: "direct", url: "https://direct/list", html: "HTML_DIRECT" };
+    const llm = new FakeLLMProvider(new Map<string, unknown>([
+      ["HTML_DIRECT", [{ title: "Bando condiviso", url: "https://shared/bando-1" }]],
+    ]));
+    const fetcher = new FixtureFetcher({ agg: [aggPage], direct: [directPage] });
+    const db = new InMemoryGrantsDb();
+
+    // One run, both sources known: aggregator (index 0, detailEnabled: false) is processed first
+    // and inserts the grant via its code parser; direct (index 1, detailEnabled: true) sees the
+    // same URL next.
+    const [aggResult, directResult] = await runPipeline([aggregator, direct], { llm, fetcher, db, detailThrottleMs: 0, sleep: noSleep });
+
+    // Prove this is a genuine reattribution (agg inserted, direct then updated the SAME row),
+    // not two independent inserts that would trivially leave sourceId at whichever ran last.
+    expect(aggResult).toMatchObject({ inserted: 1, updated: 0 });
+    expect(directResult).toMatchObject({ inserted: 0, updated: 1 });
+    expect(db.grants).toHaveLength(1); // deduped by URL, not two rows
+    expect(db.grants[0]!.sourceId).toBe("direct");
+  });
+
   it("processes sources until the budget runs out, then truncates the rest", async () => {
     const deps = makeDeps();
     // A clock that advances 200s per read. First source's gate check passes (t=0 < deadline 250s),

@@ -55,6 +55,40 @@ export function diffGrant(incoming: ExtractedGrant, existing: ExtractedGrant): P
   return patch;
 }
 
+// docs/superpowers/specs/2026-07-20-source-id-detail-priority-attribution.md — findGrantsNeedingDetail
+// filters by source_id, so whichever source "owns" a duplicate grant is the ONLY one that can ever
+// enrich it via the detail phase. Plain last-writer-wins (used for every other field) can strand a
+// grant on a detailEnabled:false owner (e.g. an aggregator) forever. detailEnabledBySource covers
+// only currently-ENABLED sources; an owner absent from it (disabled/deleted since it last wrote this
+// row) is treated as unknown capability — never preferred over a known detailEnabled:true source.
+export function resolveSourceId(
+  incomingSourceId: string | null,
+  existing: { sourceId: string | null; detailFetchedAt: string | null },
+  detailEnabledBySource: Map<string, boolean>,
+  incomingDetailEnabled: boolean,
+): string | null {
+  if (existing.sourceId == null) return incomingSourceId;
+
+  // Owner no longer among currently-enabled sources: capability unknown, kept distinct from
+  // "known detailEnabled:false" — never preferred over a KNOWN detailEnabled:true incoming
+  // source, but otherwise left alone (no active, known source is being displaced).
+  if (!detailEnabledBySource.has(existing.sourceId)) {
+    return incomingDetailEnabled ? incomingSourceId : existing.sourceId;
+  }
+
+  const existingDetailEnabled = detailEnabledBySource.get(existing.sourceId)!;
+  if (incomingDetailEnabled !== existingDetailEnabled) {
+    return incomingDetailEnabled ? incomingSourceId : existing.sourceId;
+  }
+  if (incomingDetailEnabled && existingDetailEnabled) {
+    // Both capable: frozen once detail has actually been fetched (same grant.url either way —
+    // reattributing after that would only re-fetch the identical page for no benefit).
+    return existing.detailFetchedAt == null ? incomingSourceId : existing.sourceId;
+  }
+  // Both known and both incapable: no capability signal to prefer one over the other — today's default.
+  return incomingSourceId;
+}
+
 export type Decision =
   | { action: "insert" } | { action: "skip" } | { action: "update"; patch: Partial<ExtractedGrant> };
 

@@ -94,6 +94,7 @@ export function rowToStoredGrant(row: Record<string, unknown>): StoredGrant {
     applicationMethod: (row.application_method as string | null) ?? null,
     contactInfo: (row.contact_info as string | null) ?? null,
     attachments: (row.attachments as GrantAttachment[] | null) ?? [],
+    detailFetchedAt: (row.detail_fetched_at as string | null) ?? null,
   };
 }
 
