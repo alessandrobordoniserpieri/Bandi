@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   // resolve the `file:../scraper` symlink and trace its files.
   turbopack: { root: repoRoot },
   outputFileTracingRoot: repoRoot,
+  // pdf.js (via unpdf) renders through @napi-rs/canvas, a native prebuilt addon. Native modules
+  // must NOT be bundled: Next has to resolve them at runtime from node_modules and trace the
+  // `.node` binary into the deployment. Listing them here does exactly that. `unpdf` is also
+  // externalized so its bundled pdf.js worker isn't mangled by the bundler.
+  serverExternalPackages: ["@napi-rs/canvas", "unpdf"],
 };
 
 export default nextConfig;
