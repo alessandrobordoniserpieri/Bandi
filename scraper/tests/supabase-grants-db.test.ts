@@ -147,6 +147,12 @@ describe("SupabaseGrantsDb", () => {
     expect(await new SupabaseGrantsDb(asClient(missing)).findProviderIdByName("Ignota")).toBeNull();
   });
 
+  it("findProviderIdByName also matches by alias, not just the canonical name (ADR-005)", async () => {
+    const stub = new StubSupabaseClient({ grant_providers: { data: { id: "p9" } } });
+    await new SupabaseGrantsDb(asClient(stub)).findProviderIdByName("Sport e Salute");
+    expect(stub.records.grant_providers!.or).toEqual(["name.eq.Sport e Salute,aliases.cs.{Sport e Salute}"]);
+  });
+
   it("updateSource writes last_run_at / last_error by id", async () => {
     const stub = new StubSupabaseClient({ grant_sources: {} });
     await new SupabaseGrantsDb(asClient(stub)).updateSource("s1", { lastRunAt: "2026-07-05T00:00:00Z", lastError: null });

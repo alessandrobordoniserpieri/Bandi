@@ -148,6 +148,9 @@ export function parseErSociale(raw: string): unknown[] {
     out.push({
       title,
       url,
+      // This source is single-provider (always Regione Emilia-Romagna), unlike sportesalute's
+      // aggregator cards which each link to a different real erogatore — safe to stamp statically.
+      providerName: "Regione Emilia-Romagna",
       summary: description || null,
       deadline,
       status: statusFrom(o.bando_state, deadline, today),

@@ -12,6 +12,7 @@ export interface QueryRecord {
   insert?: unknown;
   update?: unknown;
   eq: [string, unknown][];
+  or: string[];
   maybeSingle?: boolean;
 }
 
@@ -37,7 +38,10 @@ class QueryStub implements PromiseLike<StubResult> {
     return this;
   }
   neq(_col: string, _val: unknown): this { return this; }
-  or(_filter: string): this { return this; }
+  or(filter: string): this {
+    this.rec.or.push(filter);
+    return this;
+  }
   limit(_n: number): this { return this; }
   order(_col: string, _opts?: Record<string, unknown>): this { return this; }
   maybeSingle(): Promise<StubResult> {
@@ -59,7 +63,7 @@ export class StubSupabaseClient {
   readonly records: Record<string, QueryRecord> = {};
   constructor(private readonly results: Record<string, StubResult> = {}) {}
   from(table: string): QueryStub {
-    const rec: QueryRecord = { table, eq: [] };
+    const rec: QueryRecord = { table, eq: [], or: [] };
     this.records[table] = rec;
     return new QueryStub(this.results[table] ?? {}, rec);
   }

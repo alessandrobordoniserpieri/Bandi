@@ -80,4 +80,34 @@ describe("escalateEconomicsToLLM", () => {
     const llm: LLMProvider = { name: "boom", extract: async () => { throw new Error("must not be called"); } };
     expect(await escalateEconomicsToLLM("", llm)).toEqual({ amount: null, cofundingPercentage: null });
   });
+
+  // Real bug (verified live against regione.emilia-romagna.it/sport/bandi, 2026-07-20): Gemini
+  // does NOT reliably answer totalAmount in Italian thousands-grouped notation. Real observed raw
+  // strings for the SAME field: "1.000.000" (Italian, no decimals), "1.000.000,00" (Italian, with
+  // decimals), "546700"/"100000" (plain digits), and "250000.00"/"150000.00" (decimal-point, no
+  // grouping) — the last kind was silently inflated 100x (parseItalianAmount treats every "." as
+  // a thousands separator), turning a real €150.000 bando into a saved 15.000.000.
+  it("parses a bare decimal-point total (2-digit fraction, no thousands grouping) without inflating it 100x", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[TEXT, { totalAmount: "150000.00" }]]));
+    expect((await escalateEconomicsToLLM(TEXT, llm)).amount).toBe(150000);
+  });
+
+  it("still parses Italian thousands-grouped totals correctly (no regression)", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[TEXT, { totalAmount: "1.000.000" }]]));
+    expect((await escalateEconomicsToLLM(TEXT, llm)).amount).toBe(1000000);
+  });
+
+  it("still parses Italian thousands-grouped totals with a comma decimal tail (no regression)", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[TEXT, { totalAmount: "1.000.000,00" }]]));
+    expect((await escalateEconomicsToLLM(TEXT, llm)).amount).toBe(1000000);
+  });
+
+  it("parses a plain unformatted integer total", async () => {
+    const TEXT = "Testo ambiguo del bando.";
+    const llm = new FakeLLMProvider(new Map<string, unknown>([[TEXT, { totalAmount: "546700" }]]));
+    expect((await escalateEconomicsToLLM(TEXT, llm)).amount).toBe(546700);
+  });
 });
