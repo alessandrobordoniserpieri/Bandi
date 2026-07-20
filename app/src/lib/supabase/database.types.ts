@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          grant_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          grant_id: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          grant_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grant_documents: {
+        Row: {
+          attachment_url: string
+          created_at: string
+          error: string | null
+          extracted_text: string | null
+          grant_id: string
+          id: string
+          ocr_used: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attachment_url: string
+          created_at?: string
+          error?: string | null
+          extracted_text?: string | null
+          grant_id: string
+          id?: string
+          ocr_used?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attachment_url?: string
+          created_at?: string
+          error?: string | null
+          extracted_text?: string | null
+          grant_id?: string
+          id?: string
+          ocr_used?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_documents_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grant_providers: {
         Row: {
           aliases: string[]
@@ -542,7 +621,11 @@ export type Database = {
           ai_calls_window_start: string | null
           alert_frequency: Database["public"]["Enums"]["alert_frequency"]
           alert_threshold: number
+          chat_calls_count: number
+          chat_calls_window_start: string | null
           created_at: string
+          extraction_count: number
+          extraction_window_start: string | null
           id: string
           updated_at: string
           user_id: string
@@ -552,7 +635,11 @@ export type Database = {
           ai_calls_window_start?: string | null
           alert_frequency?: Database["public"]["Enums"]["alert_frequency"]
           alert_threshold?: number
+          chat_calls_count?: number
+          chat_calls_window_start?: string | null
           created_at?: string
+          extraction_count?: number
+          extraction_window_start?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -562,7 +649,11 @@ export type Database = {
           ai_calls_window_start?: string | null
           alert_frequency?: Database["public"]["Enums"]["alert_frequency"]
           alert_threshold?: number
+          chat_calls_count?: number
+          chat_calls_window_start?: string | null
           created_at?: string
+          extraction_count?: number
+          extraction_window_start?: string | null
           id?: string
           updated_at?: string
           user_id?: string
