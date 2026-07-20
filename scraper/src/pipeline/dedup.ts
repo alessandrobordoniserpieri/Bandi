@@ -74,21 +74,28 @@ function isExpiredAtIngest(g: ExtractedGrant, today: string): boolean {
   return g.deadline != null && g.deadline < today;
 }
 
+// An administrative notice (proroga/rettifica/errata corrige/…) is never a new opportunity —
+// skip it at insert time, same spirit as isExpiredAtIngest. Applies ONLY to inserts: a grant
+// already stored keeps updating normally via the diffGrant path below regardless of grantType
+// (grantType is excluded from KEYS — see the field's comment in types.ts).
+function insertOrSkip(incoming: ExtractedGrant, today: string): Decision {
+  if (incoming.grantType === "amministrativo") return { action: "skip" };
+  return isExpiredAtIngest(incoming, today) ? { action: "skip" } : { action: "insert" };
+}
+
 export function decide(
   incoming: ExtractedGrant,
   existing: ExtractedGrant | null,
   today: string = todayIso(),
 ): Decision {
-  if (existing == null) {
-    return isExpiredAtIngest(incoming, today) ? { action: "skip" } : { action: "insert" };
-  }
+  if (existing == null) return insertOrSkip(incoming, today);
 
   const expired = existing.status === "scaduto" || existing.status === "chiuso";
   if (expired) {
     const newEdition = incoming.deadline != null && incoming.deadline !== existing.deadline;
     if (!newEdition) return { action: "skip" };
     // A new edition is still only worth inserting if that edition is itself still open.
-    return isExpiredAtIngest(incoming, today) ? { action: "skip" } : { action: "insert" };
+    return insertOrSkip(incoming, today);
   }
 
   const patch = diffGrant(incoming, existing);

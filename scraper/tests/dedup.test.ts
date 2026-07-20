@@ -146,3 +146,29 @@ describe("decide — skip expired grants at ingest time (only-new policy)", () =
     expect(decide(incoming, existing, TODAY)).toEqual({ action: "insert" });
   });
 });
+
+describe("decide — skip administrative notices at ingest (proroga/rettifica/errata corrige/…)", () => {
+  const TODAY = "2026-07-18";
+
+  it("skips inserting a brand-new grant classified as amministrativo", () => {
+    expect(decide(g({ grantType: "amministrativo", status: "aperto", deadline: "2026-12-31" }), null, TODAY))
+      .toEqual({ action: "skip" });
+  });
+
+  it("still inserts a brand-new grant classified as co_progettazione", () => {
+    expect(decide(g({ grantType: "co_progettazione", status: "aperto", deadline: "2026-12-31" }), null, TODAY))
+      .toEqual({ action: "insert" });
+  });
+
+  it("skips a NEW EDITION of an expired grant when the new edition is amministrativo", () => {
+    const incoming = g({ grantType: "amministrativo", status: "aperto", deadline: "2027-05-01" });
+    const existing = g({ grantType: "bando", status: "scaduto", deadline: "2026-05-01" });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "skip" });
+  });
+
+  it("does not gate the update path on grantType — an active existing record updates normally", () => {
+    const incoming = g({ grantType: "amministrativo", amount: 999 });
+    const existing = g({ grantType: "bando", amount: 1 });
+    expect(decide(incoming, existing, TODAY)).toEqual({ action: "update", patch: { amount: 999 } });
+  });
+});
