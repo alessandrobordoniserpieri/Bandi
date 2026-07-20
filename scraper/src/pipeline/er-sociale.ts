@@ -42,10 +42,15 @@ const ETS_TYPES: readonly string[] = [
 
 // "Cittadini" / "Soggetti accreditati" have no LEGAL_TYPES equivalent (individuals / too vague)
 // and are deliberately unmapped: absence of a rule means no invented restriction.
+// "Scuole"/"Università"/"Enti di formazione" (sport/bandi source, verified live 2026-07-20) DO
+// have real LEGAL_TYPES entries — unlike the two above, mapping them is a correction, not a guess.
 const DESTINATARI_TYPES: Record<string, readonly string[]> = {
   "enti del terzo settore": ETS_TYPES,
   "enti pubblici": ["Ente pubblico"],
   "partenariato pubblico/privato": ["Raggruppamento temporaneo / ATS"],
+  "scuole": ["Istituto scolastico statale", "Istituto scolastico paritario"],
+  "università": ["Università"],
+  "enti di formazione": ["Ente di formazione accreditato"],
 };
 
 function deriveEligibleTypes(destinatari: string[]): string[] {
@@ -115,7 +120,9 @@ function statusFrom(bandoState: unknown, deadline: string | null, today: string)
   if (deadline && deadline < today) return "scaduto";
   const token = Array.isArray(bandoState) ? bandoState[0] : null;
   if (token === "closed") return "chiuso";
-  if (token === "inProgress" || token === "open") return "aperto";
+  // "scheduled"/"Programmato" (sport/bandi source, sociale never emits it) means "not yet closed
+  // for applications" exactly like inProgress/open — same treatment, deadline already wins above.
+  if (token === "inProgress" || token === "open" || token === "scheduled") return "aperto";
   return null;
 }
 
@@ -187,7 +194,7 @@ function isFullyBoldParagraph(node: SlateNode): boolean {
 // elements — fixtures/sources with no `value` field fall through to the old plain-line behavior.
 function slateText(v: unknown): string | null {
   const o = v as {
-    blocks?: Record<string, { plaintext?: string; value?: SlateNode[] } | undefined>;
+    blocks?: Record<string, { plaintext?: string; value?: SlateNode[]; "@type"?: string; text?: SlateNode[] } | undefined>;
     blocks_layout?: { items?: string[] };
   } | null;
   if (!o?.blocks) return null;
@@ -195,6 +202,14 @@ function slateText(v: unknown): string | null {
   const lines: string[] = [];
   for (const id of order) {
     const block = o.blocks?.[id];
+    // callout_block (info-box UI component, sport/bandi source): text lives under `.text`, not
+    // the top-level `plaintext` every other block type carries — read it explicitly or it's
+    // silently dropped (seen once in 89 sampled blocks, carrying a real eligibility rule).
+    if (block?.["@type"] === "callout_block" && Array.isArray(block.text)) {
+      const calloutText = block.text.map(inlineText).join(" ").trim();
+      if (calloutText) lines.push(calloutText);
+      continue;
+    }
     const plaintext = (block?.plaintext ?? "").trim();
     if (!plaintext) continue;
     const node = block?.value?.[0];
