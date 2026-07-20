@@ -152,6 +152,12 @@ describe("er-sociale listing parser", () => {
     ]));
   });
 
+  it("stamps every item with the source's own provider name (er-sociale is single-provider, unlike sportesalute's aggregator)", () => {
+    const items = parseErSociale(searchFixture) as Array<Record<string, unknown>>;
+    expect(items[0]!.providerName).toBe("Regione Emilia-Romagna");
+    expect(items[1]!.providerName).toBe("Regione Emilia-Romagna");
+  });
+
   it("is registered with fetch-friendly settings", () => {
     const a = resolveArchetype("er-sociale");
     expect(a.name).toBe("er-sociale");

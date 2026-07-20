@@ -181,6 +181,16 @@ describe("parseSportGoverno (listing)", () => {
     expect(oratori.eligibleTypes).toEqual(["Ente ecclesiastico civilmente riconosciuto"]);
   });
 
+  it("stamps every item with the source's own provider name (single-provider source, unlike sportesalute's aggregator)", () => {
+    const html = nextDataHtml([{
+      _id: "699d5d516166f9f16884719b", title: "Sport e Periferie 2026", description: "<p>Testo.</p>",
+      image: "", dest: ["pa"],
+      schedule: { compilazione: { start: "2026-06-04T10:00:00.000Z", end: "2026-06-25T10:00:00.000Z" } },
+    }]);
+    const [item] = parseSportGoverno(html) as Array<Record<string, unknown>>;
+    expect(item!.providerName).toBe("Dipartimento per lo Sport");
+  });
+
   it("returns [] on malformed input (no __NEXT_DATA__ marker)", () => {
     expect(parseSportGoverno("<html><body>not the right page</body></html>")).toEqual([]);
   });

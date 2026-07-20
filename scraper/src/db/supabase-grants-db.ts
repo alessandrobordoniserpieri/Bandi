@@ -138,9 +138,11 @@ export class SupabaseGrantsDb implements GrantsDb {
     fail("update", error);
   }
 
+  // ADR-005: normalize against grant_providers by canonical name OR one of its aliases (e.g. an
+  // extracted "Sport e Salute" must still resolve the row canonically named "Sport e Salute S.p.A.").
   async findProviderIdByName(name: string): Promise<string | null> {
     const { data, error } = await this.client
-      .from("grant_providers").select("id").eq("name", name).maybeSingle();
+      .from("grant_providers").select("id").or(`name.eq.${name},aliases.cs.{${name}}`).maybeSingle();
     fail("findProviderIdByName", error);
     return data ? String((data as Record<string, unknown>).id) : null;
   }

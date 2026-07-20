@@ -168,6 +168,9 @@ export function parseSportGoverno(raw: string): unknown[] {
     out.push({
       title,
       url: noticeUrl(id),
+      // Single-provider source (always Dipartimento per lo Sport) — unlike sportesalute's
+      // aggregator, which relists bandi from many different real erogatori per card.
+      providerName: "Dipartimento per lo Sport",
       summary,
       deadline,
       status: statusFrom(deadline, today),

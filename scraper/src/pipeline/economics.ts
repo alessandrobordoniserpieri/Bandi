@@ -67,6 +67,26 @@ const ECONOMICS_INSTRUCTIONS = [
   "Se un valore non è chiaramente indicato, restituisci null per quel campo. Non sommare cifre né indovinare.",
 ].join(" ");
 
+// totalAmount is a string WE prompt an LLM to produce, not free Italian prose scraped from a
+// page — parseItalianAmount (enrich.ts) assumes every "." is a thousands separator, which is only
+// true for genuine Italian-formatted text. Gemini does not reliably follow one convention here:
+// verified live (regione.emilia-romagna.it/sport/bandi, 2026-07-20) the SAME field comes back as
+// "1.000.000" (Italian, no decimals), "1.000.000,00" (Italian, with decimals), "546700" (plain
+// digits), AND "150000.00" (decimal-point, no grouping) — the last kind was silently inflated
+// 100x by parseItalianAmount (a real €150.000 bando got saved as 15.000.000). Distinguish by
+// trailing separator width: a real Italian thousands group is always exactly 3 digits; a decimal
+// fraction is 1-2. Only the LAST separator's width decides — earlier ones are always grouping.
+function parseLlmAmount(raw: string): number | null {
+  const cleaned = raw.replace(/[€\s]/g, "");
+  if (!/^\d[\d.,]*$/.test(cleaned)) return null;
+  const decimalTail = /^([\d.,]*\d)[.,](\d{1,2})$/.exec(cleaned);
+  const normalized = decimalTail
+    ? `${decimalTail[1]!.replace(/[.,]/g, "")}.${decimalTail[2]}`
+    : cleaned.replace(/[.,]/g, "");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
 // Last resort: called only when the deterministic tiers left `amount` unresolved (see each
 // archetype's call site — the trigger is amount alone, never cofunding alone, to keep this call
 // rare). Resolves both fields in the SAME call so a rare escalation isn't wasted on one field.
@@ -77,7 +97,7 @@ export async function escalateEconomicsToLLM(text: string, llm: LLMProvider): Pr
     let out: unknown = await llm.extract({ html: text, schema: ECONOMICS_SCHEMA, instructions: ECONOMICS_INSTRUCTIONS });
     if (typeof out === "string") { try { out = JSON.parse(out); } catch { return { amount: null, cofundingPercentage: null }; } }
     const o = out as { totalAmount?: unknown; cofundingPercentage?: unknown } | null;
-    const amount = typeof o?.totalAmount === "string" ? parseItalianAmount(o.totalAmount) : null;
+    const amount = typeof o?.totalAmount === "string" ? parseLlmAmount(o.totalAmount) : null;
     const cofundingPercentage = typeof o?.cofundingPercentage === "string"
       ? Number(o.cofundingPercentage.replace(",", ".").replace("%", "").trim())
       : null;
