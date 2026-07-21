@@ -49,10 +49,81 @@ export type Database = {
           },
         ]
       }
+      cross_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      grant_document_chunks: {
+        Row: {
+          chunk_index: number
+          chunk_text: string
+          created_at: string
+          document_id: string
+          embedding: string
+          grant_id: string
+          id: string
+        }
+        Insert: {
+          chunk_index: number
+          chunk_text: string
+          created_at?: string
+          document_id: string
+          embedding: string
+          grant_id: string
+          id?: string
+        }
+        Update: {
+          chunk_index?: number
+          chunk_text?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string
+          grant_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grant_document_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "grant_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grant_document_chunks_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grant_documents: {
         Row: {
           attachment_url: string
+          chunked_at: string | null
           created_at: string
+          embed_claimed_at: string | null
           error: string | null
           extracted_text: string | null
           grant_id: string
@@ -63,7 +134,9 @@ export type Database = {
         }
         Insert: {
           attachment_url: string
+          chunked_at?: string | null
           created_at?: string
+          embed_claimed_at?: string | null
           error?: string | null
           extracted_text?: string | null
           grant_id: string
@@ -74,7 +147,9 @@ export type Database = {
         }
         Update: {
           attachment_url?: string
+          chunked_at?: string | null
           created_at?: string
+          embed_claimed_at?: string | null
           error?: string | null
           extracted_text?: string | null
           grant_id?: string
@@ -694,6 +769,14 @@ export type Database = {
       }
     }
     Functions: {
+      claim_document_for_embedding: {
+        Args: never
+        Returns: {
+          extracted_text: string
+          grant_id: string
+          id: string
+        }[]
+      }
       claim_pending_document: {
         Args: never
         Returns: {
@@ -702,6 +785,20 @@ export type Database = {
         }[]
       }
       expire_grants: { Args: never; Returns: undefined }
+      match_grant_chunks: {
+        Args: {
+          grant_ids: string[]
+          match_count: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_text: string
+          document_id: string
+          grant_id: string
+          similarity: number
+        }[]
+      }
+      trigger_embed_documents: { Args: never; Returns: undefined }
       set_saved_grant_status: {
         Args: {
           p_saved_grant_id: string
