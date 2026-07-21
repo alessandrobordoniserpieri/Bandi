@@ -1143,6 +1143,12 @@ main {
   align-items: flex-end;
 }
 .strong-chat-form textarea { flex: 1; resize: vertical; }
+.cross-chat-sources {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.cross-chat-sources a { color: var(--primary); }
 
 /* ------------------------------------------------------------------ */
 /* EMPTY STATE                                                         */
