@@ -6,5 +6,6 @@ export { downloadPdf } from "./download";
 export { extractTextLayer } from "./pdf-text";
 export { rasterizePdf } from "./rasterize";
 export { getOcrProvider, OcrSpaceProvider, FakeOcrProvider } from "./ocr/index";
+export type { OcrSpaceConfig } from "./ocr/ocr-space";
 export { ExtractionError } from "./types";
 export type { ExtractionErrorCode, ExtractedDoc, OcrProvider, FetchImpl } from "./types";

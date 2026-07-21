@@ -32,7 +32,8 @@ export async function downloadPdf(
   // memory just to be discarded by the post-buffer check below. Best-effort only: a server that
   // omits or lies about Content-Length (or uses chunked encoding) still falls through to that check.
   const declaredLength = res.headers.get("content-length");
-  if (declaredLength && Number(declaredLength) > maxBytes) {
+  const parsedLength = declaredLength ? Number(declaredLength) : NaN;
+  if (Number.isFinite(parsedLength) && parsedLength > maxBytes) {
     throw new ExtractionError("too_large", `download: file oltre ${maxBytes} byte (content-length)`, { retryable: false });
   }
 

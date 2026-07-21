@@ -6,7 +6,7 @@ import type { FetchImpl } from "../types";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 
 function fakeFetch(payload: {
-  ok?: boolean; status?: number; json?: unknown;
+  ok?: boolean; status?: number; json?: unknown; jsonThrows?: boolean;
 }): { impl: FetchImpl; calls: number } {
   const box = { calls: 0 };
   const impl = (async () => {
@@ -14,7 +14,10 @@ function fakeFetch(payload: {
     return {
       ok: payload.ok ?? true,
       status: payload.status ?? 200,
-      json: async () => payload.json ?? { ParsedResults: [{ ParsedText: "" }], OCRExitCode: 1, IsErroredOnProcessing: false },
+      json: async () => {
+        if (payload.jsonThrows) throw new SyntaxError("Unexpected token < in JSON at position 0");
+        return payload.json ?? { ParsedResults: [{ ParsedText: "" }], OCRExitCode: 1, IsErroredOnProcessing: false };
+      },
       text: async () => "err",
     };
   }) as unknown as FetchImpl;
@@ -46,6 +49,12 @@ describe("OcrSpaceProvider", () => {
     const big = new Uint8Array(1024 * 1024 + 1);
     await expect(p.ocr(big)).rejects.toMatchObject({ code: "too_large" });
     expect(f.calls).toBe(0);
+  });
+
+  it("throws a RETRYABLE ocr_failed when the HTTP-200 body is malformed/non-JSON", async () => {
+    const f = fakeFetch({ ok: true, status: 200, jsonThrows: true });
+    const p = new OcrSpaceProvider({ apiKey: "k", fetchImpl: f.impl });
+    await expect(p.ocr(PNG)).rejects.toMatchObject({ code: "ocr_failed", retryable: true });
   });
 });
 

@@ -75,7 +75,12 @@ export class OcrSpaceProvider implements OcrProvider {
       throw new ExtractionError("ocr_failed", `ocrspace: HTTP ${res.status} ${detail}`.trim(), { retryable: false });
     }
 
-    const body = (await res.json()) as OcrSpaceResponse;
+    let body: OcrSpaceResponse;
+    try {
+      body = (await res.json()) as OcrSpaceResponse;
+    } catch (cause) {
+      throw new ExtractionError("ocr_failed", "ocrspace: risposta non-JSON", { retryable: true, cause });
+    }
     if (body.IsErroredOnProcessing) {
       const msg = Array.isArray(body.ErrorMessage) ? body.ErrorMessage.join("; ") : body.ErrorMessage ?? "errore sconosciuto";
       throw new ExtractionError("ocr_failed", `ocrspace: ${msg}`, { retryable: false });

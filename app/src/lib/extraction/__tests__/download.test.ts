@@ -67,4 +67,13 @@ describe("downloadPdf", () => {
     ).rejects.toMatchObject({ code: "too_large" });
     expect(arrayBufferCalls.count).toBe(0);
   });
+
+  it("ignores a garbled Content-Length header and falls through to the real body-size check", async () => {
+    const out = await downloadPdf("http://x/a.pdf", {
+      fetchImpl: fakeFetch({ headers: { "content-length": "abc" } }),
+      maxBytes: 1024,
+    });
+    expect(out).toBeInstanceOf(Uint8Array);
+    expect(new TextDecoder("latin1").decode(out).startsWith("%PDF-")).toBe(true);
+  });
 });

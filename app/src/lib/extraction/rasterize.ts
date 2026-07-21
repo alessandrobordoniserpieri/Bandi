@@ -41,7 +41,8 @@ export async function rasterizePdf(
 // single page is then skipped as a partial failure rather than sinking the whole document.
 async function capImageSize(png: Uint8Array): Promise<Uint8Array> {
   if (png.byteLength <= MAX_IMAGE_BYTES) return png;
-  let width = 1400;
+  const meta = await sharp(png).metadata();
+  let width = Math.min(meta.width ?? 1400, 1400);
   let out = png;
   for (let attempt = 0; attempt < 4; attempt++) {
     out = new Uint8Array(await sharp(png).resize({ width }).png({ compressionLevel: 9 }).toBuffer());
