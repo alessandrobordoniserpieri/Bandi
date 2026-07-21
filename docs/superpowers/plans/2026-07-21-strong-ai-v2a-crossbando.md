@@ -31,3 +31,19 @@ tramite retrieval pgvector sui chunk del testo PDF già estratto in V1.
 
 Dettaglio interfacce nei commit TDD (schema colonne = migration 0016; firme seam = file sorgente).
 Ogni piano è software testabile a sé; V2-B (crediti) resta fuori (richiede decisioni pagamenti/IVA).
+
+## Stato: V2-A COMPLETA (2026-07-21)
+
+Tutti e 5 i piani implementati in TDD, 382 test verdi, build produzione pulita, **testato
+end-to-end nel browser con Gemini + pgvector reali**: bando salvato → worker chunk+embed
+(53 chunk, embeddings reali) → domanda in `/assistente` → retrieval pgvector scoped ai salvati →
+risposta LLM fondata sui passaggi recuperati, con fonti cliccabili.
+
+**Correzione durante il test live:** il modello embeddings `text-embedding-004` non è disponibile
+su questa API key (404); sostituito con **`gemini-embedding-001` ridotto a 768 dim via
+`outputDimensionality`**, chiamato con `:embedContent` per-testo (l'API non espone un batch sync).
+DB/indice invariati (768 dim). Vedi commit `fix(ai): Gemini embeddings use gemini-embedding-001`.
+
+Restano manuali (come per V1, per accendere il cron di embedding in produzione): impostare i Vault
+secret `embed_endpoint_url` / `embed_cron_secret`. Finché assenti, il cron `embed-documents-every-2-min`
+è schedulato ma inerte.
