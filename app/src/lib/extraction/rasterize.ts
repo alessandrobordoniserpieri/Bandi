@@ -3,7 +3,7 @@
 // OCR'd. unpdf drives pdf.js; in Node pdf.js renders through @napi-rs/canvas (native prebuilt,
 // passed via canvasImport). Each PNG must stay under OCR.space's 1 MB free-tier cap, so we re-encode
 // oversized pages smaller with sharp. maxPages bounds cost/time on huge documents.
-import { getDocumentProxy, renderPageAsImage } from "unpdf";
+import { getDocumentProxy, renderPageAsImage, createIsomorphicCanvasFactory } from "unpdf";
 import sharp from "sharp";
 
 const DEFAULT_TARGET_WIDTH = 1654; // ~200 DPI across an A4 width — enough for OCR, modest size.
@@ -17,15 +17,20 @@ export async function rasterizePdf(
   const targetWidth = opts.targetWidth ?? DEFAULT_TARGET_WIDTH;
   const maxPages = opts.maxPages ?? DEFAULT_MAX_PAGES;
 
-  const pdf = await getDocumentProxy(pdfBytes);
+  // CanvasFactory must be wired in at document creation, not left to renderPageAsImage to add
+  // later: renderPageAsImage only creates a (CanvasFactory-wired) document itself when given raw
+  // bytes. Passed an already-created PDFDocumentProxy — as we do here — it reuses it as-is, so a
+  // document created without a CanvasFactory never gets one. pdf.js's internal image-XObject
+  // rendering path (used by any embedded raster image, e.g. a scanned page) then falls back to a
+  // hardcoded canvas stub and throws "@napi-rs/canvas is not available in this environment".
+  const canvasImport = () => import("@napi-rs/canvas");
+  const CanvasFactory = await createIsomorphicCanvasFactory(canvasImport);
+  const pdf = await getDocumentProxy(pdfBytes, { CanvasFactory });
   const pageCount = Math.min(pdf.numPages, maxPages);
 
   const images: Uint8Array[] = [];
   for (let page = 1; page <= pageCount; page++) {
-    const rendered = await renderPageAsImage(pdf, page, {
-      canvasImport: () => import("@napi-rs/canvas"),
-      width: targetWidth,
-    });
+    const rendered = await renderPageAsImage(pdf, page, { canvasImport, width: targetWidth });
     images.push(await capImageSize(new Uint8Array(rendered)));
   }
   return images;

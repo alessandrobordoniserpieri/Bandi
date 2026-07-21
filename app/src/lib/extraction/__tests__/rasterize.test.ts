@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import sharp from "sharp";
 import { rasterizePdf } from "../rasterize";
 
 async function blankPdf(pages: number): Promise<Uint8Array> {
@@ -79,4 +80,64 @@ describe("rasterizePdf", () => {
     },
     30_000, // building/rendering ~40k glyphs plus up to 4 sharp resizes is slower than the blank-page cases
   );
+
+  // Regression test for a CanvasFactory wiring bug: rasterizePdf used to call getDocumentProxy(pdfBytes)
+  // without a CanvasFactory, then hand that already-created PDFDocumentProxy to renderPageAsImage.
+  // Because renderPageAsImage only wires a CanvasFactory into the document when IT creates the
+  // document from raw bytes (isPDFDocumentProxy(data) short-circuits that when given a proxy), the
+  // document itself was never given a working canvas. pdf.js's internal image-XObject rendering path
+  // (paintImageXObject) — hit by ANY embedded raster image, which is exactly what a real scanned PDF
+  // page is — then fell back to a hardcoded stub and threw "@napi-rs/canvas is not available in this
+  // environment". The noisyTextPdf fixture above avoids embedded images for that historical reason
+  // (see its comment); this test exercises the previously-broken path directly.
+  it("rasterizes a page with an embedded raster image without throwing, and renders it correctly", async () => {
+    const pageWidth = 400;
+    const pageHeight = 300;
+    const squareSize = 100;
+    const squareX = 150;
+    const squareY = 100;
+
+    const squarePng = await sharp({
+      create: { width: squareSize, height: squareSize, channels: 3, background: { r: 255, g: 0, b: 0 } },
+    })
+      .png()
+      .toBuffer();
+
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([pageWidth, pageHeight]);
+    const embeddedImage = await doc.embedPng(squarePng);
+    page.drawImage(embeddedImage, { x: squareX, y: squareY, width: squareSize, height: squareSize });
+    const pdfBytes = await doc.save();
+
+    // targetWidth == pageWidth keeps the render scale at ~1:1, so PDF-space coordinates map
+    // directly onto output pixel coordinates (modulo the y-axis flip handled by pixelAt below).
+    const images = await rasterizePdf(pdfBytes, { targetWidth: pageWidth });
+    expect(images).toHaveLength(1);
+    const [img] = images;
+    expect([...img.subarray(0, 4)]).toEqual(PNG_MAGIC);
+
+    const { data, info } = await sharp(img).raw().toBuffer({ resolveWithObject: true });
+    const scaleX = info.width / pageWidth;
+    const scaleY = info.height / pageHeight;
+    const pixelAt = (pdfX: number, pdfY: number) => {
+      const px = Math.min(info.width - 1, Math.max(0, Math.round(pdfX * scaleX)));
+      // PDF coordinates originate bottom-left; the rendered raster originates top-left.
+      const py = Math.min(info.height - 1, Math.max(0, Math.round((pageHeight - pdfY) * scaleY)));
+      const idx = (py * info.width + px) * info.channels;
+      return { r: data[idx], g: data[idx + 1], b: data[idx + 2] };
+    };
+
+    // Inside the drawn square: dominant red channel, low green/blue (tolerant of anti-aliasing and
+    // color-space conversion — a real fix should still land well within these margins).
+    const inside = pixelAt(squareX + squareSize / 2, squareY + squareSize / 2);
+    expect(inside.r).toBeGreaterThan(200);
+    expect(inside.g).toBeLessThan(50);
+    expect(inside.b).toBeLessThan(50);
+
+    // Clearly outside the square: untouched white page background.
+    const outside = pixelAt(20, 20);
+    expect(outside.r).toBeGreaterThan(200);
+    expect(outside.g).toBeGreaterThan(200);
+    expect(outside.b).toBeGreaterThan(200);
+  });
 });
