@@ -694,6 +694,13 @@ export type Database = {
       }
     }
     Functions: {
+      claim_pending_document: {
+        Args: never
+        Returns: {
+          attachment_url: string
+          id: string
+        }[]
+      }
       expire_grants: { Args: never; Returns: undefined }
       set_saved_grant_status: {
         Args: {
@@ -702,6 +709,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      trigger_extract_documents: { Args: never; Returns: undefined }
       trigger_scrape: { Args: never; Returns: undefined }
     }
     Enums: {
