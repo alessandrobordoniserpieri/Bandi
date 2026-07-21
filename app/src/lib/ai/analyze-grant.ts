@@ -91,14 +91,40 @@ export function buildAnalysisDocument(
   return lines.join("\n");
 }
 
+export interface DocumentText {
+  title: string;
+  text: string;
+}
+
+// Extends buildAnalysisDocument with the full text of the grant's PDF attachments (spec §1: same
+// 4-section schema, richer input). With zero documents it's byte-identical to the plain document
+// — the quick-analysis path is untouched.
+export function buildStrongAnalysisDocument(
+  input: AnalysisProfileInput,
+  grant: Grant,
+  providerName: string | null,
+  documents: DocumentText[],
+): string {
+  const base = buildAnalysisDocument(input, grant, providerName);
+  if (documents.length === 0) return base;
+  const sections = documents.map((d, i) => `--- Documento ${i + 1}: ${d.title} ---\n${d.text}`);
+  return [base, "", "== TESTO INTEGRALE DEI DOCUMENTI ALLEGATI ==", ...sections].join("\n");
+}
+
 export async function analyzeGrant(
   llm: LLMProvider,
   input: AnalysisProfileInput,
   grant: Grant,
   providerName: string | null,
+  documents: DocumentText[] = [],
 ): Promise<GrantAnalysis> {
+  const document =
+    documents.length > 0
+      ? buildStrongAnalysisDocument(input, grant, providerName, documents)
+      : buildAnalysisDocument(input, grant, providerName);
+
   let raw = await llm.extract({
-    html: buildAnalysisDocument(input, grant, providerName),
+    html: document,
     schema: ANALYSIS_JSON_SCHEMA,
     instructions: ANALYSIS_INSTRUCTIONS,
   });

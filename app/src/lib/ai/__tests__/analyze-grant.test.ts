@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeGrant, buildAnalysisDocument, type AnalysisProfileInput } from "../analyze-grant";
+import { analyzeGrant, buildAnalysisDocument, buildStrongAnalysisDocument, type AnalysisProfileInput, type DocumentText } from "../analyze-grant";
 import type { LLMProvider } from "../provider";
 import type { EntityProfile, Grant } from "@/lib/matching";
 
@@ -82,5 +82,55 @@ describe("analyzeGrant", () => {
   it("throws when every section is empty", async () => {
     const empty = { punti_di_forza: [], rischi: [], suggerimenti: [], passi_successivi: [] };
     await expect(analyzeGrant(llmReturning(empty), input, grant, null)).rejects.toThrow();
+  });
+});
+
+describe("buildStrongAnalysisDocument", () => {
+  it("returns exactly buildAnalysisDocument's output when there are no documents", () => {
+    expect(buildStrongAnalysisDocument(input, grant, "Fondazione Test", [])).toBe(
+      buildAnalysisDocument(input, grant, "Fondazione Test"),
+    );
+  });
+
+  it("appends the full text of each document after the base document", () => {
+    const documents: DocumentText[] = [
+      { title: "Avviso pubblico.pdf", text: "Articolo 1: finalità del bando..." },
+      { title: "Modulo domanda.pdf", text: "Il sottoscritto richiede il contributo..." },
+    ];
+    const doc = buildStrongAnalysisDocument(input, grant, "Fondazione Test", documents);
+    expect(doc).toContain(buildAnalysisDocument(input, grant, "Fondazione Test"));
+    expect(doc).toContain("Avviso pubblico.pdf");
+    expect(doc).toContain("Articolo 1: finalità del bando...");
+    expect(doc).toContain("Modulo domanda.pdf");
+    expect(doc).toContain("Il sottoscritto richiede il contributo...");
+  });
+});
+
+describe("analyzeGrant with documents", () => {
+  it("sends the strong document (including PDF text) to the provider when documents are given", async () => {
+    let capturedHtml = "";
+    const llm: LLMProvider = {
+      name: "stub",
+      extract: async (args) => {
+        capturedHtml = args.html;
+        return validOutput;
+      },
+    };
+    const documents: DocumentText[] = [{ title: "Avviso.pdf", text: "Testo unico riconoscibile XYZ123" }];
+    await analyzeGrant(llm, input, grant, "Fondazione Test", documents);
+    expect(capturedHtml).toContain("Testo unico riconoscibile XYZ123");
+  });
+
+  it("falls back to the plain document when documents is omitted (backward compatible)", async () => {
+    let capturedHtml = "";
+    const llm: LLMProvider = {
+      name: "stub",
+      extract: async (args) => {
+        capturedHtml = args.html;
+        return validOutput;
+      },
+    };
+    await analyzeGrant(llm, input, grant, "Fondazione Test");
+    expect(capturedHtml).toBe(buildAnalysisDocument(input, grant, "Fondazione Test"));
   });
 });
