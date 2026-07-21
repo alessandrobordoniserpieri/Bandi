@@ -39,9 +39,16 @@ export class OcrSpaceProvider implements OcrProvider {
   }
 
   async ocr(fileBytes: Uint8Array, mimeType: string): Promise<string> {
+    // Copy into a plain ArrayBuffer: fileBytes.buffer is typed ArrayBufferLike (could be a
+    // SharedArrayBuffer per lib.dom's generic Uint8Array<TArrayBuffer>), which BlobPart rejects.
+    const arrayBuffer = fileBytes.buffer.slice(
+      fileBytes.byteOffset,
+      fileBytes.byteOffset + fileBytes.byteLength,
+    ) as ArrayBuffer;
+
     const form = new FormData();
     form.set("apikey", this.apiKey);
-    form.set("file", new Blob([fileBytes], { type: mimeType }), "document.pdf");
+    form.set("file", new Blob([arrayBuffer], { type: mimeType }), "document.pdf");
     form.set("filetype", "PDF");
     form.set("OCREngine", "2");
     form.set("isOverlayRequired", "false");
