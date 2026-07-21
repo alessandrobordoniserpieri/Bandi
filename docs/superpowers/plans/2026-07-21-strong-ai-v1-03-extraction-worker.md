@@ -649,7 +649,8 @@ git commit -m "docs(ai): document /api/cron/extract-documents (strong AI analysi
   combaciano con lo schema di `grant_documents` (migration 0014).
 - **Nota per l'utente (non un task, azione manuale):** dopo aver applicato la migration 0015,
   il cron resta inerte finché non vengono impostati i due Vault secret (vedi commento in testa
-  alla migration) — esattamente come 0011, che infatti risulta tuttora MAI attivato in
-  produzione (verificato: nessun job `scrape-every-6-min` in `cron.job`, solo `scrape-daily`
-  disattivato). Fuori scope per questo piano, ma da tenere presente quando si decide di accendere
-  le cron.
+  alla migration) — stesso meccanismo "spento finché non lo accendi tu" già usato per lo
+  scheduler dello scraper in 0011 (verificato: nessun job `scrape-every-6-min` in `cron.job`,
+  solo `scrape-daily` disattivato — **scelta intenzionale dell'utente**, non un difetto: lo
+  scraping va acceso quando l'utente decide, non di default). Vale lo stesso principio per questo
+  cron di estrazione: resta spento finché non imposti tu i Vault secret quando vorrai attivarlo.
