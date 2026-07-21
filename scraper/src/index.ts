@@ -31,3 +31,5 @@ export { enrich } from "./pipeline/enrich";
 export { normalizeUrl } from "./pipeline/dedup";
 export { throttledLoop } from "./pipeline/throttle";
 export type { FundingType } from "./pipeline/vocab";
+export { createBudget, UNLIMITED_BUDGET } from "./pipeline/budget";
+export type { Budget } from "./pipeline/budget";
