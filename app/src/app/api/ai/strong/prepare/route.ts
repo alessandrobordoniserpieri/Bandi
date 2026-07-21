@@ -16,15 +16,16 @@ export async function POST(request: Request): Promise<Response> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Non autenticato." }, { status: 401 });
 
-  let grantId: unknown;
+  let grantId: unknown, force: unknown;
   try {
-    ({ grantId } = await request.json());
+    ({ grantId, force } = await request.json());
   } catch {
     return Response.json({ error: "Richiesta non valida." }, { status: 400 });
   }
   if (typeof grantId !== "string" || !grantId) {
     return Response.json({ error: "Richiesta non valida." }, { status: 400 });
   }
+  const forceReanalyze = force === true;
 
   const { data: profile } = await supabase
     .from("profiles").select("*").eq("user_id", user.id).maybeSingle();
@@ -42,7 +43,8 @@ export async function POST(request: Request): Promise<Response> {
     .select("attachment_url, status")
     .eq("grant_id", grantId);
   const existingUrls = new Set((existingRows ?? []).map((r) => r.attachment_url));
-  const missing = pdfs.filter((p) => !existingUrls.has(p.url));
+  // force (spec §7 escape hatch "ri-analizza"): re-queue every PDF, not just the untracked ones.
+  const missing = forceReanalyze ? pdfs : pdfs.filter((p) => !existingUrls.has(p.url));
 
   if (missing.length > 0) {
     const { allowed } = await checkEntitlement(supabase, user.id, "extraction");
@@ -53,14 +55,22 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
     const { error } = await admin.from("grant_documents").upsert(
-      missing.map((p) => ({ grant_id: grantId, attachment_url: p.url, status: "pending" })),
-      { onConflict: "grant_id,attachment_url", ignoreDuplicates: true },
+      missing.map((p) =>
+        forceReanalyze
+          ? { grant_id: grantId, attachment_url: p.url, status: "pending", extracted_text: null, error: null, ocr_used: false }
+          : { grant_id: grantId, attachment_url: p.url, status: "pending" },
+      ),
+      // Not forcing: ignoreDuplicates protects against a race with a concurrent trigger (never
+      // clobber a row that's already processing/ready). Forcing: we WANT to overwrite it.
+      { onConflict: "grant_id,attachment_url", ignoreDuplicates: !forceReanalyze },
     );
     if (error) {
       return Response.json({ error: "Impossibile avviare l'estrazione. Riprova." }, { status: 502 });
     }
   }
 
-  const rows = [...(existingRows ?? []), ...missing.map(() => ({ status: "pending" }))];
+  const rows = forceReanalyze
+    ? pdfs.map(() => ({ status: "pending" }))
+    : [...(existingRows ?? []), ...missing.map(() => ({ status: "pending" }))];
   return Response.json({ readiness: deriveReadiness(pdfs.length, rows) });
 }

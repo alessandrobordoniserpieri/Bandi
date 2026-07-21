@@ -130,4 +130,38 @@ describe("POST /api/ai/strong/prepare", () => {
     expect(res.status).toBe(429);
     expect(adminUpsert).not.toHaveBeenCalled();
   });
+
+  it("force=true re-queues every PDF as pending (escape hatch, spec §7) even if already ready", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    vi.mocked(getGrant).mockResolvedValue(grantWithPdf);
+    adminSelect.mockResolvedValue({ data: [{ attachment_url: "https://x/avviso.pdf", status: "ready" }] });
+    checkEntitlement.mockResolvedValue({ allowed: true });
+    adminUpsert.mockResolvedValue({ error: null });
+
+    const res = await POST(post({ grantId: "g1", force: true }));
+
+    expect(checkEntitlement).toHaveBeenCalledWith(expect.anything(), "u1", "extraction");
+    expect(adminUpsert).toHaveBeenCalledTimes(1);
+    const [rows, opts] = adminUpsert.mock.calls[0]!;
+    expect(rows).toEqual([{
+      grant_id: "g1", attachment_url: "https://x/avviso.pdf",
+      status: "pending", extracted_text: null, error: null, ocr_used: false,
+    }]);
+    expect(opts).toMatchObject({ ignoreDuplicates: false });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.readiness).toBe("preparing");
+  });
+
+  it("force=true still returns 429 when the daily extraction entitlement is exhausted", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    vi.mocked(getGrant).mockResolvedValue(grantWithPdf);
+    adminSelect.mockResolvedValue({ data: [{ attachment_url: "https://x/avviso.pdf", status: "ready" }] });
+    checkEntitlement.mockResolvedValue({ allowed: false });
+
+    const res = await POST(post({ grantId: "g1", force: true }));
+
+    expect(res.status).toBe(429);
+    expect(adminUpsert).not.toHaveBeenCalled();
+  });
 });
