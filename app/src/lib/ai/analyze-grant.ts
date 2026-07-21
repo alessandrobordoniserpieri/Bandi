@@ -96,9 +96,29 @@ export interface DocumentText {
   text: string;
 }
 
+// Cap on the total PDF text sent to the model (spec §5 "caso limite": grants with huge attachments
+// that would blow past the context window even with a long-context model). ~4 chars/token, so this
+// is roughly 250k tokens of document text — comfortably inside Gemini 2.5 Flash's ~1M window while
+// leaving room for the profile block, instructions, and (in chat) the history. It is exactly the
+// case that V2's vector store is meant to handle; V1 truncates + warns.
+export const MAX_DOCUMENT_TEXT_CHARS = 1_000_000;
+
+// True when the documents' combined text would be truncated by buildStrongAnalysisDocument. Callers
+// (routes) can surface a "documenti molto voluminosi, analisi parziale" notice (spec §5).
+export function isDocumentTextTruncated(documents: DocumentText[]): boolean {
+  let total = 0;
+  for (const d of documents) {
+    total += d.text.length;
+    if (total > MAX_DOCUMENT_TEXT_CHARS) return true;
+  }
+  return false;
+}
+
 // Extends buildAnalysisDocument with the full text of the grant's PDF attachments (spec §1: same
 // 4-section schema, richer input). With zero documents it's byte-identical to the plain document
-// — the quick-analysis path is untouched.
+// — the quick-analysis path is untouched. Document text is capped at MAX_DOCUMENT_TEXT_CHARS
+// across all attachments (spec §5); once the shared budget runs out, further text is dropped and a
+// warning is appended so the model knows the picture is partial.
 export function buildStrongAnalysisDocument(
   input: AnalysisProfileInput,
   grant: Grant,
@@ -107,8 +127,24 @@ export function buildStrongAnalysisDocument(
 ): string {
   const base = buildAnalysisDocument(input, grant, providerName);
   if (documents.length === 0) return base;
-  const sections = documents.map((d, i) => `--- Documento ${i + 1}: ${d.title} ---\n${d.text}`);
-  return [base, "", "== TESTO INTEGRALE DEI DOCUMENTI ALLEGATI ==", ...sections].join("\n");
+
+  const sections: string[] = [];
+  let budget = MAX_DOCUMENT_TEXT_CHARS;
+  let truncated = false;
+  for (let i = 0; i < documents.length; i++) {
+    const d = documents[i]!;
+    if (budget <= 0) { truncated = true; break; }
+    const text = d.text.length > budget ? d.text.slice(0, budget) : d.text;
+    if (text.length < d.text.length) truncated = true;
+    budget -= text.length;
+    sections.push(`--- Documento ${i + 1}: ${d.title} ---\n${text}`);
+  }
+
+  const parts = [base, "", "== TESTO INTEGRALE DEI DOCUMENTI ALLEGATI ==", ...sections];
+  if (truncated) {
+    parts.push("", "AVVISO: i documenti sono molto voluminosi e sono stati troncati; l'analisi è parziale.");
+  }
+  return parts.join("\n");
 }
 
 export async function analyzeGrant(

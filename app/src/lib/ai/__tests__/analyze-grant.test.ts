@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeGrant, buildAnalysisDocument, buildStrongAnalysisDocument, type AnalysisProfileInput, type DocumentText } from "../analyze-grant";
+import { analyzeGrant, buildAnalysisDocument, buildStrongAnalysisDocument, isDocumentTextTruncated, MAX_DOCUMENT_TEXT_CHARS, type AnalysisProfileInput, type DocumentText } from "../analyze-grant";
 import type { LLMProvider } from "../provider";
 import type { EntityProfile, Grant } from "@/lib/matching";
 
@@ -132,5 +132,33 @@ describe("analyzeGrant with documents", () => {
     };
     await analyzeGrant(llm, input, grant, "Fondazione Test");
     expect(capturedHtml).toBe(buildAnalysisDocument(input, grant, "Fondazione Test"));
+  });
+});
+
+describe("document-length cap (spec §5 'caso limite': bandi con allegati enormi)", () => {
+  it("does not truncate and reports no truncation when total document text is under the cap", () => {
+    const documents: DocumentText[] = [{ title: "Piccolo.pdf", text: "x".repeat(1000) }];
+    const doc = buildStrongAnalysisDocument(input, grant, null, documents);
+    expect(doc).not.toContain("AVVISO");
+    expect(doc).toContain("x".repeat(1000));
+    expect(isDocumentTextTruncated(documents)).toBe(false);
+  });
+
+  it("truncates and appends a warning when total document text exceeds the cap", () => {
+    const documents: DocumentText[] = [{ title: "Enorme.pdf", text: "x".repeat(MAX_DOCUMENT_TEXT_CHARS + 50_000) }];
+    const doc = buildStrongAnalysisDocument(input, grant, null, documents);
+    expect(doc).toContain("AVVISO");
+    expect(doc.length).toBeLessThan(MAX_DOCUMENT_TEXT_CHARS + 5_000);
+    expect(isDocumentTextTruncated(documents)).toBe(true);
+  });
+
+  it("stops including further documents once the shared budget is exhausted", () => {
+    const documents: DocumentText[] = [
+      { title: "Uno.pdf", text: "x".repeat(MAX_DOCUMENT_TEXT_CHARS) },
+      { title: "Due.pdf", text: "testo che non dovrebbe comparire" },
+    ];
+    const doc = buildStrongAnalysisDocument(input, grant, null, documents);
+    expect(doc).not.toContain("testo che non dovrebbe comparire");
+    expect(isDocumentTextTruncated(documents)).toBe(true);
   });
 });
