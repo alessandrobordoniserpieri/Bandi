@@ -1,8 +1,10 @@
 // app/src/lib/ai/embedding-provider.ts
 // Embedding seam (spec V2-A): turns text into vectors for pgvector retrieval. Default is Gemini
-// text-embedding-004 (768 dims) — consistent with the Gemini default LLM, good Italian coverage,
-// free tier. Swappable behind EmbeddingProvider (e.g. an open model) without touching callers.
-export const EMBEDDING_MODEL = "text-embedding-004";
+// gemini-embedding-001 reduced to 768 dims (outputDimensionality) — consistent with the Gemini
+// default LLM, good Italian coverage, free tier. The Generative Language API exposes only
+// embedContent (no synchronous batch), so embed() calls it once per text, in order. Swappable
+// behind EmbeddingProvider (e.g. an open model) without touching callers.
+export const EMBEDDING_MODEL = "gemini-embedding-001";
 export const EMBEDDING_DIMS = 768;
 
 export interface EmbeddingProvider {
@@ -10,8 +12,8 @@ export interface EmbeddingProvider {
   embed(texts: string[]): Promise<number[][]>;
 }
 
-interface GeminiBatchEmbedResponse {
-  embeddings?: { values?: number[] }[];
+interface GeminiEmbedResponse {
+  embedding?: { values?: number[] };
 }
 
 export interface GeminiEmbeddingConfig {
@@ -36,22 +38,18 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
     this.endpoint = config.endpoint ?? ENDPOINT;
   }
 
-  async embed(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
-    const url = `${this.endpoint}/${this.model}:batchEmbedContents?key=${encodeURIComponent(this.apiKey)}`;
-    const body = {
-      requests: texts.map((text) => ({
-        model: `models/${this.model}`,
-        content: { parts: [{ text }] },
-      })),
-    };
-
+  private async embedOne(text: string): Promise<number[]> {
+    const url = `${this.endpoint}/${this.model}:embedContent?key=${encodeURIComponent(this.apiKey)}`;
     let res: Response;
     try {
       res = await this.fetchImpl(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          model: `models/${this.model}`,
+          content: { parts: [{ text }] },
+          outputDimensionality: EMBEDDING_DIMS,
+        }),
       });
     } catch (cause) {
       throw new Error("Gemini embedding: errore di rete", { cause });
@@ -60,13 +58,21 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       const detail = await res.text().catch(() => "");
       throw new Error(`Gemini embedding: HTTP ${res.status} ${detail}`.trim());
     }
-
-    const parsed = (await res.json()) as GeminiBatchEmbedResponse;
-    const vectors = (parsed.embeddings ?? []).map((e) => e.values ?? []);
-    if (vectors.length !== texts.length) {
-      throw new Error(`Gemini embedding: attesi ${texts.length} vettori, ricevuti ${vectors.length}`);
+    const parsed = (await res.json()) as GeminiEmbedResponse;
+    const values = parsed.embedding?.values;
+    if (!values || values.length !== EMBEDDING_DIMS) {
+      throw new Error(`Gemini embedding: vettore mancante o di dimensione errata (${values?.length ?? 0})`);
     }
-    return vectors;
+    return values;
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+    const out: number[][] = [];
+    for (const text of texts) {
+      out.push(await this.embedOne(text));
+    }
+    return out;
   }
 }
 

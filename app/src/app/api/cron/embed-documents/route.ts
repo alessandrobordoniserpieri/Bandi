@@ -64,10 +64,9 @@ async function handleEmbed(request: Request): Promise<Response> {
         if (error) throw new Error(`markChunked: ${error.message}`);
       },
       async markEmbedFailed(documentId, message) {
-        // Release the claim so the document is retried on a later run (embed_claimed_at ages out
-        // anyway after 10min; clearing it now lets the next run pick it up immediately).
+        // Leave embed_claimed_at set: the claim's 10-min stale recovery retries it on a LATER run.
+        // Do NOT clear it here — that would let the same run re-claim it immediately and hot-loop.
         console.error("[cron/embed-documents] doc", documentId, "failed:", message);
-        await admin.from("grant_documents").update({ embed_claimed_at: null }).eq("id", documentId);
       },
     });
     console.log("[cron/embed-documents]", JSON.stringify(result));
