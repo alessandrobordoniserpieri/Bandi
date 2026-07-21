@@ -84,3 +84,23 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 }
+
+// Chat history for display on reload (spec §5: "riprendibile tra sessioni/dispositivi"). No
+// entitlement/LLM call — a plain owner-scoped read (RLS already restricts to the caller's rows).
+export async function GET(request: Request): Promise<Response> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "Non autenticato." }, { status: 401 });
+
+  const grantId = new URL(request.url).searchParams.get("grantId");
+  if (!grantId) return Response.json({ error: "Richiesta non valida." }, { status: 400 });
+
+  const { data: rows } = await supabase
+    .from("chat_messages")
+    .select("role, content")
+    .eq("grant_id", grantId)
+    .eq("user_id", user.id)
+    .order("created_at");
+
+  return Response.json({ messages: rows ?? [] }, { headers: { "Cache-Control": "no-store" } });
+}

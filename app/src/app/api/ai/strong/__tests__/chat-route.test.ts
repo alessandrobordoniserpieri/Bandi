@@ -14,7 +14,7 @@ vi.mock("@/lib/ai/provider", async () => {
   return { ...actual, getProvider: vi.fn() };
 });
 
-import { POST } from "../chat/route";
+import { POST, GET } from "../chat/route";
 import { getGrant } from "@/lib/grants/queries";
 import { getProvider } from "@/lib/ai/provider";
 import type { GrantView } from "@/lib/grants/mapping";
@@ -151,5 +151,54 @@ describe("POST /api/ai/strong/chat", () => {
 
     expect(res.status).toBe(502);
     expect(insertedRows).toEqual([{ grant_id: "g1", user_id: "u1", role: "user", content: "ciao" }]);
+  });
+});
+
+function get(grantId?: string): Request {
+  const url = new URL("http://localhost/api/ai/strong/chat");
+  if (grantId) url.searchParams.set("grantId", grantId);
+  return new Request(url);
+}
+
+describe("GET /api/ai/strong/chat", () => {
+  it("returns 401 when unauthenticated", async () => {
+    getUser.mockResolvedValue({ data: { user: null } });
+    const res = await GET(get("g1"));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when grantId is missing", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const res = await GET(get());
+    expect(res.status).toBe(400);
+  });
+
+  it("returns the stored history in order, scoped to grant and user", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    from.mockImplementation((table: string) => {
+      if (table !== "chat_messages") throw new Error(`unexpected table ${table}`);
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              order: async () => ({
+                data: [
+                  { role: "user", content: "Prima domanda" },
+                  { role: "assistant", content: "Prima risposta" },
+                ],
+              }),
+            }),
+          }),
+        }),
+      };
+    });
+
+    const res = await GET(get("g1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.messages).toEqual([
+      { role: "user", content: "Prima domanda" },
+      { role: "assistant", content: "Prima risposta" },
+    ]);
   });
 });
