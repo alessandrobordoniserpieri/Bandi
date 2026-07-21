@@ -2,13 +2,27 @@ import { describe, it, expect } from "vitest";
 import { downloadPdf } from "../download";
 import { ExtractionError, type FetchImpl } from "../types";
 
-// Minimal fake of the fetch Response subset downloadPdf uses.
-function fakeFetch(res: { ok?: boolean; status?: number; body?: Uint8Array }): FetchImpl {
+// Minimal fake of the fetch Response subset downloadPdf uses. `headers` is an optional map for
+// tests that need to assert on header-driven behavior (e.g. Content-Length pre-check);
+// `arrayBufferCalls`, if passed, is incremented every time `arrayBuffer()` is invoked so a test can
+// assert the body was never buffered.
+function fakeFetch(res: {
+  ok?: boolean;
+  status?: number;
+  body?: Uint8Array;
+  headers?: Record<string, string>;
+  arrayBufferCalls?: { count: number };
+}): FetchImpl {
   const bytes = res.body ?? new TextEncoder().encode("%PDF-1.4\n...");
+  const headers = res.headers ?? {};
   return (async () => ({
     ok: res.ok ?? true,
     status: res.status ?? 200,
-    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+    arrayBuffer: async () => {
+      if (res.arrayBufferCalls) res.arrayBufferCalls.count++;
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    },
     text: async () => "detail",
   })) as unknown as FetchImpl;
 }
@@ -41,5 +55,16 @@ describe("downloadPdf", () => {
     big.set(new TextEncoder().encode("%PDF-1.4"), 0);
     await expect(downloadPdf("http://x/a.pdf", { fetchImpl: fakeFetch({ body: big }), maxBytes: 8 }))
       .rejects.toMatchObject({ code: "too_large" });
+  });
+
+  it("throws too_large from a declared Content-Length over maxBytes without buffering the body", async () => {
+    const arrayBufferCalls = { count: 0 };
+    await expect(
+      downloadPdf("http://x/a.pdf", {
+        fetchImpl: fakeFetch({ headers: { "content-length": "1000000" }, arrayBufferCalls }),
+        maxBytes: 8,
+      }),
+    ).rejects.toMatchObject({ code: "too_large" });
+    expect(arrayBufferCalls.count).toBe(0);
   });
 });

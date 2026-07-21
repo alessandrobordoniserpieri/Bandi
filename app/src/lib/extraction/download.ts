@@ -28,6 +28,14 @@ export async function downloadPdf(
     throw new ExtractionError("download_failed", `download: HTTP ${res.status}`, { retryable: false });
   }
 
+  // Reject on the declared Content-Length before buffering the body, so a huge file doesn't sit in
+  // memory just to be discarded by the post-buffer check below. Best-effort only: a server that
+  // omits or lies about Content-Length (or uses chunked encoding) still falls through to that check.
+  const declaredLength = res.headers.get("content-length");
+  if (declaredLength && Number(declaredLength) > maxBytes) {
+    throw new ExtractionError("too_large", `download: file oltre ${maxBytes} byte (content-length)`, { retryable: false });
+  }
+
   const bytes = new Uint8Array(await res.arrayBuffer());
   if (bytes.byteLength > maxBytes) {
     throw new ExtractionError("too_large", `download: file oltre ${maxBytes} byte`, { retryable: false });
