@@ -49,6 +49,30 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cross_chat_messages: {
         Row: {
           content: string
@@ -690,6 +714,33 @@ export type Database = {
           },
         ]
       }
+      user_credits: {
+        Row: {
+          created_at: string
+          free_balance: number
+          free_period_start: string | null
+          paid_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          free_balance?: number
+          free_period_start?: string | null
+          paid_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          free_balance?: number
+          free_period_start?: string | null
+          paid_balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           ai_calls_count: number
@@ -785,6 +836,10 @@ export type Database = {
         }[]
       }
       expire_grants: { Args: never; Returns: undefined }
+      grant_paid_credits: {
+        Args: { p_amount: number; p_reason?: string; p_user_id: string }
+        Returns: undefined
+      }
       match_grant_chunks: {
         Args: {
           grant_ids: string[]
