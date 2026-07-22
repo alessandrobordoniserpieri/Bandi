@@ -59,20 +59,33 @@ Pluggable via `AI_PROVIDER` env var. Gemini is the production default. Adapters:
 
 6-dimension scoring: themes, legal-form, territory, capacity, documents, track-record. Each dimension has its own file in `dimensions/`. Bonuses and indicators modify the raw score. Final verdict: one of 5 levels (ottimo/buono/discreto/basso/insufficiente).
 
+### AI analysis (analisi AI forte — `app/src/lib/ai/`)
+
+Three layers, built incrementally as V1 / V2-A / V2-B; all share the same `checkEntitlement()` seam (see below) and the same LLM provider (`getProvider`, same providers as the scraper).
+
+- **V1 — quick analysis + strong analysis + per-grant chat**: `/api/ai/analyze` always returns a quick analysis, and silently upgrades to a richer one when the grant's `grant_documents` (attached PDFs) are ready — no separate "strong" endpoint. PDF text comes from `pdf-text-extractor.ts`, falling back to OCR (`ocr-provider.ts`, OCR.space) for scanned PDFs; extraction runs as a background worker (`/api/cron/extract-documents`, RPC-based claim with `FOR UPDATE SKIP LOCKED`, off by default until the Vault secrets `extract_endpoint_url`/`extract_cron_secret` are set). Combined document text is capped at `MAX_DOCUMENT_TEXT_CHARS` (1M chars) with a truncation warning surfaced to the LLM. Per-grant advisory chat lives at `/api/ai/strong/chat` (`chat.ts`, history in `chat_messages`, scoped by grant+user).
+- **V2-A — cross-bando chat**: `/api/ai/strong/cross-chat` (`cross-chat.ts`) answers questions across the user's **saved_grants** (the "working set"), via pgvector retrieval over `grant_document_chunks` (`match_grant_chunks` RPC, `<=>` cosine distance, `hnsw` index). Chunks are produced by `chunk-text.ts` and embedded by a background worker (`/api/cron/embed-documents`) using `gemini-embedding-001` (`:embedContent`, `outputDimensionality: 768` — NOT `text-embedding-004`, which 404s on this project). UI at `/assistente`.
+- **V2-B — credits**: chat messages (`chat_message` action, both per-grant and cross-bando) are metered by a monthly credit balance instead of an hourly rate limit — `credits.ts` (`user_credits`: `free_balance` + `paid_balance` two-pool model, `free_balance` lazily reset per calendar month, never accumulates; `paid_balance` only changes via manual top-up, never resets; spend order is free-then-paid). `quick_analysis` and `extraction` remain hourly/daily rate limits. `GET /api/ai/credits` returns the caller's balance for the UI badge in both chat panels.
+
+**Entitlement seam** (`entitlement.ts`): `checkEntitlement(supabase, userId, action, now?)` is the single seam every AI-consuming route calls before spending a unit — it dispatches internally to either the rate-limit table columns (`quick_analysis`, `extraction`) or `credits.ts` (`chat_message`), so routes never know which mechanism is behind an action.
+
+**Security note**: writes to `user_credits`/`credit_transactions` must go through the service-role/admin client — the user's own RLS grant is SELECT-only by design (financial-safety pattern). `grant_paid_credits()` is `SECURITY DEFINER`; its EXECUTE grant is explicitly revoked from `public`/`authenticated`/`anon` (migration `0018`) since Postgres grants EXECUTE to PUBLIC by default.
+
 ### Supabase
 
 - **Project ID**: `gptsklxbkuhdfkksmqhz` (EU region)
-- **Migrations**: `app/supabase/migrations/` (0001-0009)
-- **Key tables**: `grants`, `grant_sources`, `grant_providers`, `profiles`, `user_settings`, `saved_grants`, `scrape_logs`, `scrape_debug`
-- **RLS**: enabled on all user-facing tables
-- **pg_cron**: `expire_grants()` runs daily to mark past-deadline grants as `scaduto`; `cleanup-scrape-debug` purges debug HTML older than 3 days
+- **Migrations**: `app/supabase/migrations/` (0001-0018)
+- **Key tables**: `grants`, `grant_sources`, `grant_providers`, `profiles`, `user_settings`, `saved_grants`, `scrape_logs`, `scrape_debug`, `grant_documents`, `chat_messages`, `grant_document_chunks`, `cross_chat_messages`, `user_credits`, `credit_transactions`
+- **RLS**: enabled on all user-facing tables; `user_credits`/`credit_transactions` are SELECT-only for the owner, writes via admin client only
+- **pg_cron**: `expire_grants()` runs daily to mark past-deadline grants as `scaduto`; `cleanup-scrape-debug` purges debug HTML older than 3 days; scrape scheduling every 6 min (migration 0011, see below)
 
 ### Cron routes (`app/src/app/api/cron/`)
 
 Protected by `CRON_SECRET` header. All routes use `Cache-Control: no-store` to prevent Vercel caching.
-- `/api/cron/scrape` — daily grant scraping
+- `/api/cron/scrape` — grant scraping, triggered every 6 min by `pg_cron`+`pg_net` (daily Vercel cron in `vercel.json` remains as a backstop)
 - `/api/cron/digest` — weekly email digest (Mondays 07:00 via Resend)
 - `/api/cron/extract-documents` — worker di estrazione testo PDF per l'analisi forte (Piano 3/6, spento finché i Vault secret `extract_endpoint_url`/`extract_cron_secret` non sono impostati)
+- `/api/cron/embed-documents` — worker che genera gli embedding (`gemini-embedding-001`) dei chunk di testo estratti, per la chat cross-bando (V2-A)
 
 ## Conventions
 
@@ -90,4 +103,4 @@ Scraper (also needed in app for cron): `AI_PROVIDER` (default: gemini), `GEMINI_
 
 Scraper tuning (optional, sensible defaults): `LLM_THROTTLE_MS` (5000), `SCRAPE_BUDGET_MS` (270000), `LLM_CALL_WORST_CASE_MS` (40000).
 
-App (analisi forte, Piano 2+): `OCR_SPACE_API_KEY` (free tier, registrazione su https://ocr.space/ocrapi — necessaria solo per bandi con PDF scansionati)
+App (analisi forte, Piano 2+): `OCR_SPACE_API_KEY` (free tier, registrazione su https://ocr.space/ocrapi — necessaria solo per bandi con PDF scansionati); `GEMINI_API_KEY` è riusata per gli embedding (`gemini-embedding-001`), nessuna chiave separata richiesta per V2-A.

@@ -86,7 +86,7 @@ describe("POST /api/ai/strong/cross-chat", () => {
     expect(embed).not.toHaveBeenCalled();
   });
 
-  it("returns 429 when the chat entitlement is exhausted", async () => {
+  it("returns 429 when the chat credit balance is exhausted", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     mockTables({ savedGrantIds: ["g1"] });
     checkEntitlement.mockResolvedValue({ allowed: false });

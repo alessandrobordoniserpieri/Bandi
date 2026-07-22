@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface Source {
@@ -10,6 +10,10 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: Source[];
+}
+
+interface CreditsBalance {
+  total: number;
 }
 
 const SUGGESTED_PROMPTS = [
@@ -24,14 +28,23 @@ export function CrossChatPanel() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [credits, setCredits] = useState<CreditsBalance | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const refreshCredits = useCallback(() => {
+    fetch("/api/ai/credits")
+      .then((res) => res.json())
+      .then((body) => { if (typeof body.total === "number") setCredits(body); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/ai/strong/cross-chat")
       .then((res) => res.json())
       .then((body) => { if (Array.isArray(body.messages)) setMessages(body.messages); })
       .finally(() => setLoaded(true));
-  }, []);
+    refreshCredits();
+  }, [refreshCredits]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "nearest" });
@@ -59,6 +72,7 @@ export function CrossChatPanel() {
           content: body.reply as string,
           sources: Array.isArray(body.sources) ? (body.sources as Source[]) : [],
         }]);
+        refreshCredits(); // a credit was just spent
       }
     } catch {
       setError("Risposta non riuscita. Riprova.");
@@ -67,16 +81,31 @@ export function CrossChatPanel() {
     }
   }
 
+  const outOfCredits = credits !== null && credits.total <= 0;
+
   return (
     <div className="strong-chat cross-chat-panel">
       <p className="strong-chat-note">
         L&apos;assistente ragiona sui tuoi <strong>bandi salvati</strong> e tiene conto del tuo profilo ente.
       </p>
+      {credits && (
+        <p className="strong-chat-credits" data-empty={outOfCredits}>
+          {outOfCredits
+            ? "Crediti chat esauriti questo mese — si ricaricano il mese prossimo."
+            : `${credits.total} crediti chat disponibili questo mese`}
+        </p>
+      )}
 
       {loaded && messages.length === 0 && (
         <div className="strong-chat-suggestions">
           {SUGGESTED_PROMPTS.map((p) => (
-            <button key={p} type="button" className="strong-chat-suggestion" onClick={() => send(p)} disabled={sending}>
+            <button
+              key={p}
+              type="button"
+              className="strong-chat-suggestion"
+              onClick={() => send(p)}
+              disabled={sending || outOfCredits}
+            >
               {p}
             </button>
           ))}
@@ -111,9 +140,9 @@ export function CrossChatPanel() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Fai una domanda sui tuoi bandi salvati…"
           rows={2}
-          disabled={sending}
+          disabled={sending || outOfCredits}
         />
-        <Button type="submit" disabled={sending || !input.trim()}>
+        <Button type="submit" disabled={sending || outOfCredits || !input.trim()}>
           {sending ? "Invio…" : "Invia"}
         </Button>
       </form>

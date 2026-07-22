@@ -4,6 +4,23 @@ Documento di consegna sullo **scraping**. Raccoglie vincoli, problemi/fix,
 assunzioni sulla pipeline, decisioni architetturali e lavoro aperto, come
 capiti e decisi in questa sessione (grilling incluso).
 
+> **Aggiornamento — 2026-07-22.** Questo documento resta scaduto su due punti
+> chiave della sezione 4/5 sotto, superati da lavoro successivo (vedi
+> `.claude/CLAUDE.md` per l'architettura corrente, sempre tenuta aggiornata):
+> - **Runtime fuori da Vercel (GitHub Actions)**: **non implementato, e superato**
+>   da una soluzione diversa — `pg_cron`+`pg_net` (migration `0011`) invoca
+>   `/api/cron/scrape` ogni **6 minuti**, l'esecuzione resta su Vercel (300s) ma
+>   il collo di bottiglia "1 cron/giorno su Hobby" è risolto senza uscire da Vercel.
+> - **Distillazione a lista-card**: non implementata come step generico; **risolta
+>   diversamente** dal sistema di **archetipi** (`archetypes.ts`) — ogni fonte
+>   "listing-completo" (es. sportesalute) ha un `sanitize`/parse dedicato invece di
+>   una distillazione condivisa.
+>
+> Il resto (vincoli, problemi/fix, assunzioni fase 1/2) è ancora valido come
+> riferimento storico. Questo file copre solo lo **scraping**; l'analisi AI
+> (V1 quick/strong + V2-A chat cross-bando + V2-B crediti) è documentata in
+> `.claude/CLAUDE.md`, non qui.
+
 > **Stato del codice al momento della scrittura**
 > - Su **main**: PR #44 (chunking), #45 (overlap+dedup), #48 (chunking robusto +
 >   guardia update DB). L'estrattore su main è **ancora a 16 campi**.

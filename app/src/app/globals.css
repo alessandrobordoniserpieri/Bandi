@@ -1096,6 +1096,19 @@ main {
   font-style: italic;
   margin: 0 0 0.75rem;
 }
+.strong-chat-credits {
+  font-size: 0.75rem;
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+}
+.strong-chat-credits[data-empty="true"] {
+  background: var(--warning-light);
+  color: var(--warning-text);
+}
 .strong-chat-suggestions {
   display: flex;
   flex-wrap: wrap;
