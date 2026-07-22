@@ -3,7 +3,7 @@ import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
 import { getGrant } from "@/lib/grants/queries";
 import { getProvider } from "@/lib/ai/provider";
 import { analyzeGrant, type DocumentText } from "@/lib/ai/analyze-grant";
-import { consumeAnalysisQuota } from "@/lib/ai/rate-limit";
+import { checkEntitlement } from "@/lib/ai/entitlement";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Richiesta non valida." }, { status: 400 });
   }
 
-  const { allowed } = await consumeAnalysisQuota(supabase, user.id);
+  const { allowed } = await checkEntitlement(supabase, user.id, "quick_analysis");
   if (!allowed) {
     return Response.json(
       { error: "Hai raggiunto il limite orario di analisi. Riprova più tardi." },

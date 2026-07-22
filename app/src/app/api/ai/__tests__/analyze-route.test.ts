@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const getUser = vi.fn();
-const consumeAnalysisQuota = vi.fn();
+const checkEntitlement = vi.fn();
 const profileFrom = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ auth: { getUser }, from: profileFrom }),
 }));
-vi.mock("@/lib/ai/rate-limit", () => ({
-  consumeAnalysisQuota: (...a: unknown[]) => consumeAnalysisQuota(...a),
+vi.mock("@/lib/ai/entitlement", () => ({
+  checkEntitlement: (...a: unknown[]) => checkEntitlement(...a),
 }));
 vi.mock("@/lib/grants/queries", () => ({ getGrant: vi.fn(async () => null) }));
 vi.mock("@/lib/ai/provider", async () => {
@@ -28,7 +28,7 @@ function post(body: unknown): Request {
 
 beforeEach(() => {
   getUser.mockReset();
-  consumeAnalysisQuota.mockReset();
+  checkEntitlement.mockReset();
   profileFrom.mockReset();
 });
 
@@ -37,12 +37,12 @@ describe("POST /api/ai/analyze", () => {
     getUser.mockResolvedValue({ data: { user: null } });
     const res = await analyzePost(post({ grantId: "g1" }));
     expect(res.status).toBe(401);
-    expect(consumeAnalysisQuota).not.toHaveBeenCalled();
+    expect(checkEntitlement).not.toHaveBeenCalled();
   });
 
   it("returns 429 when the hourly quota is exhausted", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
-    consumeAnalysisQuota.mockResolvedValue({ allowed: false });
+    checkEntitlement.mockResolvedValue({ allowed: false });
     const res = await analyzePost(post({ grantId: "g1" }));
     expect(res.status).toBe(429);
     const body = await res.json();
@@ -71,7 +71,7 @@ describe("POST /api/ai/analyze with ready documents", () => {
     });
 
     getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
-    consumeAnalysisQuota.mockResolvedValue({ allowed: true });
+    checkEntitlement.mockResolvedValue({ allowed: true });
     const { getGrant } = await import("@/lib/grants/queries");
     vi.mocked(getGrant).mockResolvedValue({
       grant: {

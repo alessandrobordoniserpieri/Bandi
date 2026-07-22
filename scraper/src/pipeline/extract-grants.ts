@@ -213,9 +213,18 @@ async function extractFromChunks(
   pageUrl: string,
   schema: JsonSchema,
   instructions: string,
+  shouldStop?: () => boolean,
 ): Promise<unknown[]> {
   const allItems: unknown[] = [];
   for (const chunk of chunks) {
+    // Budget re-check per chunk, not just once before the source starts: a large page needing
+    // several chunks (each a throttled LLM call with its own retries) can otherwise run every
+    // chunk unconditionally after only the first chunk's worst-case time was guaranteed — the
+    // same guarantee the detail loop already gets via throttledLoop's shouldStop.
+    if (shouldStop?.()) {
+      console.warn(`[extractGrants] budget esaurito a metà pagina, ${pageUrl}: chunk troncato`);
+      break;
+    }
     try {
       let raw: unknown = await llm.extract({ html: chunk, schema, instructions });
       if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { continue; } }
@@ -245,7 +254,7 @@ export const FULL_ARCHETYPE: Archetype = {
 
 export async function extractGrants(
   page: RawPage,
-  deps: { llm: LLMProvider; db: GrantsDb },
+  deps: { llm: LLMProvider; db: GrantsDb; shouldStop?: () => boolean },
   archetype: Archetype = FULL_ARCHETYPE,
 ): Promise<ExtractedGrant[]> {
   const cleaned = archetype.sanitize(page.html);
@@ -261,7 +270,7 @@ export async function extractGrants(
     const chunks = splitIntoChunks(cleaned, archetype.chunkSize, archetype.overlap, archetype.boundaryTags);
     console.log(`[extractGrants:${archetype.name}] ${page.url}: ${cleaned.length} chars, ${chunks.length} chunk(s), ${hrefs.size} hrefs`);
     rawItems = await extractFromChunks(
-      chunks, deps.llm, page.url, archetype.listing.schema, archetype.listing.instructions,
+      chunks, deps.llm, page.url, archetype.listing.schema, archetype.listing.instructions, deps.shouldStop,
     );
   }
   if (rawItems.length === 0) return [];

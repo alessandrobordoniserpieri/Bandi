@@ -177,6 +177,26 @@ describe("extractGrants", () => {
     expect(out).toHaveLength(calls.length);
   });
 
+  it("stops issuing further chunk calls once shouldStop() reports the budget is exhausted", async () => {
+    const bigHtml = "a".repeat(50_000);
+    const calls: string[] = [];
+    const llm: LLMProvider = {
+      name: "fake",
+      async extract({ html }) {
+        calls.push(`len=${html.length}`);
+        return [{ title: `Bando ${calls.length}`, url: `https://x/${calls.length}` }];
+      },
+    };
+    const out = await extractGrants(
+      { sourceId: "s1", url: "https://x/list", html: bigHtml },
+      { llm, db: new InMemoryGrantsDb(), shouldStop: () => calls.length >= 1 },
+    );
+    // Same input chunks at least 2 without shouldStop (see test above); with it firing after the
+    // first call, only the first chunk's items should ever reach the LLM.
+    expect(calls).toHaveLength(1);
+    expect(out).toHaveLength(1);
+  });
+
   it("deduplicates grants with the same URL across overlapping chunks", async () => {
     const bigHtml = "a".repeat(50_000);
     const duplicate = { title: "Same Bando", url: "https://x/same" };

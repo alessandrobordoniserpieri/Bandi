@@ -170,10 +170,18 @@ Pipeline a **due fasi** (`run.ts`):
       sintetica (`hash(source_id + titolo + scadenza)`)? Rimandato finché non entra una fonte inline (opzione c).
 
 ### Problemi noti non risolti
-- [ ] **Fondazione Cariplo**: bloccata da Cloudflare anti-bot su Browserless. La sua
-      source nel DB è temporaneamente puntata a **sportesalute.eu** per test → **da ripristinare**.
-- [ ] **Rate limit Gemini free**: chiamate troppo ravvicinate → 429. Va gestito col throttle.
-- [ ] **Rigenerare i tipi Supabase** (`mapping.ts` usa cast `as Record<string, unknown>`).
+- [ ] **Fondazione Cariplo — peggio di quanto scritto sopra.** *(Aggiornato 2026-07-22.)*
+      Non è "temporaneamente puntata a sportesalute.eu": verificato via query diretta su
+      `grant_sources` (progetto `gptsklxbkuhdfkksmqhz`) che **non esiste più nessuna riga**
+      per Cariplo — è stata rimossa, non ripuntata, e la rimozione non è documentata in
+      nessuna migration. Va ri-creata da zero (nuova riga in `grant_sources` con una
+      configurazione che aggiri/eviti il blocco Cloudflare, o una fonte alternativa) — non
+      basta "ripristinare" un puntamento che non esiste.
+- [x] **Rate limit Gemini free**: gestito. `providers/http.ts` fa retry su 429/5xx,
+      `throttle-provider.ts` applica un gate unico cross-fase. *(Verificato 2026-07-22.)*
+- [x] **Tipi Supabase rigenerati**: `database.types.ts` include `grant_type`/`attachments`/
+      `cofunding_percentage`; `mapping.ts` ha un solo cast `unknown` legittimo (jsonb
+      attachments), non più sintomo di tipi vecchi. *(Verificato 2026-07-22.)*
 
 ### Prossimo passo consigliato
 Riprendere il grilling dal punto "fonti aggregatore vs listing-magro", poi

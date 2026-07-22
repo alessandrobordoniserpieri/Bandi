@@ -1,6 +1,7 @@
 -- 0016: V2-A cross-bando vector foundations (spec 2026-07-20-strong-ai-analysis-v2-crossbando-credits-design.md Parte A).
 -- Additive over V1: chunk+embed the text ALREADY extracted in grant_documents. No re-extraction.
--- Embedding: Gemini text-embedding-004 (768 dims). Index: hnsw cosine (pgvector 0.8.x).
+-- Embedding: Gemini gemini-embedding-001 via :embedContent, outputDimensionality 768
+-- (text-embedding-004 404s on this project — do not switch back). Index: hnsw cosine (pgvector 0.8.x).
 -- The embedding cron is SEPARATE and OFF by default (needs Vault secrets embed_endpoint_url /
 -- embed_cron_secret), same pattern as the scrape (0011) and extraction (0015) schedulers.
 create extension if not exists vector;
