@@ -34,7 +34,7 @@ export async function POST(request: Request): Promise<Response> {
   const { allowed } = await checkEntitlement(supabase, user.id, "chat_message");
   if (!allowed) {
     return Response.json(
-      { error: "Hai raggiunto il limite orario di messaggi. Riprova più tardi." },
+      { error: "Hai esaurito i crediti chat disponibili questo mese. Si ricaricano il mese prossimo." },
       { status: 429 },
     );
   }

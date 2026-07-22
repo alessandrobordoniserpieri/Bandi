@@ -1,10 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+}
+
+interface CreditsBalance {
+  total: number;
 }
 
 const SUGGESTED_PROMPTS = [
@@ -19,14 +23,23 @@ export function StrongChatPanel({ grantId }: { grantId: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [credits, setCredits] = useState<CreditsBalance | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const refreshCredits = useCallback(() => {
+    fetch("/api/ai/credits")
+      .then((res) => res.json())
+      .then((body) => { if (typeof body.total === "number") setCredits(body); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/ai/strong/chat?grantId=${encodeURIComponent(grantId)}`)
       .then((res) => res.json())
       .then((body) => { if (Array.isArray(body.messages)) setMessages(body.messages); })
       .finally(() => setLoaded(true));
-  }, [grantId]);
+    refreshCredits();
+  }, [grantId, refreshCredits]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "nearest" });
@@ -50,6 +63,7 @@ export function StrongChatPanel({ grantId }: { grantId: string }) {
         setError(typeof body.error === "string" ? body.error : "Risposta non riuscita. Riprova.");
       } else {
         setMessages((prev) => [...prev, { role: "assistant", content: body.reply as string }]);
+        refreshCredits(); // a credit was just spent
       }
     } catch {
       setError("Risposta non riuscita. Riprova.");
@@ -58,9 +72,18 @@ export function StrongChatPanel({ grantId }: { grantId: string }) {
     }
   }
 
+  const outOfCredits = credits !== null && credits.total <= 0;
+
   return (
     <div className="strong-chat">
       <p className="strong-chat-note">La chat tiene conto del tuo profilo ente.</p>
+      {credits && (
+        <p className="strong-chat-credits" data-empty={outOfCredits}>
+          {outOfCredits
+            ? "Crediti chat esauriti questo mese — si ricaricano il mese prossimo."
+            : `${credits.total} crediti chat disponibili questo mese`}
+        </p>
+      )}
 
       {loaded && messages.length === 0 && (
         <div className="strong-chat-suggestions">
@@ -70,7 +93,7 @@ export function StrongChatPanel({ grantId }: { grantId: string }) {
               type="button"
               className="strong-chat-suggestion"
               onClick={() => send(p)}
-              disabled={sending}
+              disabled={sending || outOfCredits}
             >
               {p}
             </button>
@@ -101,9 +124,9 @@ export function StrongChatPanel({ grantId }: { grantId: string }) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Fai una domanda su questo bando…"
           rows={2}
-          disabled={sending}
+          disabled={sending || outOfCredits}
         />
-        <Button type="submit" disabled={sending || !input.trim()}>
+        <Button type="submit" disabled={sending || outOfCredits || !input.trim()}>
           {sending ? "Invio…" : "Invia"}
         </Button>
       </form>

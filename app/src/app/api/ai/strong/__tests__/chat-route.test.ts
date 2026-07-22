@@ -89,7 +89,7 @@ describe("POST /api/ai/strong/chat", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 429 when the hourly chat entitlement is exhausted", async () => {
+  it("returns 429 when the chat credit balance is exhausted", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     mockTables();
     checkEntitlement.mockResolvedValue({ allowed: false });
