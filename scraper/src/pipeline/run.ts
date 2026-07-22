@@ -13,10 +13,13 @@ const DETAIL_STALE_DAYS = 7;
 // LLM-call spacing now lives in a single provider-level gate (see throttleProvider), which covers
 // both listing chunks and detail calls. The detail loop therefore adds no throttle of its own.
 const DETAIL_THROTTLE_MS = 0;
-// Worst-case duration of one LLM call (per-call timeout × retries + throttle). The budget refuses
-// to start a unit of work unless this much time remains, so a call can never straddle Vercel's
-// hard 300s kill. Overridable per run (see run-production).
-const DEFAULT_WORST_CASE_CALL_MS = 40_000;
+// Worst-case duration of one LLM call: per-call timeout (35s, http.ts DEFAULT_TIMEOUT_MS) × 3
+// retry attempts (retry.ts default) + backoff between them (500ms + 1000ms) + one throttle wait
+// (5s, LLM_THROTTLE_MS default) ≈ 111.5s. Rounded up with margin. The budget refuses to start a
+// unit of work unless this much time remains, so a call can never straddle Vercel's hard 300s
+// kill. Overridable per run (see run-production) — keep in sync with LLM_THROTTLE_MS if that's
+// tuned away from its default, since a larger throttle gate raises this worst case too.
+const DEFAULT_WORST_CASE_CALL_MS = 120_000;
 
 export interface PipelineDeps {
   fetcher: PageFetcher;
@@ -79,7 +82,11 @@ export async function runPipeline(
         if (deps.db.logDebugHtml) {
           await deps.db.logDebugHtml(source.id, page.url, page.html, cleaned).catch(() => {});
         }
-        const grants = await extractGrants(page, { llm: deps.llm, db: deps.db }, archetype);
+        const grants = await extractGrants(
+          page,
+          { llm: deps.llm, db: deps.db, shouldStop: () => !budget.hasTimeFor(worstCaseCallMs) },
+          archetype,
+        );
         for (const raw of grants) {
           const outcome = await saveGrant(enrich(raw), deps.db, {
             detailEnabledBySource, incomingDetailEnabled: archetype.detailEnabled,

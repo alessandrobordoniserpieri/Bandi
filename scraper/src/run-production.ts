@@ -93,7 +93,9 @@ export async function runProductionScrape(
   // Soft wall-clock budget below Vercel's 300s hard kill (default 270s, 30s margin). The pipeline
   // stops starting new sources / detail calls once less than one worst-case call fits.
   const budgetMs = numberEnv(env.SCRAPE_BUDGET_MS, 270_000);
-  const worstCaseCallMs = numberEnv(env.LLM_CALL_WORST_CASE_MS, 40_000);
+  // Keep in sync with run.ts's DEFAULT_WORST_CASE_CALL_MS derivation (35s timeout × 3 retries +
+  // backoff + one throttle wait ≈ 111.5s, rounded up).
+  const worstCaseCallMs = numberEnv(env.LLM_CALL_WORST_CASE_MS, 120_000);
   return runPipeline(sources, {
     fetcher, llm, db,
     budget: createBudget(budgetMs),
