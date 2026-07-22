@@ -6,6 +6,7 @@ import { getSavedGrantByGrantId } from "@/lib/saved-grants/queries";
 import { SaveButton } from "@/components/saved-grants/save-button";
 import { buttonVariants } from "@/components/ui/button";
 import { AIAnalysisPanel } from "@/components/grants/ai-analysis-panel";
+import { StrongAnalysisPanel } from "@/components/grants/strong-analysis-panel";
 import { calculateMatch } from "@/lib/matching";
 import { DeadlineBadge } from "@/components/grants/deadline-badge";
 import { VerdictBadge } from "@/components/grants/verdict-badge";
@@ -176,6 +177,7 @@ export default async function BandoDetailPage({ params }: { params: Promise<{ id
       </section>
 
       <AIAnalysisPanel grantId={grant.id} />
+      <StrongAnalysisPanel grantId={grant.id} />
     </main>
   );
 }

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rowToEntityProfile, type ProfileRow } from "@/lib/profile/schema";
 import { getGrant } from "@/lib/grants/queries";
 import { getProvider } from "@/lib/ai/provider";
-import { analyzeGrant } from "@/lib/ai/analyze-grant";
+import { analyzeGrant, type DocumentText } from "@/lib/ai/analyze-grant";
 import { consumeAnalysisQuota } from "@/lib/ai/rate-limit";
 
 export const runtime = "nodejs";
@@ -39,6 +39,21 @@ export async function POST(request: Request): Promise<Response> {
   const view = await getGrant(grantId);
   if (!view) return Response.json({ error: "Bando non trovato." }, { status: 404 });
 
+  // Silent upgrade to the strong analysis (spec §1): if this grant already has ready extracted
+  // documents (from a prior /api/ai/strong/prepare), fold their text in — same route, same
+  // schema, richer input. No documents yet -> byte-identical to today's quick analysis.
+  const { data: docRows } = await supabase
+    .from("grant_documents")
+    .select("attachment_url, extracted_text")
+    .eq("grant_id", grantId)
+    .eq("status", "ready");
+  const documents: DocumentText[] = (docRows ?? [])
+    .filter((d): d is { attachment_url: string; extracted_text: string } => Boolean(d.extracted_text))
+    .map((d) => ({
+      title: view.grant.attachments?.find((a) => a.url === d.attachment_url)?.title ?? d.attachment_url,
+      text: d.extracted_text,
+    }));
+
   const row = profile as ProfileRow;
   try {
     const analysis = await analyzeGrant(
@@ -50,6 +65,7 @@ export async function POST(request: Request): Promise<Response> {
       },
       view.grant,
       view.providerName,
+      documents,
     );
     return Response.json({ analysis });
   } catch (err) {

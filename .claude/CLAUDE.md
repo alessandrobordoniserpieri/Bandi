@@ -69,9 +69,10 @@ Pluggable via `AI_PROVIDER` env var. Gemini is the production default. Adapters:
 
 ### Cron routes (`app/src/app/api/cron/`)
 
-Protected by `CRON_SECRET` header. Both routes use `Cache-Control: no-store` to prevent Vercel caching.
+Protected by `CRON_SECRET` header. All routes use `Cache-Control: no-store` to prevent Vercel caching.
 - `/api/cron/scrape` — daily grant scraping
 - `/api/cron/digest` — weekly email digest (Mondays 07:00 via Resend)
+- `/api/cron/extract-documents` — worker di estrazione testo PDF per l'analisi forte (Piano 3/6, spento finché i Vault secret `extract_endpoint_url`/`extract_cron_secret` non sono impostati)
 
 ## Conventions
 
@@ -88,3 +89,5 @@ App: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERV
 Scraper (also needed in app for cron): `AI_PROVIDER` (default: gemini), `GEMINI_API_KEY`, `BROWSERLESS_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
 
 Scraper tuning (optional, sensible defaults): `LLM_THROTTLE_MS` (5000), `SCRAPE_BUDGET_MS` (270000), `LLM_CALL_WORST_CASE_MS` (40000).
+
+App (analisi forte, Piano 2+): `OCR_SPACE_API_KEY` (free tier, registrazione su https://ocr.space/ocrapi — necessaria solo per bandi con PDF scansionati)
