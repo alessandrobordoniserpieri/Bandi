@@ -81,6 +81,15 @@ describe("signUp", () => {
     const res = await signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }));
     expect(res).toEqual({ message: "Ti abbiamo inviato un'email di conferma. Confermala e poi accedi." });
   });
+  it("passes an origin-derived emailRedirectTo (confirmation link must not fall back to the dashboard Site URL)", async () => {
+    signUp.mockResolvedValue({ data: { session: null }, error: null });
+    await signUpAction(undefined, fd({ email: "a@b.it", password: "secret1" }));
+    expect(signUp).toHaveBeenCalledWith({
+      email: "a@b.it",
+      password: "secret1",
+      options: { emailRedirectTo: "https://bandi.example/login" },
+    });
+  });
 });
 
 describe("signOut", () => {

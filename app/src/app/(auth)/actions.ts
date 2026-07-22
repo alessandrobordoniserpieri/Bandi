@@ -38,7 +38,13 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (password.length < 6) return { error: "La password deve avere almeno 6 caratteri." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const origin = (await headers()).get("origin") ?? "";
+  // Without this, the confirmation email's link falls back to the project's Supabase Dashboard
+  // "Site URL" (Authentication > URL Configuration) — same reason requestPasswordReset below
+  // builds its own redirectTo from the request origin instead of relying on that default.
+  const { data, error } = await supabase.auth.signUp({
+    email, password, options: { emailRedirectTo: `${origin}/login` },
+  });
   if (error) return { error: italianAuthError(error.message) };
   if (!data.session) {
     // Email confirmation is enabled: no session yet. Tell the user to confirm.
