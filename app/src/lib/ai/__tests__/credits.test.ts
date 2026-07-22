@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { consumeCredit, getCreditBalance, FREE_MONTHLY_CREDITS } from "../credits";
 
+// consume_credit() moved into a SECURITY DEFINER SQL function (migration 0019) so concurrent
+// spends serialize on a row lock instead of racing in app code (see credits.ts). This fake mirrors
+// that function's logic in-memory so consumeCredit()'s behavior contract stays covered here; the
+// atomicity itself is a Postgres guarantee, not something a JS-side fake can exercise.
 function fakeAdmin(initial: Record<string, unknown> | null) {
   let row = initial;
   const transactions: Record<string, unknown>[] = [];
@@ -11,34 +15,41 @@ function fakeAdmin(initial: Record<string, unknown> | null) {
           select() {
             return { eq: () => ({ maybeSingle: async () => ({ data: row }) }) };
           },
-          update(patch: Record<string, unknown>) {
-            return {
-              eq: async () => {
-                row = { ...(row ?? {}), ...patch };
-                return { error: null };
-              },
-            };
-          },
-          insert(patch: Record<string, unknown>) {
-            row = { ...patch };
-            return Promise.resolve({ error: null });
-          },
-        };
-      }
-      if (table === "credit_transactions") {
-        return {
-          insert(t: Record<string, unknown>) {
-            transactions.push(t);
-            return Promise.resolve({ error: null });
-          },
         };
       }
       throw new Error(`unexpected table ${table}`);
+    },
+    rpc(fn: string, args: Record<string, unknown>) {
+      if (fn !== "consume_credit") throw new Error(`unexpected rpc ${fn}`);
+      const now = new Date(args.p_now as string);
+      const { free: resolvedFree, needsReset } = resolveFreeForTest(row, now);
+      let free = resolvedFree;
+      let paid = (row?.paid_balance as number | undefined) ?? 0;
+
+      if (free <= 0 && paid <= 0) return Promise.resolve({ data: false, error: null });
+
+      if (free > 0) free -= 1;
+      else paid -= 1;
+
+      row = {
+        user_id: args.p_user_id,
+        free_balance: free,
+        paid_balance: paid,
+        free_period_start: needsReset ? now.toISOString() : (row?.free_period_start ?? null),
+      };
+      transactions.push({ user_id: args.p_user_id, delta: -1, reason: args.p_reason });
+      return Promise.resolve({ data: true, error: null });
     },
     _row: () => row,
     _transactions: () => transactions,
   };
   return api;
+}
+
+function resolveFreeForTest(row: Record<string, unknown> | null, now: Date): { free: number; needsReset: boolean } {
+  const periodStart = row?.free_period_start as string | undefined;
+  const needsReset = !periodStart || periodStart.slice(0, 7) !== now.toISOString().slice(0, 7);
+  return { free: needsReset ? FREE_MONTHLY_CREDITS : (row!.free_balance as number), needsReset };
 }
 
 const NOW = new Date("2026-07-21T12:00:00Z");

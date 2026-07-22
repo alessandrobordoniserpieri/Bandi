@@ -835,6 +835,10 @@ export type Database = {
           id: string
         }[]
       }
+      consume_credit: {
+        Args: { p_now?: string; p_reason: string; p_user_id: string }
+        Returns: boolean
+      }
       expire_grants: { Args: never; Returns: undefined }
       grant_paid_credits: {
         Args: { p_amount: number; p_reason?: string; p_user_id: string }

@@ -52,42 +52,22 @@ export async function getCreditBalance(
   return { free, paid, total: free + paid };
 }
 
-// Atomically spends 1 credit (free pool first, then paid) and records the movement. Returns
-// { allowed: false } and writes nothing when both pools are empty.
+// Atomically spends 1 credit (free pool first, then paid) and records the movement. Delegates to
+// the consume_credit() SQL function (migration 0019) instead of a read-then-write from app code:
+// two concurrent requests from the same user must serialize on the row lock, not race each other
+// into both reading "allowed" and losing a decrement. Returns { allowed: false } and writes
+// nothing when both pools are empty.
 export async function consumeCredit(
   admin: SupabaseClient<Database>,
   userId: string,
   reason: string,
   now: Date = new Date(),
 ): Promise<{ allowed: boolean }> {
-  const { data } = await admin
-    .from("user_credits")
-    .select("free_balance, free_period_start, paid_balance")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const { free: resolvedFree, needsReset } = resolveFree(data, now);
-  let free = resolvedFree;
-  let paid = data?.paid_balance ?? 0;
-
-  if (free <= 0 && paid <= 0) return { allowed: false };
-
-  if (free > 0) free -= 1;
-  else paid -= 1;
-
-  const row = {
-    user_id: userId,
-    free_balance: free,
-    paid_balance: paid,
-    free_period_start: needsReset ? now.toISOString() : data!.free_period_start,
-    updated_at: now.toISOString(),
-  };
-
-  const { error } = data
-    ? await admin.from("user_credits").update(row).eq("user_id", userId)
-    : await admin.from("user_credits").insert(row);
+  const { data, error } = await admin.rpc("consume_credit", {
+    p_user_id: userId,
+    p_reason: reason,
+    p_now: now.toISOString(),
+  });
   if (error) return { allowed: false };
-
-  await admin.from("credit_transactions").insert({ user_id: userId, delta: -1, reason });
-  return { allowed: true };
+  return { allowed: data === true };
 }
