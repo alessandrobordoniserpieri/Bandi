@@ -11,7 +11,7 @@ const DRAWER_ID = "app-sidebar-drawer";
 type SidebarProps = {
   /** Show the navigation groups + credits widget. False during onboarding. */
   showNav: boolean;
-  /** Placeholder balance until the credits backend lands (DEC-6, F1). */
+  /** Free + paid credit total (DEC-6), fetched server-side by the layout. */
   credits: number;
   signOutAction: () => Promise<void>;
 };

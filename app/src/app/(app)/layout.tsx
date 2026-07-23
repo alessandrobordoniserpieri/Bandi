@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCreditBalance } from "@/lib/ai/credits";
 import { signOut } from "../(auth)/actions";
 import { Sidebar } from "./sidebar";
-
-// Placeholder balance for the pinned credits widget (DEC-6). The real balance
-// arrives with the credits backend in F1; keep it a single named constant.
-const PLACEHOLDER_CREDITS = 12;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -24,11 +21,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // (the onboarding route renders inside this shell) but keep brand + logout.
   const isOnboarded = Boolean(profile);
 
+  // The sidebar widget only renders once onboarded (see below), so skip the
+  // extra read otherwise — a fresh user_credits row does not exist yet.
+  const credits = isOnboarded ? await getCreditBalance(supabase, user.id) : null;
+
   return (
     <div className="app-shell">
       <Sidebar
         showNav={isOnboarded}
-        credits={PLACEHOLDER_CREDITS}
+        credits={credits?.total ?? 0}
         signOutAction={signOut}
       />
       <div className="app-content">{children}</div>
