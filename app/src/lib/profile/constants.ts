@@ -41,6 +41,14 @@ export const OUTCOME_OPTIONS = [
   "finanziato", "non_ammesso", "in_valutazione", "altro",
 ] as const;
 
+// Readable Italian labels — never show the raw snake_case token on screen (concept §6.3).
+export const OUTCOME_LABELS: Record<(typeof OUTCOME_OPTIONS)[number], string> = {
+  finanziato: "Finanziato",
+  non_ammesso: "Non ammesso",
+  in_valutazione: "In valutazione",
+  altro: "Altro",
+};
+
 // §7 co-funding capacity (%). Stored as int.
 export const COFUNDING_OPTIONS = [0, 10, 20, 30, 50] as const;
 
@@ -49,3 +57,24 @@ export const INCOME_SOURCE_OPTIONS = [
   "quote_associative", "donazioni", "5x1000", "contributi_pubblici",
   "attivita_commerciale", "sponsor", "eventi",
 ] as const;
+
+// Readable Italian labels — never show the raw snake_case token on screen (concept §6.3).
+export const INCOME_SOURCE_LABELS: Record<(typeof INCOME_SOURCE_OPTIONS)[number], string> = {
+  quote_associative: "Quote associative",
+  donazioni: "Donazioni",
+  "5x1000": "5x1000",
+  contributi_pubblici: "Contributi pubblici",
+  attivita_commerciale: "Attività commerciale",
+  sponsor: "Sponsor",
+  eventi: "Eventi",
+};
+
+// §4 reporting experience — aligned to matching CapacityAnswers.reportingExperience.
+export const REPORTING_EXPERIENCE_OPTIONS = ["mai", "qualche_volta", "regolarmente"] as const;
+
+// Readable Italian labels — never show the raw snake_case token on screen (concept §6.3).
+export const REPORTING_EXPERIENCE_LABELS: Record<(typeof REPORTING_EXPERIENCE_OPTIONS)[number], string> = {
+  mai: "Mai",
+  qualche_volta: "Qualche volta",
+  regolarmente: "Regolarmente",
+};

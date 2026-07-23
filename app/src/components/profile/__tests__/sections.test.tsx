@@ -26,6 +26,8 @@ describe("profile section components render the FormData name contract", () => {
     // submittable form field — the input has no `name` attribute at all.
     expect(html).not.toContain('name="region"');
     expect(html).toContain('readOnly=""');
+    // Concept §6.3: "Regione (auto)" reads as dev shorthand — spell out what "auto" means.
+    expect(html).toContain("Regione (calcolata automaticamente)");
   });
 
   it("themes renders themes + beneficiaries multi-selects", () => {

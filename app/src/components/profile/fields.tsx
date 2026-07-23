@@ -70,6 +70,7 @@ export function CheckboxField(props: { name: string; label: string; defaultCheck
 
 export function MultiCheckbox(props: {
   name: string; legend: string; options: readonly string[]; defaultValues?: string[];
+  labels?: Record<string, string>;
 }) {
   const selected = new Set(props.defaultValues ?? []);
   return (
@@ -79,7 +80,7 @@ export function MultiCheckbox(props: {
         {props.options.map((o) => (
           <label key={o}>
             <input name={props.name} type="checkbox" value={o} defaultChecked={selected.has(o)} />
-            {" "}{o}
+            {" "}{props.labels?.[o] ?? o}
           </label>
         ))}
       </div>

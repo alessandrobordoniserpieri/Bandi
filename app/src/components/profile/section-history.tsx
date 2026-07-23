@@ -4,7 +4,8 @@ import { useState } from "react";
 import type { ProfileRow } from "@/lib/profile/schema";
 import { CheckboxField, SelectField, MultiCheckbox } from "./fields";
 import {
-  OUTCOME_OPTIONS, COFUNDING_OPTIONS, INCOME_SOURCE_OPTIONS,
+  OUTCOME_OPTIONS, OUTCOME_LABELS, COFUNDING_OPTIONS,
+  INCOME_SOURCE_OPTIONS, INCOME_SOURCE_LABELS,
 } from "@/lib/profile/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ export function SectionHistory(
             <input placeholder="Anno" type="number" value={r.year ?? ""}
               onChange={(e) => update(i, { year: e.target.value ? Number(e.target.value) : null })} />
             <RowSelect value={r.outcome} placeholder="Esito"
-              options={OUTCOME_OPTIONS.map((o) => ({ value: o, label: o }))}
+              options={OUTCOME_OPTIONS.map((o) => ({ value: o, label: OUTCOME_LABELS[o] }))}
               onChange={(v) => update(i, { outcome: v })} />
             <input placeholder="Importo" type="number" value={r.amount ?? ""}
               onChange={(e) => update(i, { amount: e.target.value ? Number(e.target.value) : null })} />
@@ -78,7 +79,8 @@ export function SectionHistory(
         options={COFUNDING_OPTIONS}
         defaultValue={d.cofunding_capacity != null ? String(d.cofunding_capacity) : ""} />
       <MultiCheckbox name="income_sources" legend="Fonti di entrata"
-        options={[...INCOME_SOURCE_OPTIONS]} defaultValues={d.income_sources ?? []} />
+        options={[...INCOME_SOURCE_OPTIONS]} defaultValues={d.income_sources ?? []}
+        labels={INCOME_SOURCE_LABELS} />
     </>
   );
 }

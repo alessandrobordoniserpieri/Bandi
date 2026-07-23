@@ -24,7 +24,7 @@ export function SectionTerritory({ defaultValue }: { defaultValue?: Partial<Prof
           </SelectContent>
         </Select>
       </div>
-      <label>Regione (auto)<input value={region} readOnly /></label>
+      <label>Regione (calcolata automaticamente)<input value={region} readOnly /></label>
       <TextField name="municipality" label="Comune sede" defaultValue={d.municipality ?? ""} />
       <SelectField name="operating_scope" label="Ambito operativo"
         options={OPERATING_SCOPE_OPTIONS} defaultValue={d.operating_scope ?? ""} />

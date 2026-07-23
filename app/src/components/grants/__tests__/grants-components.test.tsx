@@ -27,6 +27,25 @@ describe("VerdictBadge", () => {
     expect(html).toContain("Candidabile");
     expect(html).toContain('data-verdict="Candidabile"');
   });
+
+  it("carries an explanatory tooltip (title) for every verdict, not just the label", () => {
+    const verdicts = [
+      "Candidabile", "Da preparare", "Da valutare",
+      "Bassa priorità", "Non compatibile", "Storico",
+    ] as const;
+    for (const verdict of verdicts) {
+      const html = renderToStaticMarkup(<VerdictBadge verdict={verdict} />);
+      const titleMatch = html.match(/title="([^"]*)"/);
+      expect(titleMatch, `${verdict} has no title attribute`).not.toBeNull();
+      expect(titleMatch![1].length).toBeGreaterThan(verdict.length);
+    }
+  });
+
+  it("gives 'Non compatibile' an actionable next step, not a bare verdict (concept §6.3)", () => {
+    const html = renderToStaticMarkup(<VerdictBadge verdict="Non compatibile" />);
+    const titleMatch = html.match(/title="([^"]*)"/);
+    expect(titleMatch![1]).toMatch(/aggiorna|cerca|altri bandi/i);
+  });
 });
 
 describe("ScoreBreakdown", () => {
