@@ -2,7 +2,7 @@ export { calculateMatch } from "./calculate-match";
 export { deriveVerdict } from "./verdict";
 export { buildBreakdown } from "./breakdown";
 export { buildActions } from "./actions";
-export { buildIndicators } from "./indicators";
+export { buildIndicators, deadlineIndicator } from "./indicators";
 export { computeBonuses } from "./bonuses";
 export { economicCoherence } from "./economic-coherence";
 export { matchHistory, nameSimilarity, normalizeName } from "./storico-match";
@@ -21,7 +21,7 @@ export {
 export type {
   GeoScope, ComplexityLevel, CapacityLevel, ProviderKind, GrantStatus, GrantType, FundingType, ProjectOutcome,
   Verdict, CapacityAnswers, EntityDocuments, ProjectHistoryRow, EntityProfile, Grant, Attachment,
-  DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult,
+  DimensionScore, DimensionKey, BreakdownItem, BonusItem, Indicators, MatchResult, DeadlineIndicator,
   EconomicLevel, EconomicCoherence, EconomicIndicator,
   HistoryBadge, HistoryBadgeKind,
 } from "./types";

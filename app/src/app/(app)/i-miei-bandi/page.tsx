@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSavedGrants } from "@/lib/saved-grants/queries";
-import { SAVED_STATUSES } from "@/lib/saved-grants/status";
+import { SAVED_STATUSES, SAVED_GRANTS_SLOT_LIMIT } from "@/lib/saved-grants/status";
 import { KanbanColumn } from "@/components/saved-grants/kanban-column";
+import { SlotCounter } from "@/components/saved-grants/slot-counter";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function IMieiBandiPage() {
@@ -17,6 +18,7 @@ export default async function IMieiBandiPage() {
     <main>
       <div className="page-header">
         <h1>I miei bandi</h1>
+        <SlotCounter count={items.length} limit={SAVED_GRANTS_SLOT_LIMIT} />
       </div>
       {items.length === 0 ? (
         <EmptyState
