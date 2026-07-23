@@ -50,6 +50,9 @@
   --shadow: 0 1px 3px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.04);
   --shadow-md: 0 4px 6px oklch(0 0 0 / 0.06), 0 2px 4px oklch(0 0 0 / 0.04);
 
+  /* Overlay scrim behind modals/drawers. */
+  --scrim: oklch(0 0 0 / 0.45);
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --transition-fast: 150ms ease-out;
   --transition: 200ms ease-out;
@@ -1623,17 +1626,25 @@ main {
     height: 100dvh;
     width: min(18rem, 82vw);
     transform: translateX(-100%);
-    transition: transform var(--transition);
+    /* Closed: pull out of the focus order and the accessibility tree so a
+       keyboard/SR user never lands on the off-screen nav (WCAG 2.4.3/2.4.7).
+       Delay the visibility flip so the slide-out animation stays visible. */
+    visibility: hidden;
+    transition: transform var(--transition), visibility 0s linear 200ms;
     box-shadow: var(--shadow-md);
     z-index: 60;
   }
-  .app-sidebar[data-open="true"] { transform: translateX(0); }
+  .app-sidebar[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform var(--transition), visibility 0s;
+  }
 
   .app-drawer-backdrop {
     display: block;
     position: fixed;
     inset: 0;
-    background: oklch(0 0 0 / 0.45);
+    background: var(--scrim);
     z-index: 55;
   }
 
