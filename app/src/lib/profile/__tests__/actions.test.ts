@@ -9,7 +9,18 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { getUser },
     from: () => ({
-      insert: (...a: unknown[]) => { insert(...a); return { error: null }; },
+      // `createProfile` reads the row back after insert to compute the honest
+      // completion percent (DEC-12); the unfilled sections (capacity, documents,
+      // history) are simply absent from the patch, which `profileCompletion`
+      // already treats as "not filled" (falsy / empty-array checks).
+      insert: (...a: unknown[]) => {
+        insert(...a);
+        return {
+          select: () => ({
+            single: async () => ({ data: a[0], error: null }),
+          }),
+        };
+      },
       update: (...a: unknown[]) => { update(...a); return { eq: (...e: unknown[]) => { eq(...e); return { error: null }; } }; },
     }),
   }),
@@ -33,16 +44,38 @@ beforeEach(() => {
 });
 
 describe("createProfile", () => {
-  it("inserts a row with derived region and redirects to /", async () => {
+  it("inserts a row (identity/territory/themes/contacts) with derived region", async () => {
     const form = fd([
       ["name", "ASD Test"], ["legal_type", "APS - Associazione di Promozione Sociale"],
-      ["province", "MI"], ["themes", "sport"],
+      ["province", "MI"], ["themes", "sport"], ["contact_email", "info@asd-test.it"],
     ]);
-    await expect(createProfile(undefined, form)).rejects.toThrow(/^REDIRECT:\/$/);
+    const res = await createProfile(undefined, form);
     const inserted = insert.mock.calls[0][0];
     expect(inserted.user_id).toBe("u1");
     expect(inserted.region).toBe("Lombardia");
     expect(inserted.themes).toEqual(["sport"]);
+    expect(inserted.contact_email).toBe("info@asd-test.it");
+    // DEC-12: no more silent redirect to "/" — the caller shows the honest
+    // completion screen (percent + what's still missing) itself.
+    expect(res).toEqual({ ok: true, percent: 68 });
+  });
+
+  it("rejects contacts with neither email nor phone (DEC-12: a reachable contact is required)", async () => {
+    const form = fd([
+      ["name", "X"], ["legal_type", "ONLUS"], ["province", "MI"], ["themes", "sport"],
+    ]);
+    const res = await createProfile(undefined, form);
+    expect(res && "error" in res).toBe(true);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("accepts contacts with only a phone (no email required)", async () => {
+    const form = fd([
+      ["name", "X"], ["legal_type", "ONLUS"], ["province", "MI"], ["themes", "sport"],
+      ["contact_phone", "3331234567"],
+    ]);
+    const res = await createProfile(undefined, form);
+    expect(res).toEqual({ ok: true, percent: 68 });
   });
 
   it("rejects when the essential themes list is empty", async () => {
@@ -60,6 +93,16 @@ describe("createProfile", () => {
     ]);
     const res = await createProfile(undefined, form);
     expect(res && "error" in res).toBe(true);
+  });
+
+  it("rejects an invalid contact email", async () => {
+    const form = fd([
+      ["name", "X"], ["legal_type", "ONLUS"], ["province", "MI"], ["themes", "sport"],
+      ["contact_email", "not-an-email"],
+    ]);
+    const res = await createProfile(undefined, form);
+    expect(res && "error" in res).toBe(true);
+    expect(insert).not.toHaveBeenCalled();
   });
 
   it("redirects to /login when there is no user", async () => {

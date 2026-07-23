@@ -7,12 +7,18 @@ import { createClient } from "@/lib/supabase/server";
 import {
   identitySchema, territorySchema, themesSchema, capacitySchema,
   documentsSchema, partnershipsSchema, historySchema, contactsSchema,
-  deriveRegion,
+  deriveRegion, type ProfileRow,
 } from "./schema";
+import { profileCompletion } from "./completion";
 import type { SectionKey } from "./constants";
 import type { TablesInsert } from "@/lib/supabase/database.types";
 
-export type ProfileActionState = { error: string } | { ok: true } | undefined;
+export type ProfileActionState =
+  | { error: string }
+  // `percent` is only ever set by `createProfile` (DEC-12 honest completion
+  // screen); `updateProfileSection` returns a plain `{ ok: true }`.
+  | { ok: true; percent?: number }
+  | undefined;
 
 const GENERIC_ERROR = "Controlla i campi e riprova.";
 
@@ -113,8 +119,11 @@ export async function createProfile(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // DEC-12: 4 required onboarding sections (identity, territory, themes,
+  // contacts) — the other 4 (capacity, documents, partnerships, history)
+  // stay optional post-onboarding, surfaced by the honest completion screen.
   const patch: Partial<TablesInsert<"profiles">> = { user_id: user.id };
-  for (const section of ["identity", "territory", "themes"] as const) {
+  for (const section of ["identity", "territory", "themes", "contacts"] as const) {
     const res = validateSection(section, readSection(section, formData));
     if (!res.ok) return { error: res.error };
     Object.assign(patch, res.patch);
@@ -123,9 +132,16 @@ export async function createProfile(
   // user_id is always set above; the cast only narrows the (statically)
   // optional field back to required — every other key was already checked
   // against real `profiles` columns when `patch` was built.
-  const { error } = await supabase.from("profiles").insert(patch as TablesInsert<"profiles">);
+  const { data, error } = await supabase
+    .from("profiles")
+    .insert(patch as TablesInsert<"profiles">)
+    .select("*")
+    .single();
   if (error) return { error: "Impossibile creare il profilo. Riprova." };
-  redirect("/");
+
+  // No redirect on success: the wizard shows the real completion percent and
+  // what's still missing instead of implying the profile is now "done".
+  return { ok: true, percent: profileCompletion(data as ProfileRow).percent };
 }
 
 export async function updateProfileSection(
