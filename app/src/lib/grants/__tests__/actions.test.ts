@@ -23,9 +23,10 @@ describe("setDensity", () => {
     }));
   });
 
-  it("revalidates the dashboard and nuovi-bandi paths", async () => {
+  it("revalidates the unified grants list", async () => {
     await setDensity("card");
     expect(revalidatePath).toHaveBeenCalledWith("/");
-    expect(revalidatePath).toHaveBeenCalledWith("/nuovi-bandi");
+    // DEC-1: /nuovi-bandi is gone (folded into the novità filter) — no longer revalidated.
+    expect(revalidatePath).not.toHaveBeenCalledWith("/nuovi-bandi");
   });
 });

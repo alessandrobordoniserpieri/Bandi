@@ -25,12 +25,14 @@ export default async function DashboardPage(
   if (!profile) redirect("/onboarding");
   const row = profile as ProfileRow;
 
-  const views = await getGrants();
+  const { filters, sort } = parseFilters(await searchParams);
+
+  // DEC-1: the ex-"Nuovi bandi" view is now a "novità" toggle — scope the query
+  // to recently-discovered grants when it is on. Stats reflect the active scope.
+  const views = await getGrants(filters.novita ? { discoveredAfterDays: 7 } : undefined);
   const open = buildMatchedGrants(rowToEntityProfile(row), views)
     .filter((m) => m.match.verdict !== "Storico");
   const counts = countByVerdict(open);
-
-  const { filters, sort } = parseFilters(await searchParams);
   const shown = applySort(applyFilters(open, filters), sort);
 
   const percent = profileCompletion(row).percent;
@@ -40,6 +42,7 @@ export default async function DashboardPage(
     <main>
       <div className="page-header">
         <h1>Esplora bandi</h1>
+        {filters.novita && <p>Stai vedendo solo i bandi scoperti negli ultimi 7 giorni.</p>}
         {percent < 100 && (
           <p>Profilo al {percent}%. <Link href="/profilo">Completa il profilo</Link> per risultati più precisi.</p>
         )}

@@ -6,6 +6,9 @@ export type SortKey = "score" | "deadline" | "amount";
 export interface Filters {
   verdetti?: Verdict[];
   onlyCandidabili?: boolean;
+  /** Scope the list to grants discovered in the last 7 days (the ex-"Nuovi bandi"
+   *  view, DEC-1). Applied at query level in the page, not in applyFilters. */
+  novita?: boolean;
   maxDeadlineDays?: number;
   minAmount?: number;
   maxAmount?: number;
@@ -96,6 +99,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   const verdetti = list(sp.verdetto) as Verdict[] | undefined;
   if (verdetti) filters.verdetti = verdetti;
   if (first(sp.candidabili) === "1") filters.onlyCandidabili = true;
+  if (first(sp.novita) === "1") filters.novita = true;
   if (num(sp.scadenza) != null) filters.maxDeadlineDays = num(sp.scadenza);
   if (num(sp.importoMin) != null) filters.minAmount = num(sp.importoMin);
   if (num(sp.importoMax) != null) filters.maxAmount = num(sp.importoMax);
@@ -118,6 +122,7 @@ export function serializeFilters(filters: Filters, sort: SortKey): string {
   if (filters.geoScopes && filters.geoScopes.length) p.set("geo", filters.geoScopes.join(","));
   if (filters.maxAmount != null) p.set("importoMax", String(filters.maxAmount));
   if (filters.minAmount != null) p.set("importoMin", String(filters.minAmount));
+  if (filters.novita) p.set("novita", "1");
   if (filters.maxDeadlineDays != null) p.set("scadenza", String(filters.maxDeadlineDays));
   if (sort !== "score") p.set("sort", sort);
   if (filters.tags && filters.tags.length) p.set("tag", filters.tags.join(","));

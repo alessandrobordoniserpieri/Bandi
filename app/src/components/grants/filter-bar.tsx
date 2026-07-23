@@ -59,6 +59,11 @@ export function FilterBar({
           onChange={(e) => go({ ...filters, onlyCandidabili: e.target.checked || undefined }, sort)} />
         Solo candidabili
       </label>
+      <label className="filter-chip">
+        <input type="checkbox" checked={!!filters.novita}
+          onChange={(e) => go({ ...filters, novita: e.target.checked || undefined }, sort)} />
+        Solo novità (ultimi 7 giorni)
+      </label>
       <DensityToggle current={density} />
       <details className="filter-bar-more" open={hasActiveSecondaryFilters}>
         <summary>Altri filtri</summary>
