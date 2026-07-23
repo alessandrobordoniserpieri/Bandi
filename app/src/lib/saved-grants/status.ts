@@ -4,6 +4,10 @@ import type { Database } from "@/lib/supabase/database.types";
 // outcomes from candidato (finanziato / non_ammesso). Kept in sync with the DB enum below.
 export type SavedGrantStatus = Database["public"]["Enums"]["saved_grant_status"];
 
+// DEC-2 slot counter placeholder. The working set has a cap; DEC-6 wires the real, plan-based
+// limit. Until then this documented constant makes the counter honest without inventing a policy.
+export const SAVED_GRANTS_SLOT_LIMIT = 50;
+
 export const SAVED_STATUSES: readonly SavedGrantStatus[] = [
   "salvato",
   "in_preparazione",

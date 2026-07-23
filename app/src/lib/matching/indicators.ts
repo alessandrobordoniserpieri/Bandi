@@ -5,7 +5,7 @@ import type {
 import { deadlineDays, isClosedGrant } from "./helpers";
 import { economicCoherence } from "./economic-coherence";
 
-function deadlineIndicator(grant: Grant): DeadlineIndicator {
+export function deadlineIndicator(grant: Grant): DeadlineIndicator {
   if (isClosedGrant(grant)) return { days: deadlineDays(grant.deadline), color: "nero", label: "bando chiuso" };
   const days = deadlineDays(grant.deadline);
   let color: DeadlineColor = "verde";

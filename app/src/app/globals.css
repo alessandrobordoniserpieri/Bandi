@@ -1162,9 +1162,37 @@ main {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .kanban-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); }
-.kanban-card h3 { font-size: 0.8125rem; margin: 0; line-height: 1.4; }
-.kanban-card-provider { font-size: 0.75rem; color: var(--text-muted); margin: 0; }
+/* DEC-2: legible title at a normal size (was oversized/hierarchy-less). Title → provider → badges. */
+.kanban-card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+  text-wrap: balance;
+}
+.kanban-card-title a {
+  color: var(--text);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+.kanban-card-title a:hover,
+.kanban-card-title a:focus-visible { color: var(--primary); }
+.kanban-card-provider { font-size: 0.75rem; color: var(--text-muted); margin: -0.25rem 0 0; }
+.kanban-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
 .kanban-card label { margin-bottom: 0; }
+
+/* DEC-2/DEC-6: working-set slot counter at the top of "I miei bandi". */
+.slot-counter {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.slot-counter-value { color: var(--text); font-weight: 600; }
+.slot-counter-total { color: var(--text-muted); font-weight: 600; }
 
 /* ------------------------------------------------------------------ */
 /* SECTION (detail page)                                               */
