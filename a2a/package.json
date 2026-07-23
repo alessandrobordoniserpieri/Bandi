@@ -1,0 +1,16 @@
+{
+  "name": "bandi-a2a",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent2Agent (A2A) infrastructure for the Bandi FE-redesign agent team.",
+  "scripts": {
+    "serve": "tsx src/serve.ts",
+    "orchestrate": "tsx src/orchestrator.ts",
+    "test": "node --import tsx --test src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
