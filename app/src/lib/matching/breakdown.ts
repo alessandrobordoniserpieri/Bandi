@@ -1,8 +1,10 @@
 import type { DimensionScore, BreakdownItem, DimensionKey } from "./types";
 
+// "Storico attività" (not "Track record") disambiguates this dimension from the "Storico"
+// verdict (bando chiuso) and the profile's "Storico e finanze" section — concept §6.3.
 const LABELS: Record<DimensionKey, string> = {
   themes: "Temi", legalForm: "Forma giuridica", territory: "Territorio",
-  capacity: "Capacità", documents: "Documenti", trackRecord: "Track record",
+  capacity: "Capacità", documents: "Documenti", trackRecord: "Storico attività",
 };
 
 export function buildBreakdown(dims: Record<DimensionKey, DimensionScore>): BreakdownItem[] {

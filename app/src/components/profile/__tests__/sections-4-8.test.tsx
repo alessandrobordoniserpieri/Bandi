@@ -51,6 +51,18 @@ describe("profile section components (4-8) render the FormData name contract", (
     expect(html).toContain('name="income_sources"');
   });
 
+  // Concept §6.3: raw snake_case tokens (e.g. "quote_associative") must never be the visible
+  // label — only the persisted <input value> may carry the raw token.
+  it("history shows readable Italian labels for income sources, not raw snake_case", () => {
+    const html = renderToStaticMarkup(<SectionHistory />);
+    expect(html).toContain("Quote associative");
+    expect(html).toContain("Contributi pubblici");
+    expect(html).toContain("Attività commerciale");
+    expect(html).not.toMatch(/>quote_associative</);
+    expect(html).not.toMatch(/>contributi_pubblici</);
+    expect(html).not.toMatch(/>attivita_commerciale</);
+  });
+
   it("partnerships renders public/private partner + coprogettazione inputs", () => {
     const html = renderToStaticMarkup(<SectionPartnerships />);
     expect(html).toContain('name="public_partners"');

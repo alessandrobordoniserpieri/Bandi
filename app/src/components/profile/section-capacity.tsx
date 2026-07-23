@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { calculateCapacity, type CapacityAnswers } from "@/lib/matching";
 import type { ProfileRow } from "@/lib/profile/schema";
+import { REPORTING_EXPERIENCE_OPTIONS, REPORTING_EXPERIENCE_LABELS } from "@/lib/profile/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STAFF = ["0-2", "3-10", "11-30", "30+"] as const;
 const FUNDED = ["0", "1-2", "3-5", "5+"] as const;
-const REPORT = ["mai", "qualche_volta", "regolarmente"] as const;
+const REPORT = REPORTING_EXPERIENCE_OPTIONS;
 const BUDGET = ["<20k", "20-100k", "100-500k", ">500k"] as const;
 
 type Answers = {
@@ -15,8 +16,9 @@ type Answers = {
   reportingExperience: string; annualBudget: string; euProject: boolean;
 };
 
-function CapacitySelect({ name, label, value, options, onChange }: {
-  name: string; label: string; value: string; options: readonly string[]; onChange: (v: string) => void;
+function CapacitySelect({ name, label, value, options, labels, onChange }: {
+  name: string; label: string; value: string; options: readonly string[];
+  labels?: Record<string, string>; onChange: (v: string) => void;
 }) {
   return (
     <div className="form-group">
@@ -26,7 +28,7 @@ function CapacitySelect({ name, label, value, options, onChange }: {
           <SelectValue placeholder="— seleziona —" />
         </SelectTrigger>
         <SelectContent>
-          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          {options.map((o) => <SelectItem key={o} value={o}>{labels?.[o] ?? o}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>
@@ -61,6 +63,7 @@ export function SectionCapacity({ defaultValue }: { defaultValue?: Partial<Profi
       <CapacitySelect name="funded_projects_3y" label="Progetti finanziati (ultimi 3 anni)" value={a.fundedProjects3y} options={FUNDED}
         onChange={(v) => setA({ ...a, fundedProjects3y: v })} />
       <CapacitySelect name="reporting_experience" label="Esperienza di rendicontazione" value={a.reportingExperience} options={REPORT}
+        labels={REPORTING_EXPERIENCE_LABELS}
         onChange={(v) => setA({ ...a, reportingExperience: v })} />
       <CapacitySelect name="annual_budget" label="Budget annuale" value={a.annualBudget} options={BUDGET}
         onChange={(v) => setA({ ...a, annualBudget: v })} />

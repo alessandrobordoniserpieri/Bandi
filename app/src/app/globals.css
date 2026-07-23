@@ -2001,3 +2001,43 @@ main {
   .profile-subnav ul { flex-direction: row; flex-wrap: wrap; }
   .profile-section-panel { padding: 1rem; }
 }
+
+/* Verdict badge tooltip (§6.3 gate finding): CSS-only, keyboard-reachable.
+   title/aria-label already carry the text for screen readers; this adds a
+   visible disclosure on :hover AND :focus-visible for sighted keyboard users
+   (native `title` alone only shows on mouse hover in most browsers). */
+.verdict-badge {
+  position: relative;
+  cursor: default;
+}
+.verdict-badge:hover::after,
+.verdict-badge:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.375rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: normal;
+  width: max-content;
+  max-width: 16rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .verdict-badge:hover::after,
+  .verdict-badge:focus-visible::after {
+    animation: tooltip-in 120ms ease-out;
+  }
+}
+@keyframes tooltip-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
