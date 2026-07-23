@@ -17,8 +17,8 @@ export default async function OnboardingPage() {
     <main>
       <div className="onboarding-shell">
         <div className="page-header" style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <h1>Completa il profilo</h1>
-          <p>Bastano 3 passi e pochi campi essenziali per iniziare a ricevere i tuoi bandi.</p>
+          <h1>Crea il tuo profilo</h1>
+          <p>Bastano 4 passi essenziali per iniziare: il resto potrai completarlo quando vuoi.</p>
         </div>
         <OnboardingWizard />
         <div style={{ textAlign: "center", marginTop: "2rem" }}>

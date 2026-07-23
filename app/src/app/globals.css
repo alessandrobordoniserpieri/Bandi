@@ -1674,6 +1674,19 @@ main {
   border-top: 1px solid var(--border);
 }
 
+/* Honest onboarding completion screen (DEC-12, concept §5.9): real percent +
+   named missing sections, replacing the old implicit "you're done" CTA. */
+.onboarding-complete h2 {
+  margin-bottom: 0.5rem;
+}
+.onboarding-complete > p {
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+}
+.onboarding-complete-missing {
+  font-size: 0.875rem;
+}
+
 /* ------------------------------------------------------------------ */
 /* COMPLETION BAR                                                      */
 /* ------------------------------------------------------------------ */
