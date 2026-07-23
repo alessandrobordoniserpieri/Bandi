@@ -98,7 +98,15 @@ export const contactsSchema = z.object({
   contact_email: z.string().trim().email().optional().or(z.literal("")),
   contact_phone: optionalText,
   notes: optionalText,
-});
+}).refine(
+  (v) => Boolean(v.contact_email) || Boolean(v.contact_phone),
+  {
+    // DEC-12 (gate finding): "contatti obbligatori" must actually require a
+    // reachable contact, not just complete the step with blank fields.
+    message: "Inserisci almeno un'email o un telefono di contatto.",
+    path: ["contact_email"],
+  },
+);
 
 export function deriveRegion(province: string): string {
   return regionForProvince(province) ?? "";

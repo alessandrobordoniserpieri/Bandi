@@ -60,9 +60,19 @@ describe("createProfile", () => {
     expect(res).toEqual({ ok: true, percent: 68 });
   });
 
-  it("contacts is optional: an empty contacts step still creates the profile", async () => {
+  it("rejects contacts with neither email nor phone (DEC-12: a reachable contact is required)", async () => {
     const form = fd([
       ["name", "X"], ["legal_type", "ONLUS"], ["province", "MI"], ["themes", "sport"],
+    ]);
+    const res = await createProfile(undefined, form);
+    expect(res && "error" in res).toBe(true);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("accepts contacts with only a phone (no email required)", async () => {
+    const form = fd([
+      ["name", "X"], ["legal_type", "ONLUS"], ["province", "MI"], ["themes", "sport"],
+      ["contact_phone", "3331234567"],
     ]);
     const res = await createProfile(undefined, form);
     expect(res).toEqual({ ok: true, percent: 68 });
