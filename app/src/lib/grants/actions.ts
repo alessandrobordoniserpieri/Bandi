@@ -11,5 +11,4 @@ export async function setDensity(mode: DensityMode): Promise<void> {
     path: "/",
   });
   revalidatePath("/");
-  revalidatePath("/nuovi-bandi");
 }

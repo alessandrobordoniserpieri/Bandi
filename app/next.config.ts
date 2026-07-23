@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   // resolve the `file:../scraper` symlink and trace its files.
   turbopack: { root: repoRoot },
   outputFileTracingRoot: repoRoot,
+  // DEC-1: "Nuovi bandi" is folded into "Esplora bandi" as a novità filter.
+  // Keep old links/bookmarks working by redirecting to the toggled view.
+  async redirects() {
+    return [{ source: "/nuovi-bandi", destination: "/?novita=1", permanent: true }];
+  },
 };
 
 export default nextConfig;

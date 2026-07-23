@@ -175,7 +175,11 @@ body {
 
 html, body {
   max-width: 100%;
-  overflow-x: hidden;
+  /* clip, not hidden: `overflow-x: hidden` forces `overflow-y` to compute to
+     `auto`, turning <body> into a scroll container that breaks the sticky
+     sidebar (it detaches/glitches on scroll). `clip` prevents horizontal scroll
+     without establishing a scroll container, so position: sticky keeps working. */
+  overflow-x: clip;
 }
 
 /* ------------------------------------------------------------------ */

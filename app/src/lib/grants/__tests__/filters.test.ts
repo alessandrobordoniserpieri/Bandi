@@ -130,4 +130,15 @@ describe("query-string round-trip", () => {
   it("parseFilters reads a repeated/array param by taking the first value", () => {
     expect(parseFilters({ sort: ["amount", "score"] }).sort).toBe("amount");
   });
+  it("novità round-trips through serialize/parse (DEC-1)", () => {
+    const filters: Filters = { novita: true, onlyCandidabili: true };
+    const qs = serializeFilters(filters, "score");
+    expect(qs).toContain("novita=1");
+    const record = Object.fromEntries(new URLSearchParams(qs));
+    expect(parseFilters(record)).toEqual({ filters, sort: "score" });
+  });
+  it("novità is absent from the query string when off", () => {
+    expect(serializeFilters({ onlyCandidabili: true }, "score")).not.toContain("novita");
+    expect(parseFilters({}).filters.novita).toBeUndefined();
+  });
 });
