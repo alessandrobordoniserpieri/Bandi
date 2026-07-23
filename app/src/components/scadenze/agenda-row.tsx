@@ -17,8 +17,16 @@ export function AgendaRow({ item }: { item: SavedGrantView }) {
         {item.providerName && <p className="agenda-row-provider">{item.providerName}</p>}
       </div>
       <div className="agenda-row-badges">
-        {item.verdict && <VerdictBadge verdict={item.verdict} />}
-        <StatusBadge status={item.status} />
+        {item.verdict && (
+          <span>
+            <span className="sr-only">Verdetto: </span>
+            <VerdictBadge verdict={item.verdict} />
+          </span>
+        )}
+        <span>
+          <span className="sr-only">Stato candidatura: </span>
+          <StatusBadge status={item.status} />
+        </span>
         <DeadlineBadge indicator={item.deadline} />
       </div>
     </li>

@@ -38,3 +38,15 @@ export const ECONOMIC_TONE: Record<string, string> = {
 
 export const TONE_FALLBACK = "var(--text-muted)";
 export const HISTORY_TONE = "var(--verdict-storico)";
+
+// Saved-grant pipeline status (DEC-13 agenda + Kanban). Reuses existing tokens
+// already verified >=4.5:1 in both themes (see globals.css :root comments) —
+// no new tokens needed, and it fixes the raw-hex contrast failure the
+// STATUS_META.color field had in dark mode.
+export const STATUS_TONE: Record<string, string> = {
+  salvato: "var(--text-muted)",
+  in_preparazione: "var(--warning-text)",
+  candidato: "var(--primary)",
+  finanziato: "var(--success)",
+  non_ammesso: "var(--error)",
+};
