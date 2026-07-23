@@ -31,7 +31,7 @@ export function OnboardingWizard() {
         {step < STEPS.length - 1
           ? <Button type="button" onClick={() => setStep(step + 1)}>Avanti</Button>
           : <Button type="submit" disabled={pending}>
-              {pending ? "Salvataggio…" : "Completa e vai alla Dashboard"}
+              {pending ? "Salvataggio…" : "Completa e vai a Esplora bandi"}
             </Button>}
       </div>
     </form>

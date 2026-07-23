@@ -39,7 +39,7 @@ export default async function DashboardPage(
   return (
     <main>
       <div className="page-header">
-        <h1>Dashboard</h1>
+        <h1>Esplora bandi</h1>
         {percent < 100 && (
           <p>Profilo al {percent}%. <Link href="/profilo">Completa il profilo</Link> per risultati più precisi.</p>
         )}
