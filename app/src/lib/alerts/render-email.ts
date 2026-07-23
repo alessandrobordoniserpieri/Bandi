@@ -32,7 +32,7 @@ export function renderDigestEmail(digest: Digest, appUrl: string): RenderedEmail
   const subject = n === 1 ? "1 nuovo bando per te" : `${n} nuovi bandi per te`;
   const html = [
     `<div style="font-family:system-ui,Arial,sans-serif;max-width:600px;margin:0 auto;color:#111827">`,
-    `<h1 style="font-size:20px">BANDI-SCANNER — Nuovi bandi della settimana</h1>`,
+    `<h1 style="font-size:20px">Combacia — Nuovi bandi della settimana</h1>`,
     `<p style="color:#374151">Bandi con compatibilità almeno ${digest.threshold}/100 con il tuo profilo:</p>`,
     digest.items.map((it) => itemCard(it, appUrl)).join(""),
     `<p style="color:#6b7280;font-size:12px;margin-top:16px">`,

@@ -4,8 +4,8 @@ import manifest from "../manifest";
 describe("PWA manifest", () => {
   const m = manifest();
 
-  it("is a standalone Italian app named BANDI-SCANNER", () => {
-    expect(m.name).toBe("BANDI-SCANNER");
+  it("is a standalone Italian app named Combacia", () => {
+    expect(m.name).toBe("Combacia");
     expect(m.short_name).toBe("Bandi");
     expect(m.lang).toBe("it");
     expect(m.display).toBe("standalone");

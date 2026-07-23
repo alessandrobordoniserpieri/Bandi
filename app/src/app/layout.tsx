@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BANDI-SCANNER",
+  title: "Combacia",
   description: "Trova i bandi pubblici e privati più compatibili con il tuo ente.",
-  applicationName: "BANDI-SCANNER",
+  applicationName: "Combacia",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Bandi" },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };

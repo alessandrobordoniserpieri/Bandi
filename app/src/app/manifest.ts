@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 // PWA manifest (ADR-006): installable on the home screen, opens standalone.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BANDI-SCANNER",
+    name: "Combacia",
     short_name: "Bandi",
     description: "Trova i bandi pubblici e privati più compatibili con il tuo ente.",
     lang: "it",

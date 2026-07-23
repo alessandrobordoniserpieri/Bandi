@@ -1,7 +1,7 @@
-// Single home for the wordmark. "BANDI-SCANNER" is a placeholder; the definitive
-// Italian name is decided in F4 (DEC-9), so keep the string here and nowhere else.
+// Single home for the wordmark. Definitive Italian name decided in DEC-9
+// (docs/redesign-ui-ux-concept.md §5.12): "Combacia" — keep the string here and nowhere else.
 
-export const BRAND_NAME = "BANDI-SCANNER";
+export const BRAND_NAME = "Combacia";
 
 export function Brand({ className }: { className?: string }) {
   return (

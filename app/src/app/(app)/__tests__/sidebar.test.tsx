@@ -30,8 +30,8 @@ describe("Sidebar", () => {
     expect(html).toContain("aria-label");
   });
 
-  it("renders the brand wordmark placeholder", () => {
-    expect(render("/")).toContain("BANDI-SCANNER");
+  it("renders the brand wordmark", () => {
+    expect(render("/")).toContain("Combacia");
   });
 
   it("renders both group headings", () => {
@@ -94,7 +94,7 @@ describe("Sidebar", () => {
     const html = renderToStaticMarkup(
       <Sidebar showNav={false} credits={0} signOutAction={noopSignOut} />,
     );
-    expect(html).toContain("BANDI-SCANNER");
+    expect(html).toContain("Combacia");
     expect(html).toContain("Esci");
     expect(html).not.toContain("I miei bandi");
   });
