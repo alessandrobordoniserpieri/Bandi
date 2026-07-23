@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCreditBalance } from "@/lib/ai/credits";
+import { CreditsSummary } from "@/components/credits/credits-summary";
 
-// Stub for the "Crediti & piano" page (DEC-6). Balance, transaction history and
-// top-up land with the credits backend in phase F1; this placeholder only
-// claims the route the sidebar widget links to.
+export const dynamic = "force-dynamic";
+
+// "Crediti & piano" (DEC-6, concept §5.7): the real balance behind the
+// sidebar widget, plus the explanation of the two separate mechanics (chat
+// spends credits; quick analysis + document prep are a daily rate-limit).
 export default async function CreditiPage() {
   const supabase = await createClient();
   const {
@@ -18,16 +22,15 @@ export default async function CreditiPage() {
     .maybeSingle();
   if (!profile) redirect("/onboarding");
 
+  const balance = await getCreditBalance(supabase, user.id);
+
   return (
     <main>
       <div className="page-header">
         <h1>Crediti &amp; piano</h1>
-        <p>Il tuo saldo crediti, lo storico dei consumi e la ricarica.</p>
+        <p>Il tuo saldo per la chat con l&apos;assistente AI e come funzionano i limiti giornalieri.</p>
       </div>
-      <div className="empty-state">
-        <p>Questa pagina arriva a breve.</p>
-        <p>Qui vedrai il saldo, come vengono spesi i crediti e potrai ricaricarli.</p>
-      </div>
+      <CreditsSummary balance={balance} />
     </main>
   );
 }
