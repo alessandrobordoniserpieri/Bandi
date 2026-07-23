@@ -1339,7 +1339,7 @@ main {
   background: var(--surface-raised);
 }
 /* Legacy bare-<p> empty states (kept working while call sites migrate). */
-.empty-state > p { margin: 0.25rem 0; font-size: 0.875rem; }
+.empty-state > p:not([class]) { margin: 0.25rem 0; font-size: 0.875rem; }
 .empty-state-icon {
   display: flex;
   align-items: center;
@@ -1364,7 +1364,9 @@ main {
   max-width: 42ch;
   color: var(--text-secondary);
 }
-.empty-state-text a { color: var(--primary); }
+/* Underline inline links in body copy so they aren't distinguished by color
+   alone (WCAG 1.4.1) — the global `a { text-decoration: none }` would otherwise. */
+.empty-state-text a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
 .empty-state-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1406,8 +1408,10 @@ main {
   font-weight: 600;
   color: var(--text);
 }
-/* The heading takes programmatic focus on mount; keep the app's focus ring. */
-.error-state-title:focus-visible {
+/* The heading takes programmatic focus on mount; use :focus (not :focus-visible)
+   because browsers don't apply :focus-visible to programmatic focus of a tabindex=-1
+   element, so the ring would never paint. */
+.error-state-title:focus {
   outline: 2px solid var(--ring);
   outline-offset: 3px;
   border-radius: var(--radius-sm);

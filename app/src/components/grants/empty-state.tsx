@@ -11,7 +11,7 @@ export function EmptyState({ profileComplete }: { profileComplete: boolean }) {
   return (
     <BaseEmptyState
       icon={<SearchX size={24} aria-hidden="true" />}
-      title="Nessun bando corrisponde ai filtri attuali."
+      title="Nessun bando corrisponde ai filtri attuali"
       description={
         profileComplete ? (
           "Prova ad allargare o azzerare i filtri per vedere più opportunità."
