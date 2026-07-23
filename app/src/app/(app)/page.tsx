@@ -55,7 +55,7 @@ export default async function DashboardPage(
       <SubmitUrlDialog />
       <FilterBar filters={filters} sort={sort} density={density} />
       {shown.length === 0
-        ? <EmptyState profileComplete={percent >= 100} />
+        ? <EmptyState profileComplete={percent >= 100} novita={!!filters.novita} />
         : (
           <div className="grant-list">
             {shown.map((m) => <GrantCard key={m.grant.id} matched={m} density={density} />)}
