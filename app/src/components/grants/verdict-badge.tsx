@@ -8,10 +8,13 @@ export function VerdictBadge({ verdict }: { verdict: Verdict }) {
   return (
     <Badge
       variant="outline"
+      className="verdict-badge"
       data-verdict={verdict}
+      data-tooltip={help}
       style={toneStyle(VERDICT_TONE[verdict])}
       title={help}
       aria-label={`${verdict}: ${help}`}
+      tabIndex={0}
     >
       {verdict}
     </Badge>
