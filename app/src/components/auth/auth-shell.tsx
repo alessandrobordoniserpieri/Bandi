@@ -68,7 +68,7 @@ export function AuthShell({
   return (
     <div className="auth-shell">
       <aside className="auth-brand-panel">
-        <span className="auth-wordmark">BANDI-SCANNER</span>
+        <span className="auth-wordmark">Combacia</span>
         <div className="auth-brand-visual">
           <ScoringRadarMark />
         </div>

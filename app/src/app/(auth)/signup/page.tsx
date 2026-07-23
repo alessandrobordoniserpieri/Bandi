@@ -11,7 +11,7 @@ export default function SignupPage() {
   return (
     <AuthShell statement="Il tuo ente, confrontato con bandi pubblici e privati su sei dimensioni di compatibilità.">
       <h1>Registra il tuo ente</h1>
-      <p className="auth-lede">Crea uno spazio BANDI-SCANNER per la tua organizzazione.</p>
+      <p className="auth-lede">Crea uno spazio Combacia per la tua organizzazione.</p>
       <form action={action}>
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" autoComplete="email" required />

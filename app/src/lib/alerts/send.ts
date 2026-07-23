@@ -42,5 +42,5 @@ export class ResendSender implements EmailSender {
 export function getSender(env: Record<string, string | undefined> = process.env): EmailSender {
   const apiKey = env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY mancante");
-  return new ResendSender(apiKey, env.DIGEST_FROM_EMAIL ?? "BANDI-SCANNER <noreply@bandi-scanner.it>");
+  return new ResendSender(apiKey, env.DIGEST_FROM_EMAIL ?? "Combacia <noreply@bandi-scanner.it>");
 }

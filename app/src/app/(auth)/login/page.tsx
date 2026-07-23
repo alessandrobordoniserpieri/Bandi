@@ -11,7 +11,7 @@ export default function LoginPage() {
   return (
     <AuthShell statement="Il tuo ente, confrontato con bandi pubblici e privati su sei dimensioni di compatibilità.">
       <h1>Accedi</h1>
-      <p className="auth-lede">Entra nel tuo spazio BANDI-SCANNER.</p>
+      <p className="auth-lede">Entra nel tuo spazio Combacia.</p>
       <form action={action}>
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" autoComplete="email" required />
