@@ -23,7 +23,7 @@ describe("NAV_GROUPS", () => {
     expect(ente.items.map((i) => [i.label, i.href])).toEqual([
       ["Profilo ente", "/profilo"],
       ["Crediti & piano", "/crediti"],
-      ["Notifiche", "/profilo#notifiche"],
+      ["Notifiche", "/profilo?sezione=notifiche"],
       ["Impostazioni", "/impostazioni"],
     ]);
   });
@@ -66,5 +66,11 @@ describe("isNavItemActive", () => {
     // 'Notifiche' points at /profilo#notifiche and must not double-highlight
     // with 'Profilo ente' when the user is on /profilo.
     expect(isNavItemActive("/profilo", "/profilo#notifiche")).toBe(false);
+  });
+
+  it("never claims the current page for a query-scoped sub-section entry", () => {
+    // 'Notifiche' now points at /profilo?sezione=notifiche (DEC-4 sub-nav) and
+    // must still not double-highlight with 'Profilo ente' on /profilo.
+    expect(isNavItemActive("/profilo", "/profilo?sezione=notifiche")).toBe(false);
   });
 });

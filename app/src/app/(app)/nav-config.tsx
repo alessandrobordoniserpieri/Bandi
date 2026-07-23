@@ -45,8 +45,9 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/profilo", label: "Profilo ente", icon: Building2Icon },
       { href: "/crediti", label: "Crediti & piano", icon: WalletIcon },
-      // Notifiche live inside the profile for now (DEC-14): jump to that section.
-      { href: "/profilo#notifiche", label: "Notifiche", icon: BellIcon },
+      // Notifiche live inside the profile for now (DEC-14): deep-link straight to
+      // that sub-section via the profile sub-nav param (DEC-4).
+      { href: "/profilo?sezione=notifiche", label: "Notifiche", icon: BellIcon },
       { href: "/impostazioni", label: "Impostazioni", icon: SettingsIcon },
     ],
   },
@@ -60,13 +61,13 @@ export const NAV_GROUPS: NavGroup[] = [
  * - Section routes match their own path and any nested sub-route
  *   (e.g. "/profilo/contatti"), guarding against bare prefix collisions
  *   ("/crediti" must not match "/crediti-piano").
- * - In-page anchor entries (href with a "#") never claim the current page, so
- *   "Notifiche" (/profilo#notifiche) does not double-highlight with
- *   "Profilo ente" (/profilo).
+ * - In-page entries — a hash anchor or a query-scoped sub-section (href with a
+ *   "#" or "?") — never claim the current page, so "Notifiche"
+ *   (/profilo?sezione=notifiche) does not double-highlight with "Profilo ente"
+ *   (/profilo).
  */
 export function isNavItemActive(pathname: string, href: string): boolean {
-  const [path, hash] = href.split("#");
-  if (hash) return false;
-  if (path === "/") return pathname === "/";
-  return pathname === path || pathname.startsWith(path + "/");
+  if (href.includes("#") || href.includes("?")) return false;
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(href + "/");
 }
